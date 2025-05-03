@@ -1207,14 +1207,14 @@ return __p;`;
     Object.defineProperty(renderingFunc, "name", { value: `render_${tmplId}`, writable: false });
 
     // Store metadata in the cache
-    let tmpl_source = `function ${tmplId}_source (${(settings.variable || "data")}){\n${source}}`;
-
     if (tmplId) {
-      let tmplMeta = {
+      let tmplMeta = configs.debug ? {
         renderingFunc: renderingFunc,
-        source: escapeHtml.escape(tmpl_source),
+        source: escapeHtml.escape(`function ${tmplId}_source (${settings.dataKeyName}, ${settings.statusKeyName}, ${settings.componentKeyName}, ${settings.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`),
         templateText: escapeHtml.escape(templateText),
-      };
+      } : {
+        renderingFunc: renderingFunc
+      }
       cachedTmpl.set(tmplId, tmplMeta);
 
       // Add to global tmpl namespace (e.g., tmpl.ui.Button)
@@ -1470,7 +1470,7 @@ return __p;`;
             if (remaining === 0 && callback) callback();
           });
           script.addEventListener("error", function () {
-            console.error(`Failed to load script: ${src}`);
+            console.error(`Failed to load script: ${src} `);
             remaining--;
             if (remaining === 0 && callback) callback();
           });
@@ -1486,7 +1486,7 @@ return __p;`;
             if (remaining === 0 && callback) callback();
           });
           link.addEventListener("error", function () {
-            console.error(`Failed to load stylesheet: ${src}`);
+            console.error(`Failed to load stylesheet: ${src} `);
             remaining--;
             if (remaining === 0 && callback) callback();
           });
@@ -1505,7 +1505,7 @@ return __p;`;
               try {
                 importFunc(source, currentOption);
               } catch (e) {
-                console.error(`Error processing imported HTML from ${src}:`, e);
+                console.error(`Error processing imported HTML from ${src}: `, e);
               }
             } else {
               console.error(`Failed to fetch template file: ${src} (Status: ${status})`);
@@ -1528,12 +1528,12 @@ return __p;`;
       if (src.endsWith(".js")) {
         let script = tag("script", { async: true, src: src });
         script.addEventListener("load", callback);
-        script.addEventListener("error", () => { console.error(`Failed to load script: ${src}`); if (callback) callback(); });
+        script.addEventListener("error", () => { console.error(`Failed to load script: ${src} `); if (callback) callback(); });
         document.head.appendChild(script);
       } else if (src.endsWith(".css")) {
         let link = tag("link", { type: "text/css", rel: "stylesheet", href: src });
         link.addEventListener("load", callback); // May not fire reliably
-        link.addEventListener("error", () => { console.error(`Failed to load stylesheet: ${src}`); if (callback) callback(); });
+        link.addEventListener("error", () => { console.error(`Failed to load stylesheet: ${src} `); if (callback) callback(); });
         document.head.appendChild(link);
         // setTimeout(callback, 50); // Call callback early for CSS
       } else {
@@ -1542,7 +1542,7 @@ return __p;`;
             try {
               importFunc(source, currentOption);
             } catch (e) {
-              console.error(`Error processing imported HTML from ${src}:`, e);
+              console.error(`Error processing imported HTML from ${src}: `, e);
             }
           } else {
             console.error(`Failed to fetch template file: ${src} (Status: ${status})`);
@@ -1565,7 +1565,7 @@ return __p;`;
           // Call callback even on error, but maybe pass an error indicator?
           // For now, just log error and call callback (as original did implicitly for non-200/0)
           if (xmlhttp.status == 404) {
-            console.error(`Error 404: Not Found - ${url}`);
+            console.error(`Error 404: Not Found - ${url} `);
           } else if (xmlhttp.status >= 400) {
             console.error(`HTTP Error ${xmlhttp.status} for ${url}`);
           } else {
@@ -1584,7 +1584,7 @@ return __p;`;
 
     xmlhttp.onerror = function () {
       // Handle network errors
-      console.error(`Network error requesting ${url}`);
+      console.error(`Network error requesting ${url} `);
       callback(null, 0, xmlhttp); // Status 0 can indicate network error
     };
     xmlhttp.ontimeout = function () {
@@ -1608,7 +1608,7 @@ return __p;`;
         xmlhttp.send();
       }
     } catch (e) {
-      console.error(`Error sending request to ${url}:`, e);
+      console.error(`Error sending request to ${url}: `, e);
       callback(null, 0, xmlhttp); // Indicate error
     }
   };
@@ -1636,7 +1636,7 @@ return __p;`;
             let label = i18nObj[lang];
             if (label === undefined || label === null) {
               label = defaultText; // Use provided default
-              if (configs.debug) console.warn(`i18n: Label key ["${fullKey}"] for lang "${lang}" is missing. Using default: "${defaultText}"`);
+              if (configs.debug) console.warn(`i18n: Label key["${fullKey}"] for lang "${lang}" is missing.Using default: "${defaultText}"`);
             }
             return label !== undefined && label !== null ? String(label) : ''; // Ensure string return
           };
@@ -1696,7 +1696,7 @@ return __p;`;
             element.setAttribute(key, value);
           }
         } catch (e) {
-          console.error(`Error setting attribute/property "${key}" on <${tagName}>:`, e);
+          console.error(`Error setting attribute / property "${key}" on < ${tagName}>: `, e);
         }
       });
     }
@@ -1729,22 +1729,24 @@ return __p;`;
     return propStrArray.join(" ");
   };
 
-  addTmpl("co-Ele", `##%compomint.tools.genElement(data[0], data[1])##`);
+  addTmpl("co-Ele", `## % compomint.tools.genElement(data[0], data[1])##`);
   addTmpl(
     "co-Element",
     `##
-    data.tag = data.tag || 'div';
+data.tag = data.tag || 'div';
     ##
-    &lt;##=data.tag##
-      ##=data.id ? 'id=\"' + (data.id === true ? component._id : data.id) + '\"' : ''##
-      data-co-props=\"##:data.props##\"
-      data-co-event=\"##:data.event##\"&gt;
-      ##if (typeof data.content === "string") {##
-      ##=data.content##
-      ##} else {##
-        ##%data.content##
-      ##}##
-    &lt;/##=data.tag##&gt;`
+  & lt;## = data.tag##
+      ## = data.id ? 'id=\"' + (data.id === true ? component._id : data.id) + '\"' : ''##
+data - co - props=\"##:data.props##\"
+data - co - event=\"##:data.event##\"&gt;
+      ##if(typeof data.content === "string") {##
+      ## = data.content##
+      ##
+} else {##
+        ## % data.content##
+      ##
+}##
+  & lt;/##=data.tag##&gt;`
   );
   // Return the main namespaces
   return { compomint: root.compomint, tmpl: root.tmpl };
