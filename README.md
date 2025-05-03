@@ -1042,9 +1042,9 @@ component.release();
 
 ### Configuration Options
 
-- `compomint.config.printExecTime` - Enable template rendering time logging
-- `compomint.config.debug` - Enable debug mode
-- `compomint.config.throwError` - Throw errors instead of silently failing
+- `compomint.configs.printExecTime` - Enable template rendering time logging
+- `compomint.configs.debug` - Enable debug mode
+- `compomint.configs.throwError` - Throw errors instead of silently failing
 
 ## Built-in Components
 
@@ -1367,14 +1367,14 @@ The template scope (`tmplScope`) is an object that:
 4. **Debug Mode**: Enable debug mode during development
    ```javascript
    // Enable in development
-   compomint.config.debug = true;
-   compomint.config.printExecTime = true;
-   compomint.config.throwError = true;
+   compomint.configs.debug = true;
+   compomint.configs.printExecTime = true;
+   compomint.configs.throwError = true;
    
    // Disable in production
-   compomint.config.debug = false;
-   compomint.config.printExecTime = false;
-   compomint.config.throwError = false;
+   compomint.configs.debug = false;
+   compomint.configs.printExecTime = false;
+   compomint.configs.throwError = false;
    ```
 
 ## Code Examples

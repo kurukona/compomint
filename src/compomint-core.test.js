@@ -20,13 +20,13 @@ const compomintCoreCode = fs.readFileSync(path.resolve(__dirname, './compomint-c
 describe('Compomint Template Engine', () => {
   let Compomint;
   let tools;
-  let config;
+  let configs;
 
   beforeAll(() => {
     // Ensure Compomint is available globally after script execution
     Compomint = window.compomint;
     tools = Compomint.tools;
-    config = Compomint.config;
+    configs = Compomint.configs;
     if (!Compomint) {
       throw new Error("Compomint library not loaded correctly into JSDOM environment.");
     }
@@ -45,9 +45,9 @@ describe('Compomint Template Engine', () => {
     // Reset i18n
     Compomint.i18n = {};
 
-    // Reset debug/error config if needed (or set specific values for tests)
-    config.debug = false;
-    config.throwError = true; // Default to throwing errors for easier debugging in tests
+    // Reset debug/error configs if needed (or set specific values for tests)
+    configs.debug = false;
+    configs.throwError = true; // Default to throwing errors for easier debugging in tests
 
     // Reset unique ID counter if possible (requires modifying source or using a test build)
     // For now, we assume IDs increment across tests, which is usually fine.
@@ -130,14 +130,14 @@ describe('Compomint Template Engine', () => {
 
 
     it('should handle compilation errors when throwError is true', () => {
-      config.throwError = true;
+      configs.throwError = true;
       expect(() => {
         Compomint.template('test-error', '<div>##=** data.nonExistent.prop ##</div>');
       }).toThrow(); // Expecting a compilation error (likely TypeError)
     });
 
     it('should return undefined on compilation error when throwError is false', () => {
-      config.throwError = false;
+      configs.throwError = false;
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { }); // Suppress console error
       const renderingFunc = Compomint.template('test-error-no-throw', '<div>##=** data.nonExistent.prop ##</div>');
       expect(renderingFunc).toBeUndefined();
@@ -273,7 +273,7 @@ describe('Compomint Template Engine', () => {
       });
 
       it('should throw error during compilation if code fails and throwError is true', () => {
-        config.throwError = true;
+        configs.throwError = true;
         const templateString = '##! nonExistentFunc() ##<div>Content</div>';
         expect(() => {
           Compomint.template('pre-eval-error-throw', templateString);
@@ -281,7 +281,7 @@ describe('Compomint Template Engine', () => {
       });
 
       it('should log error and continue compilation if code fails and throwError is false', () => {
-        config.throwError = false;
+        configs.throwError = false;
         const consoleErrorSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
         const templateString = '##! nonExistentFunc() ##<div>Content</div>';
 
@@ -658,18 +658,18 @@ describe('Compomint Template Engine', () => {
         const docFragment = component.element; // Use the actual rendered element fragment
 
         // Temporarily disable throwError to check console warning
-        config.throwError = false;
+        configs.throwError = false;
         const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
 
         expect(() => {
           settings.element.lazyExec({}, lazyScope, component, docFragment);
         }).not.toThrow();
 
-        // Check if a warning was logged (if config.debug was true)
+        // Check if a warning was logged (if configs.debug was true)
         // expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Element insertion placeholder not found'));
 
         consoleWarnSpy.mockRestore();
-        config.throwError = true; // Restore default
+        configs.throwError = true; // Restore default
       });
 
       it('should handle invalid childTarget gracefully', () => {
@@ -681,12 +681,12 @@ describe('Compomint Template Engine', () => {
         expect(component.element.querySelector('template[data-co-tmpl-element-id]')).toBeNull();
 
         // Check console warning if debug is enabled
-        config.debug = true;
+        configs.debug = true;
         const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation((test, test2) => { });
         renderingFunc({ invalid: { some: 'object' } }); // Re-render with debug on
         expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid target for element insertion'), { some: 'object' });
         consoleWarnSpy.mockRestore();
-        config.debug = false;
+        configs.debug = false;
       });
     });
 
@@ -1152,12 +1152,12 @@ describe('Compomint Template Engine', () => {
 
     it('should handle runtime errors during rendering', () => {
       const renderingFunc = Compomint.template('runtime-error', '<div>##= data.nonExistent.prop ##</div>');
-      config.throwError = true;
+      configs.throwError = true;
       expect(() => {
         renderingFunc({ some: 'data' });
       }).toThrow(); // Expecting a runtime error
 
-      config.throwError = false;
+      configs.throwError = false;
       const consoleErrorSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
       const component = renderingFunc({ some: 'data' });
       expect(component.element.nodeType).toBe(Node.COMMENT_NODE); // Should return a comment node on error

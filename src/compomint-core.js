@@ -67,7 +67,7 @@
   let root = this;
   let Compomint = (root.compomint = root.compomint || {});
   let tools = (Compomint.tools = Compomint.tools || {});
-  let config = (Compomint.config = Object.assign({ printExecTime: false, debug: false, throwError: true }, Compomint.config));
+  let configs = (Compomint.configs = Object.assign({ printExecTime: false, debug: false, throwError: true }, Compomint.configs));
 
   //let requestCacheControl = tools.requestCacheControl || true;
   let cachedTmpl = (Compomint.tmplCache = Compomint.tmplCache || new Map());
@@ -170,7 +170,7 @@
         try {
           new Function("tmplId", preEvaluate)(tmplId);
         } catch (e) {
-          if (config.throwError) {
+          if (configs.throwError) {
             console.error(`Template preEvaluate error in "${tmplId}", ${e.name}: ${e.message}`);
             throw e;
           } else {
@@ -224,7 +224,7 @@ __lazyScope.namedElementArray[eventId] = ${key};\n__p+='`;
             '[data-co-named-element="' + eventId + '"]'
           );
           if (!$elementTrigger) {
-            if (config.debug) console.warn(`Named element target not found for ID ${eventId} in template ${component.tmplId}`);
+            if (configs.debug) console.warn(`Named element target not found for ID ${eventId} in template ${component.tmplId}`);
             return;
           }
           delete $elementTrigger.dataset.coNamedElement;
@@ -247,7 +247,7 @@ var ${key} = null;\n__lazyScope.elementRefArray[eventId] = function(target) {${k
             '[data-co-element-ref="' + eventId + '"]'
           );
           if (!$elementTrigger) {
-            if (config.debug) console.warn(`Element ref target not found for ID ${eventId} in template ${component.tmplId}`);
+            if (configs.debug) console.warn(`Element ref target not found for ID ${eventId} in template ${component.tmplId}`);
             return;
           }
           delete $elementTrigger.dataset.coElementRef; // Should likely be coElementRef
@@ -271,7 +271,7 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
             '[data-co-load="' + eventId + '"]'
           );
           if (!$elementTrigger) {
-            if (config.debug) console.warn(`Element load target not found for ID ${eventId} in template ${component.tmplId}`);
+            if (configs.debug) console.warn(`Element load target not found for ID ${eventId} in template ${component.tmplId}`);
             return;
           }
           delete $elementTrigger.dataset.coLoad;
@@ -289,7 +289,7 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
             );
           } catch (e) {
             console.error(`Error executing elementLoad function for ID ${eventId} in template ${component.tmplId}:`, e, elementLoad.loadFunc);
-            if (config.throwError) throw e;
+            if (configs.throwError) throw e;
           }
         });
       },
@@ -319,7 +319,7 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
             `[data-co-event="${eventId}"]`
           );
           if (!$elementTrigger) {
-            if (config.debug) console.warn(`Event target not found for ID ${eventId} in template ${component.tmplId}`);
+            if (configs.debug) console.warn(`Event target not found for ID ${eventId} in template ${component.tmplId}`);
             return;
           }
           delete $elementTrigger.dataset.coEvent;
@@ -394,7 +394,7 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
               eventFunc.call(...eventFuncParams); // Execute the handler
             } catch (e) {
               console.error(`Error in event handler for template ${component.tmplId}:`, e, eventFunc);
-              if (config.throwError) throw e;
+              if (configs.throwError) throw e;
             }
           });
           return;
@@ -415,7 +415,7 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
               eventFunc[eventType].call(...eventFuncParams);
             } catch (e) {
               console.error(`Error in 'load' event handler for template ${component.tmplId}:`, e, eventFunc[eventType]);
-              if (config.throwError) throw e;
+              if (configs.throwError) throw e;
             }
             return;
           } else if (eventType == "namedElement") {
@@ -435,7 +435,7 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
               eventFunc[eventType].call(...eventFuncParams);
             } catch (e) {
               console.error(`Error in '${eventType}' event handler for template ${component.tmplId}:`, e, eventFunc[eventType]);
-              if (config.throwError) throw e;
+              if (configs.throwError) throw e;
             }
           });
 
@@ -471,18 +471,18 @@ __p+='`;
           );
 
           if (!$tmplElement) {
-            if (config.debug) console.warn(`Element insertion placeholder not found for ID ${elementId} in template ${component.tmplId}`);
+            if (configs.debug) console.warn(`Element insertion placeholder not found for ID ${elementId} in template ${component.tmplId}`);
             return;
           }
           if (!$tmplElement.parentNode) {
-            if (config.debug) console.warn(`Element insertion placeholder for ID ${elementId} in template ${component.tmplId} has no parent.`);
+            if (configs.debug) console.warn(`Element insertion placeholder for ID ${elementId} in template ${component.tmplId} has no parent.`);
             return; // Already removed or invalid state
           }
 
           // Function to perform the actual replacement
           let doFunc = function () {
             if (!$tmplElement || !$tmplElement.parentNode) {
-              if (config.debug) console.warn(`Placeholder for ID ${elementId} removed before insertion in template ${component.tmplId}.`);
+              if (configs.debug) console.warn(`Placeholder for ID ${elementId} removed before insertion in template ${component.tmplId}.`);
               return; // Check again in case it was removed during delay
             }
 
@@ -502,7 +502,7 @@ __p+='`;
                   } else if (childElement instanceof Node) {
                     nodeToAppend = childElement;
                   } else {
-                    if (config.debug) console.warn(`Invalid item type in element array for ID ${elementId}, template ${component.tmplId}:`, childElement);
+                    if (configs.debug) console.warn(`Invalid item type in element array for ID ${elementId}, template ${component.tmplId}:`, childElement);
                     return; // Skip invalid items
                   }
 
@@ -553,12 +553,12 @@ __p+='`;
 
               } else {
                 // Invalid target, remove the placeholder
-                if (config.debug) console.warn(`Invalid target for element insertion ID ${elementId}, template ${component.tmplId}:`, childTarget);
+                if (configs.debug) console.warn(`Invalid target for element insertion ID ${elementId}, template ${component.tmplId}:`, childTarget);
                 $tmplElement.parentNode.removeChild($tmplElement);
               }
             } catch (e) {
               console.error(`Error during element insertion for ID ${elementId}, template ${component.tmplId}:`, e);
-              if (config.throwError) throw e;
+              if (configs.throwError) throw e;
               // Attempt to remove placeholder on error to avoid leaving it in the DOM
               if ($tmplElement && $tmplElement.parentNode) {
                 try { $tmplElement.parentNode.removeChild($tmplElement); } catch (removeError) { /* Ignore */ }
@@ -621,7 +621,7 @@ __p+='`;
             selectedFunc.call($targetElement || $childTarget.parentElement, data); // Pass component data as argument
           } catch (e) {
             console.error(`Error in lazyEvaluate block ${idx} for template ${component.tmplId}:`, e, selectedFunc);
-            if (config.throwError) throw e;
+            if (configs.throwError) throw e;
           }
         });
         return;
@@ -735,7 +735,7 @@ __p+='`;
   let defaultMatcher = matcherFunc(Compomint.templateSettings);
 
   let templateParser = function (tmplId, text, matcher) {
-    if (config.printExecTime) console.time(`tmpl: ${tmplId}`);
+    if (configs.printExecTime) console.time(`tmpl: ${tmplId}`);
 
     let index = 0;
     let source = "";
@@ -767,7 +767,7 @@ __p+='`;
           source += matcher.exec[matchIndex].call(matcher.settings, selectedMatchContent, tmplId);
         } catch (e) {
           console.error(`Error executing template rule index ${matchIndex} for match "${selectedMatchContent}" in template "${tmplId}":`, e);
-          if (config.throwError) throw e;
+          if (configs.throwError) throw e;
           source += ''; // Append nothing on error if not throwing
         }
       } else {
@@ -786,7 +786,7 @@ __p+='`;
     // Append any remaining text after the last match
     source += text.slice(index).replace(escaper, escapeFunc);
 
-    if (config.printExecTime) console.timeEnd(`tmpl: ${tmplId}`);
+    if (configs.printExecTime) console.timeEnd(`tmpl: ${tmplId}`);
     return source;
   };
 
@@ -830,7 +830,7 @@ return __p;`;
         source                     // The generated JS code
       );
     } catch (e) {
-      if (config.throwError) {
+      if (configs.throwError) {
         console.error(`Template compilation error in "${tmplId}", ${e.name}: ${e.message}`);
         // Re-run compilation in a way that might provide more detailed browser errors
         new Function(
@@ -885,7 +885,7 @@ return __p;`;
         // Define methods available on the component
         replace: function (newComponent) {
           if (!component.element || !component.element.parentElement) {
-            if (config.debug) console.warn(`Cannot replace template "${tmplId}": element not in DOM.`);
+            if (configs.debug) console.warn(`Cannot replace template "${tmplId}": element not in DOM.`);
             return;
           }
           component.element.parentElement.replaceChild(
@@ -909,7 +909,7 @@ return __p;`;
               parent.removeChild(component.element);
               // Note: component.element still holds the removed element reference
             }
-          } else if (config.debug) {
+          } else if (configs.debug) {
             console.warn(`Cannot remove template "${tmplId}": element not in DOM.`);
           }
           if (component.afterRemove) {
@@ -923,7 +923,7 @@ return __p;`;
           }
           if (parentElement && component.element) {
             parentElement.appendChild(component.element);
-          } else if (config.debug) {
+          } else if (configs.debug) {
             console.warn(`Cannot append template "${tmplId}": parentElement or scope.element is missing.`);
           }
           if (component.afterAppendTo) {
@@ -948,7 +948,7 @@ return __p;`;
       let temp = document.createElement("template"); // Use template tag for parsing
       let returnTarget = null; // Will hold the final element/fragment
 
-      if (config.printExecTime) console.time(`render: ${tmplId}`);
+      if (configs.printExecTime) console.time(`render: ${tmplId}`);
 
       // 4. Execute the compiled render function to get HTML string
       let renderedHTML = null;
@@ -964,7 +964,7 @@ return __p;`;
             lazyScope // Pass internal lazy scope
           );
       } catch (e) {
-        if (config.throwError) {
+        if (configs.throwError) {
           console.error(`Runtime error during render of "${tmplId}":`, e.message);
           console.log("--- Data ---");
           console.log(data);
@@ -974,7 +974,7 @@ return __p;`;
             sourceGenFunc.call(
               wrapperElement || null, data, component[statusKeyName], component,
               component[settings.i18nKeyName], lazyScope,
-              config.debug // __debugger: true
+              configs.debug // __debugger: true
             );
           } catch (debugE) { /* Ignore */ }
 
@@ -986,7 +986,7 @@ return __p;`;
           return component;
         }
       }
-      if (config.printExecTime) console.timeEnd(`render: ${tmplId}`);
+      if (configs.printExecTime) console.timeEnd(`render: ${tmplId}`);
 
       // 5. Parse the generated HTML into a DOM fragment
       temp.innerHTML = renderedHTML;
@@ -1009,7 +1009,7 @@ return __p;`;
             try {
               lazyExec[key].call(settings, data, lazyScope, component, docFragment);
             } catch (e) {
-              if (config.throwError) {
+              if (configs.throwError) {
                 console.error(`Error during lazy execution of "${key}" for template "${tmplId}":`, e);
                 throw e;
               }
@@ -1101,7 +1101,7 @@ return __p;`;
           callback.call(wrapperElement || null, component); // Call with container as `this` if provided
         } catch (e) {
           console.error(`Error in template callback for "${tmplId}":`, e);
-          if (config.throwError) throw e;
+          if (configs.throwError) throw e;
         }
       }
 
@@ -1167,7 +1167,7 @@ return __p;`;
             parent.replaceChild(newComponent.element, targetElement);
             // Call afterAppendTo hook for the new element
             if (newComponent.afterAppendTo) { setTimeout(() => { try { newComponent.afterAppendTo(); } catch (e) { console.error("Error in afterAppendTo during render:", e); } }, 0); }
-          } else if (config.debug) {
+          } else if (configs.debug) {
             console.warn(`Re-render of "${currentComponent.tmplId}" resulted in no element or target was missing.`);
           }
         } else {
@@ -1244,8 +1244,8 @@ return __p;`;
         cachedTmpl.set(newKey, meta);
         // Optionally update the global tmpl namespace as well?
         // This could be complex if the group/sub names change.
-        if (config.debug) console.log(`Remapped template "${oldKey}" to "${newKey}"`);
-      } else if (config.debug) {
+        if (configs.debug) console.log(`Remapped template "${oldKey}" to "${newKey}"`);
+      } else if (configs.debug) {
         console.warn(`Cannot remap template: Old key "${oldKey}" not found in cache.`);
       }
     });
@@ -1269,7 +1269,7 @@ return __p;`;
       // If it's another element, we'll query inside it later. Return as is.
       return source;
     } else if (typeof source !== 'string') {
-      if (config.debug) console.warn("safeTemplate received non-string/non-element source:", source);
+      if (configs.debug) console.warn("safeTemplate received non-string/non-element source:", source);
       source = ''; // Default to empty string if invalid input
     }
 
@@ -1636,7 +1636,7 @@ return __p;`;
             let label = i18nObj[lang];
             if (label === undefined || label === null) {
               label = defaultText; // Use provided default
-              if (config.debug) console.warn(`i18n: Label key ["${fullKey}"] for lang "${lang}" is missing. Using default: "${defaultText}"`);
+              if (configs.debug) console.warn(`i18n: Label key ["${fullKey}"] for lang "${lang}" is missing. Using default: "${defaultText}"`);
             }
             return label !== undefined && label !== null ? String(label) : ''; // Ensure string return
           };

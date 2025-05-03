@@ -21,13 +21,13 @@ const compomintCoreCode = fs.readFileSync(path.resolve(__dirname, './compomint-c
 describe('Built-in Components', () => {
   let Compomint;
   let tools;
-  let config;
+  let configs;
 
   beforeAll(() => {
     // Ensure Compomint is available globally after script execution
     Compomint = window.compomint;
     tools = Compomint.tools;
-    config = Compomint.config;
+    configs = Compomint.configs;
     if (!Compomint) {
       throw new Error("Compomint library not loaded correctly into JSDOM environment.");
     }
@@ -46,9 +46,9 @@ describe('Built-in Components', () => {
     // Reset i18n
     //Compomint.i18n = {};
 
-    // Reset debug/error config if needed (or set specific values for tests)
-    config.debug = false;
-    config.throwError = true; // Default to throwing errors for easier debugging in tests
+    // Reset debug/error configs if needed (or set specific values for tests)
+    configs.debug = false;
+    configs.throwError = true; // Default to throwing errors for easier debugging in tests
 
     // Reset unique ID counter if possible (requires modifying source or using a test build)
     // For now, we assume IDs increment across tests, which is usually fine.

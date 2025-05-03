@@ -60,7 +60,7 @@ jest.setTimeout(10000);
 describe('Compomint.tools.addTmplByUrl', () => {
   let Compomint;
   let tools;
-  let config;
+  let configs;
   let addTmplsSpy;
   let headAppendChildSpy;
   let bodyAppendChildSpy; // appendToHead actually appends to body in the source
@@ -68,7 +68,7 @@ describe('Compomint.tools.addTmplByUrl', () => {
   beforeAll(() => {
     Compomint = window.compomint;
     tools = Compomint.tools;
-    config = Compomint.config;
+    configs = Compomint.configs;
     if (!Compomint) {
       throw new Error("Compomint library not loaded correctly.");
     }
@@ -99,8 +99,8 @@ describe('Compomint.tools.addTmplByUrl', () => {
     Compomint.tmplCache.set("anonymous", { elements: new Set() });
     window.tmpl = {};
     Compomint.i18n = {};
-    config.debug = false;
-    config.throwError = true;
+    configs.debug = false;
+    configs.throwError = true;
   });
 
   afterEach(() => {
