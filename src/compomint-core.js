@@ -68,6 +68,7 @@
   let Compomint = (root.compomint = root.compomint || {});
   let tools = (Compomint.tools = Compomint.tools || {});
   let configs = (Compomint.configs = Object.assign({ printExecTime: false, debug: false, throwError: true }, Compomint.configs));
+  const domParser = new DOMParser();
 
   //let requestCacheControl = tools.requestCacheControl || true;
   let cachedTmpl = (Compomint.tmplCache = Compomint.tmplCache || new Map());
@@ -186,6 +187,14 @@
         // Generates code to evaluate the expression and append the result (or the function call result) to the output string (__p).
         let interpolateSyntax = `typeof (interpolate)=='function' ? (interpolate)() : (interpolate)`;
         return (`';\n(() => {let __t, interpolate=${interpolate};\n__p+=((__t=(${interpolateSyntax}))==null ? '' : __t );})();\n__p+='`);
+      },
+    },
+    escape: {
+      pattern: /##-([\s\S]+?)##/g, // Matches ##- escape blocks ##
+      exec: function (escape) {
+        // Generates code to evaluate the expression and append the HTML-escaped result to the output string.
+        let escapeSyntax = `compomint.tools.escapeHtml.escape(typeof (escape)=='function' ? (escape)() : (escape))`;
+        return (`';\n(() => {let __t, escape=${escape};\n__p+=((__t=(${escapeSyntax}))==null ? '' : __t );})();\n__p+='`);
       },
     },
     elementProps: {
@@ -573,14 +582,13 @@ __p+='`;
 
         }); // end forEach
       },
-      domParser: new DOMParser(),
       stringToElement: function (str) {
         if (typeof str === 'number' || !isNaN(str)) { // Check if it's a number or a numeric string
           return document.createTextNode(String(str));
         } else if (typeof str === 'string') {
           try {
             // Handle string is Html
-            const body = this.domParser.parseFromString(str, "text/html").body;
+            const body = domParser.parseFromString(str, "text/html").body;
             if (body.childNodes === 1) {
               return body.firstChild;
             } else {
@@ -625,14 +633,6 @@ __p+='`;
           }
         });
         return;
-      },
-    },
-    escape: {
-      pattern: /##-([\s\S]+?)##/g, // Matches ##- escape blocks ##
-      exec: function (escape) {
-        // Generates code to evaluate the expression and append the HTML-escaped result to the output string.
-
-        return (`';\n(() => {let __t;__p+=((__t=(${escape}))==null ? '' : compomint.tools.escapeHtml.escape(__t)); })();\n__p+='`);
       },
     },
     evaluate: {
@@ -1729,24 +1729,22 @@ return __p;`;
     return propStrArray.join(" ");
   };
 
-  addTmpl("co-Ele", `## % compomint.tools.genElement(data[0], data[1])##`);
+  addTmpl("co-Ele", `##%compomint.tools.genElement(data[0], data[1])##`);
   addTmpl(
     "co-Element",
     `##
-data.tag = data.tag || 'div';
+    data.tag = data.tag || 'div';
     ##
-  & lt;## = data.tag##
-      ## = data.id ? 'id=\"' + (data.id === true ? component._id : data.id) + '\"' : ''##
-data - co - props=\"##:data.props##\"
-data - co - event=\"##:data.event##\"&gt;
-      ##if(typeof data.content === "string") {##
-      ## = data.content##
-      ##
-} else {##
-        ## % data.content##
-      ##
-}##
-  & lt;/##=data.tag##&gt;`
+    &lt;##=data.tag##
+      ##=data.id ? 'id=\"' + (data.id === true ? component._id : data.id) + '\"' : ''##
+      data-co-props=\"##:data.props##\"
+      data-co-event=\"##:data.event##\"&gt;
+      ##if (typeof data.content === "string") {##
+      ##=data.content##
+      ##} else {##
+        ##%data.content##
+      ##}##
+    &lt;/##=data.tag##&gt;`
   );
   // Return the main namespaces
   return { compomint: root.compomint, tmpl: root.tmpl };
