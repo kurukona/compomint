@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { compomint, tmpl } from '../compomint-core';
+import { compomint, tmpl } from './compomint-core';
 
 // --- Built-in Component Tests ---
 describe('Built-in Components', () => {

@@ -445,6 +445,21 @@ compomint.addI18n('user-profile.greeting', {
 });
 ```
 
+#### `compomint`
+Reference to the global compomint object, providing access to:
+  // Access utility functions
+- `compomint.tools.genElement('div', {class: 'message'}, 'Hello');` - Creates a DOM element
+- `compomint.tools.props({class: 'button', disabled: true});` - Creates HTML attribute string
+- `compomint.tools.genId('my-component');` - Generates a unique ID
+- `compomint.tools.escapeHtml.escape('Hello World');` - Escapes HTML characters
+- And other global functions and configurations
+
+```javascript
+<textarea>
+  ##=compomint.tools.escapeHtml.escape(data.userInput)##
+</textarea>
+```
+
 ### Expression Syntax
 
 Compomint uses special delimiters for different types of expressions:
