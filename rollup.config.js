@@ -7,7 +7,7 @@ import babel from '@rollup/plugin-babel';
 const isProduction = process.env.NODE_ENV === 'production';
 
 export default {
-  input: 'src/compomint-core.js',
+  input: 'src/compomint-core.ts',
   context: 'window',
   output: [
     {

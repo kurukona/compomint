@@ -2,16 +2,8 @@
  * @jest-environment jsdom
  */
 
-// Load the Compomint library script into the JSDOM environment
-const fs = require('fs');
-const path = require('path');
-const compomintCoreCode = fs.readFileSync(path.resolve(__dirname, './compomint-core.js'), 'utf8');
+import { compomint, tmpl } from './compomint-core';
 
-// Execute the script in the current context (JSDOM's window)
-(function () {
-  // 'this' will refer to JSDOM's window
-  eval(compomintCoreCode);
-}).call(window);
 
 // --- Mocking XMLHttpRequest ---
 const mockXhr = {
@@ -57,8 +49,8 @@ XMLHttpRequest.DONE = 4;
 
 jest.setTimeout(10000);
 
-describe('Compomint.tools.addTmplByUrl', () => {
-  let Compomint;
+describe('compomint.tools.addTmplByUrl', () => {
+
   let tools;
   let configs;
   let addTmplsSpy;
@@ -66,10 +58,9 @@ describe('Compomint.tools.addTmplByUrl', () => {
   let bodyAppendChildSpy; // appendToHead actually appends to body in the source
 
   beforeAll(() => {
-    Compomint = window.compomint;
-    tools = Compomint.tools;
-    configs = Compomint.configs;
-    if (!Compomint) {
+    tools = compomint.tools;
+    configs = compomint.configs;
+    if (!compomint) {
       throw new Error("Compomint library not loaded correctly.");
     }
   });
@@ -95,10 +86,10 @@ describe('Compomint.tools.addTmplByUrl', () => {
     addTmplsSpy = jest.spyOn(compomint, 'addTmpls');
 
     // Reset Compomint state
-    Compomint.tmplCache.clear();
-    Compomint.tmplCache.set("anonymous", { elements: new Set() });
+    compomint.tmplCache.clear();
+    compomint.tmplCache.set("anonymous", { elements: new Set() });
     window.tmpl = {};
-    Compomint.i18n = {};
+    compomint.i18n = {};
     configs.debug = false;
     configs.throwError = true;
   });
@@ -129,7 +120,7 @@ describe('Compomint.tools.addTmplByUrl', () => {
       expect(mockXhr.open).toHaveBeenCalledWith('GET', "test.html", true);
       expect(mockXhr.send).toHaveBeenCalled();
       //expect(addTmplsSpy).toHaveBeenCalled();
-      expect(Compomint.tmplCache.has('test-tmpl')).toBe(true);
+      expect(compomint.tmplCache.has('test-tmpl')).toBe(true);
       // Note: appendToHead in the source appends to body
       expect(headAppendChildSpy).toHaveBeenCalledTimes(3); // style, link, script
       expect(headAppendChildSpy.mock.calls[0][0].tagName).toBe('STYLE');
@@ -175,8 +166,8 @@ describe('Compomint.tools.addTmplByUrl', () => {
       expect(mockXhr.open).toHaveBeenCalledWith('GET', "test.html", true);
       expect(mockXhr.send).toHaveBeenCalled();
       //expect(addTmplsSpy).toHaveBeenCalled();
-      expect(Compomint.tmplCache.has('test-tmpl-T1')).toBe(true);
-      expect(Compomint.tmplCache.has('test-tmpl-T2')).toBe(true);
+      expect(compomint.tmplCache.has('test-tmpl-T1')).toBe(true);
+      expect(compomint.tmplCache.has('test-tmpl-T2')).toBe(true);
       // Note: appendToHead in the source appends to body
       expect(headAppendChildSpy).toHaveBeenCalledTimes(4); // style, link, script
       expect(headAppendChildSpy.mock.calls[0][0].tagName).toBe('STYLE');
@@ -224,8 +215,8 @@ describe('Compomint.tools.addTmplByUrl', () => {
       expect(mockXhr.open).toHaveBeenCalledWith('GET', "test.html", true);
       expect(mockXhr.send).toHaveBeenCalled();
       //expect(addTmplsSpy).toHaveBeenCalled();
-      expect(Compomint.tmplCache.has('test-tmpl-T1')).toBe(true);
-      expect(Compomint.tmplCache.has('test-tmpl-T2')).toBe(true);
+      expect(compomint.tmplCache.has('test-tmpl-T1')).toBe(true);
+      expect(compomint.tmplCache.has('test-tmpl-T2')).toBe(true);
       // Note: appendToHead in the source appends to body
       expect(headAppendChildSpy).toHaveBeenCalledTimes(4); // style, link, script
       expect(headAppendChildSpy.mock.calls[0][0].tagName).toBe('STYLE');
@@ -249,7 +240,7 @@ describe('Compomint.tools.addTmplByUrl', () => {
       expect(mockXhr.open).toHaveBeenCalledWith('GET', "test.html", true);
       expect(mockXhr.send).toHaveBeenCalled();
       //expect(addTmplsSpy).toHaveBeenCalled();
-      expect(Compomint.tmplCache.has('test-tmpl')).toBe(true);
+      expect(compomint.tmplCache.has('test-tmpl')).toBe(true);
       // Note: appendToHead in the source appends to body
       expect(headAppendChildSpy).toHaveBeenCalledTimes(3); // style, link, script
       expect(headAppendChildSpy.mock.calls[0][0].tagName).toBe('LINK');
@@ -309,7 +300,7 @@ describe('Compomint.tools.addTmplByUrl', () => {
     const htmlContent = '<template id="t1">T1</template><script id="s1">var a=1;</script>';
     const callback = jest.fn(() => {
       //expect(addTmplsSpy).toHaveBeenCalled();
-      expect(Compomint.tmplCache.has('t1')).toBe(true);
+      expect(compomint.tmplCache.has('t1')).toBe(true);
       // appendToHead appends to body
       expect(bodyAppendChildSpy).not.toHaveBeenCalled(); // No script should be appended
       done();
@@ -323,7 +314,7 @@ describe('Compomint.tools.addTmplByUrl', () => {
     const htmlContent = '<template id="t1">T1</template><style id="style1">.x{}</style>';
     const callback = jest.fn(() => {
       //expect(addTmplsSpy).toHaveBeenCalled();
-      expect(Compomint.tmplCache.has('t1')).toBe(true);
+      expect(compomint.tmplCache.has('t1')).toBe(true);
       // appendToHead appends to body
       expect(bodyAppendChildSpy).not.toHaveBeenCalled(); // No style should be appended
       done();
@@ -337,7 +328,7 @@ describe('Compomint.tools.addTmplByUrl', () => {
     const htmlContent = '<template id="t1">T1</template><link id="link1" rel="stylesheet" href="style.css">';
     const callback = jest.fn(() => {
       //expect(addTmplsSpy).toHaveBeenCalled();
-      expect(Compomint.tmplCache.has('t1')).toBe(true);
+      expect(compomint.tmplCache.has('t1')).toBe(true);
       // appendToHead appends to body
       expect(bodyAppendChildSpy).not.toHaveBeenCalled(); // No link should be appended
       done();
@@ -461,8 +452,8 @@ describe('Compomint.tools.addTmplByUrl', () => {
       //expect(mockXhr.open).toHaveBeenCalledWith('GET', "test2.html", true);
       //expect(mockXhr.send).toHaveBeenCalledTimes(2);
       //expect(addTmplsSpy).toHaveBeenCalledTimes(2);
-      expect(Compomint.tmplCache.has('test-tmpl-1')).toBe(true);
-      expect(Compomint.tmplCache.has('test-tmpl-2')).toBe(true);
+      expect(compomint.tmplCache.has('test-tmpl-1')).toBe(true);
+      expect(compomint.tmplCache.has('test-tmpl-2')).toBe(true);
       // Note: appendToHead in the source appends to body
       expect(headAppendChildSpy).toHaveBeenCalledTimes(6); // style, link, script
       expect(headAppendChildSpy.mock.calls[0][0].tagName).toBe('STYLE');
@@ -509,7 +500,7 @@ describe('Compomint.tools.addTmplByUrl', () => {
 
     const callback = jest.fn(() => {
       expect(loadCount).toBe(1); // html only
-      expect(Compomint.tmplCache.has('arr-tmpl')).toBe(true);
+      expect(compomint.tmplCache.has('arr-tmpl')).toBe(true);
       expect(headAppendChildSpy).toHaveBeenCalledTimes(2); // CSS link and JS script
       expect(headAppendChildSpy.mock.calls[0][0].tagName).toBe('LINK');
       expect(headAppendChildSpy.mock.calls[0][0].href).toContain('styles.css');
@@ -599,7 +590,7 @@ describe('Compomint.tools.addTmplByUrl', () => {
     const callback = jest.fn(() => {
       expect(loadCount).toBe(2); // All attempts finished
       expect(successCount).toBe(1); // ok.html and script.js succeeded
-      expect(Compomint.tmplCache.has('ok-tmpl')).toBe(true);
+      expect(compomint.tmplCache.has('ok-tmpl')).toBe(true);
       //expect(addTmplsSpy).toHaveBeenCalledTimes(1); // Only for ok.html
       expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Failed to fetch template file: fail.html'));
       createElementSpy.mockRestore();

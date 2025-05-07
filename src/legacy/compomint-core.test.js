@@ -3,31 +3,19 @@
  */
 
 // Load the Compomint library script into the JSDOM environment
-// This assumes compomint-core.js attaches 'compomint' and 'tmpl' to the global scope (window)
-const fs = require('fs');
-const path = require('path');
-const { execPath } = require('process');
-const compomintCoreCode = fs.readFileSync(path.resolve(__dirname, './compomint-core.js'), 'utf8');
-// Execute the script in the current context (JSDOM's window)
-// We wrap it to avoid polluting the test file's global scope directly if needed,
-// although executing it directly should work fine with JSDOM.
-(function () {
-  // 'this' will refer to JSDOM's window
-  eval(compomintCoreCode);
-}).call(window);
+import { compomint, tmpl } from './compomint-core';
 
 
 describe('Compomint Template Engine', () => {
-  let Compomint;
+
   let tools;
   let configs;
 
   beforeAll(() => {
     // Ensure Compomint is available globally after script execution
-    Compomint = window.compomint;
-    tools = Compomint.tools;
-    configs = Compomint.configs;
-    if (!Compomint) {
+    tools = compomint.tools;
+    configs = compomint.configs;
+    if (!compomint) {
       throw new Error("Compomint library not loaded correctly into JSDOM environment.");
     }
   });
@@ -38,12 +26,13 @@ describe('Compomint Template Engine', () => {
     document.head.innerHTML = ''; // Clear head as well for style tests
 
     // Reset Compomint cache and global tmpl object
-    Compomint.tmplCache.clear();
-    Compomint.tmplCache.set("anonymous", { elements: new Set() });
-    window.tmpl = {}; // Reset global tmpl namespace
-
+    compomint.tmplCache.clear();
+    compomint.tmplCache.set("anonymous", { elements: new Set() });
+    for (const key in tmpl) {
+      delete tmpl[key];
+    }
     // Reset i18n
-    Compomint.i18n = {};
+    compomint.i18n = {};
 
     // Reset debug/error configs if needed (or set specific values for tests)
     configs.debug = false;
@@ -83,28 +72,28 @@ describe('Compomint Template Engine', () => {
   });
 
   // --- Core Template Engine Tests ---
-  describe('templateBuilder (Compomint.template)', () => {
+  describe('templateBuilder (compomint.template)', () => {
     it('should compile and return a function', () => {
-      const renderingFunc = Compomint.template('test-compile', '<div>Test</div>');
+      const renderingFunc = compomint.template('test-compile', '<div>Test</div>');
       expect(typeof renderingFunc).toBe('function');
     });
 
     it('should cache the compiled template', () => {
-      const renderingFunc1 = Compomint.template('test-cache', '<div>Cache</div>');
-      expect(Compomint.tmplCache.has('test-cache')).toBe(true);
-      const renderingFunc2 = Compomint.tmpl('test-cache'); // Retrieve from cache via helper
+      const renderingFunc1 = compomint.template('test-cache', '<div>Cache</div>');
+      expect(compomint.tmplCache.has('test-cache')).toBe(true);
+      const renderingFunc2 = compomint.tmpl('test-cache'); // Retrieve from cache via helper
       expect(renderingFunc1).toBe(renderingFunc2);
     });
 
     it('should add template to global tmpl namespace if grouped(1)', () => {
-      Compomint.template('ui-button', '<button>Click</button>');
-      expect(typeof window.tmpl.ui.button).toBe('function');
+      compomint.template('ui-button', '<button>Click</button>');
+      expect(typeof tmpl.ui.button).toBe('function');
 
-      Compomint.template('ui-button-basic', '<button>Click</button>');
-      expect(typeof window.tmpl.ui.buttonBasic).toBe('function');
+      compomint.template('ui-button-basic', '<button>Click</button>');
+      expect(typeof tmpl.ui.buttonBasic).toBe('function');
 
-      Compomint.template('ui-button-basic-grouped', '<button>Click</button>');
-      expect(typeof window.tmpl.ui.buttonBasicGrouped).toBe('function');
+      compomint.template('ui-button-basic-grouped', '<button>Click</button>');
+      expect(typeof tmpl.ui.buttonBasicGrouped).toBe('function');
 
       expect(compomint.tmpl("ui-button")).toBeDefined();
       expect(compomint.tmpl("ui-button-basic")).toBeDefined();
@@ -112,16 +101,16 @@ describe('Compomint Template Engine', () => {
     });
 
     it('should add template to global tmpl namespace if grouped(2)', () => {
-      Compomint.template('ui-Button', '<button>Click</button>');
-      expect(typeof window.tmpl.ui.Button).toBe('function');
+      compomint.template('ui-Button', '<button>Click</button>');
+      expect(typeof tmpl.ui.Button).toBe('function');
+      console.log(tmpl);
+      compomint.template('ui-Button-Basic', '<button>Click</button>');
+      expect(typeof tmpl.ui.ButtonBasic).toBe('function');
+      expect(typeof tmpl.ui.buttonBasic).not.toBe('function');
 
-      Compomint.template('ui-Button-Basic', '<button>Click</button>');
-      expect(typeof window.tmpl.ui.ButtonBasic).toBe('function');
-      expect(typeof window.tmpl.ui.buttonBasic).not.toBe('function');
-
-      Compomint.template('ui-Button-basic-Grouped', '<button>Click</button>');
-      expect(typeof window.tmpl.ui.ButtonBasicGrouped).toBe('function');
-      expect(typeof window.tmpl.ui.buttonBasicGrouped).not.toBe('function');
+      compomint.template('ui-Button-basic-Grouped', '<button>Click</button>');
+      expect(typeof tmpl.ui.ButtonBasicGrouped).toBe('function');
+      expect(typeof tmpl.ui.buttonBasicGrouped).not.toBe('function');
 
       expect(compomint.tmpl("ui-Button")).toBeDefined();
       expect(compomint.tmpl("ui-Button-Basic")).toBeDefined();
@@ -132,14 +121,14 @@ describe('Compomint Template Engine', () => {
     it('should handle compilation errors when throwError is true', () => {
       configs.throwError = true;
       expect(() => {
-        Compomint.template('test-error', '<div>##=** data.nonExistent.prop ##</div>');
+        compomint.template('test-error', '<div>##=** data.nonExistent.prop ##</div>');
       }).toThrow(); // Expecting a compilation error (likely TypeError)
     });
 
     it('should return undefined on compilation error when throwError is false', () => {
       configs.throwError = false;
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { }); // Suppress console error
-      const renderingFunc = Compomint.template('test-error-no-throw', '<div>##=** data.nonExistent.prop ##</div>');
+      const renderingFunc = compomint.template('test-error-no-throw', '<div>##=** data.nonExistent.prop ##</div>');
       expect(renderingFunc).toBeUndefined();
       expect(consoleErrorSpy).not.toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
@@ -162,7 +151,7 @@ describe('Compomint Template Engine', () => {
       it('should add a new style tag with ID to document.head', () => {
         const styleContent = '.test { color: red; }';
         const templateString = `<style id="test-style">${styleContent}</style><div>Content</div>`;
-        const renderingFunc = Compomint.template('style-add', templateString);
+        const renderingFunc = compomint.template('style-add', templateString);
         const component = renderingFunc({});
 
         const addedStyle = document.getElementById('test-style');
@@ -181,7 +170,7 @@ describe('Compomint Template Engine', () => {
 
         const newStyleContent = '.replaced { color: green; }';
         const templateString = `<style id="replace-style">${newStyleContent}</style><span>Replaced</span>`;
-        const renderingFunc = Compomint.template('style-replace', templateString);
+        const renderingFunc = compomint.template('style-replace', templateString);
         const component = renderingFunc({});
 
         const addedStyle = document.getElementById('replace-style');
@@ -198,7 +187,7 @@ describe('Compomint Template Engine', () => {
 
       it('should shadow style tags without an ID', () => {
         const templateString = `<style>div { color: ##=data.color || 'black'##; }</style><div>No ID</div>`;
-        const renderingFunc = Compomint.template('style-no-id', templateString);
+        const renderingFunc = compomint.template('style-no-id', templateString);
         const component = renderingFunc({ color: 'blue' });
 
         expect(document.head.querySelector('style')).toBeNull();
@@ -212,14 +201,14 @@ describe('Compomint Template Engine', () => {
     describe('commentArea rule (##*...##)', () => {
       it('should remove the comment block from the output', () => {
         const templateString = '<div>Before##* This is a comment ##After</div>';
-        const renderingFunc = Compomint.template('comment-remove', templateString);
+        const renderingFunc = compomint.template('comment-remove', templateString);
         const component = renderingFunc({});
         expect(component.element.innerHTML).toBe('BeforeAfter');
       });
 
       it('should handle multi-line comments', () => {
         const templateString = '<span>Start##* Line 1\n Line 2 ##End</span>';
-        const renderingFunc = Compomint.template('comment-multiline', templateString);
+        const renderingFunc = compomint.template('comment-multiline', templateString);
         const component = renderingFunc({});
         expect(component.element.innerHTML).toBe('StartEnd');
       });
@@ -230,7 +219,7 @@ describe('Compomint Template Engine', () => {
         // If it *was* valid JS, it *would* execute.
         const templateString = '<div>##* console.log("Should not execute"); let x = 1; ##Result</div>';
         const consoleSpy = jest.spyOn(console, 'log');
-        const renderingFunc = Compomint.template('comment-no-exec', templateString);
+        const renderingFunc = compomint.template('comment-no-exec', templateString);
         const component = renderingFunc({});
         expect(consoleSpy).not.toHaveBeenCalled();
         expect(component.element.innerHTML).toBe('Result');
@@ -254,9 +243,9 @@ describe('Compomint Template Engine', () => {
 
       it('should execute code during template compilation', () => {
         const templateString = '##! window.preEvalMock("compile-time", tmplId) ##<div>Rendered</div>';
-        const renderingFunc = Compomint.template('pre-eval-exec', templateString);
+        const renderingFunc = compomint.template('pre-eval-exec', templateString);
 
-        // Check mock was called during the Compomint.template call above
+        // Check mock was called during the compomint.template call above
         expect(preEvalMock).toHaveBeenCalledTimes(1);
         expect(preEvalMock).toHaveBeenCalledWith('compile-time', 'pre-eval-exec');
 
@@ -267,7 +256,7 @@ describe('Compomint Template Engine', () => {
 
       it('should remove the block from the output', () => {
         const templateString = '<span>Before##! let x=1; ##After</span>';
-        const renderingFunc = Compomint.template('pre-eval-remove', templateString);
+        const renderingFunc = compomint.template('pre-eval-remove', templateString);
         const component = renderingFunc({});
         expect(component.element.innerHTML).toBe('BeforeAfter');
       });
@@ -276,7 +265,7 @@ describe('Compomint Template Engine', () => {
         configs.throwError = true;
         const templateString = '##! nonExistentFunc() ##<div>Content</div>';
         expect(() => {
-          Compomint.template('pre-eval-error-throw', templateString);
+          compomint.template('pre-eval-error-throw', templateString);
         }).toThrow(); // Expect ReferenceError or similar
       });
 
@@ -285,7 +274,7 @@ describe('Compomint Template Engine', () => {
         const consoleErrorSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
         const templateString = '##! nonExistentFunc() ##<div>Content</div>';
 
-        const renderingFunc = Compomint.template('pre-eval-error-no-throw', templateString);
+        const renderingFunc = compomint.template('pre-eval-error-no-throw', templateString);
         expect(consoleErrorSpy).toHaveBeenCalled();
         expect(renderingFunc).toBeDefined(); // Compilation should succeed
 
@@ -301,14 +290,14 @@ describe('Compomint Template Engine', () => {
     // --- Element Props Tests (data-co-props) ---
     describe('Element Props (data-co-props)', () => {
       it('should set a single attribute using setAttribute', () => {
-        const renderingFunc = Compomint.template('props-single', '<div data-co-props="##:data.myProps##">Content</div>');
+        const renderingFunc = compomint.template('props-single', '<div data-co-props="##:data.myProps##">Content</div>');
         const component = renderingFunc({ myProps: { title: 'Test Title' } });
         expect(component.element.getAttribute('title')).toBe('Test Title');
         expect(component.element.hasAttribute('data-co-props')).toBe(false); // Temporary attribute removed
       });
 
       it('should set multiple attributes using setAttribute', () => {
-        const renderingFunc = Compomint.template('props-multi', '<span data-co-props="##:data.attrs##">Text</span>');
+        const renderingFunc = compomint.template('props-multi', '<span data-co-props="##:data.attrs##">Text</span>');
         const component = renderingFunc({ attrs: { 'aria-label': 'Input Field', 'data-value': 123, role: 'button' } });
         expect(component.element.getAttribute('aria-label')).toBe('Input Field');
         expect(component.element.getAttribute('data-value')).toBe('123'); // setAttribute converts to string
@@ -318,7 +307,7 @@ describe('Compomint Template Engine', () => {
 
       it('should overwrite existing attributes if specified', () => {
         // Note: setAttribute will overwrite existing attributes
-        const renderingFunc = Compomint.template('props-overwrite', '<button class="initial" data-co-props="##:data.newAttrs##">Btn</button>');
+        const renderingFunc = compomint.template('props-overwrite', '<button class="initial" data-co-props="##:data.newAttrs##">Btn</button>');
         const component = renderingFunc({ newAttrs: { class: 'overwritten', disabled: true } });
         expect(component.element.getAttribute('class')).toBe('overwritten');
         expect(component.element.hasAttribute('disabled')).toBe(true); // Check presence for boolean attributes
@@ -327,7 +316,7 @@ describe('Compomint Template Engine', () => {
       });
 
       it('should handle props object defined inline', () => {
-        const renderingFunc = Compomint.template('props-inline', '<div data-co-props="##:{ \'data-id\': data.id, \'data-next-value\': 100, title: \'Static\' }##">Inline</div>');
+        const renderingFunc = compomint.template('props-inline', '<div data-co-props="##:{ \'data-id\': data.id, \'data-next-value\': 100, title: \'Static\' }##">Inline</div>');
         const component = renderingFunc({ id: 99 });
         expect(component.element.getAttribute('data-id')).toBe('99');
         expect(component.element.dataset.id).toBe('99');
@@ -338,7 +327,7 @@ describe('Compomint Template Engine', () => {
       });
 
       it('should not fail if props object is empty', () => {
-        const renderingFunc = Compomint.template('props-empty', '<div data-co-props="##:{}##">Empty</div>');
+        const renderingFunc = compomint.template('props-empty', '<div data-co-props="##:{}##">Empty</div>');
         const component = renderingFunc({});
         // Check that no unexpected attributes were added
         expect(component.element.attributes.length).toBe(0); // Only standard attributes if any
@@ -346,7 +335,7 @@ describe('Compomint Template Engine', () => {
       });
 
       it('should work on nested elements', () => {
-        const renderingFunc = Compomint.template('props-nested', '<div><span data-co-props="##:data.spanAttrs##">Nested</span></div>');
+        const renderingFunc = compomint.template('props-nested', '<div><span data-co-props="##:data.spanAttrs##">Nested</span></div>');
         const component = renderingFunc({ spanAttrs: { 'data-level': '2' } });
         const spanElement = component.element.querySelector('span');
         expect(spanElement).not.toBeNull();
@@ -360,7 +349,7 @@ describe('Compomint Template Engine', () => {
     describe('event (data-co-event)', () => {
       it('should attach a simple click handler (function)', () => {
         const clickHandler = jest.fn();
-        const renderingFunc = Compomint.template('event-click', '<button data-co-event="##:data.clickHandler##">Click</button>');
+        const renderingFunc = compomint.template('event-click', '<button data-co-event="##:data.clickHandler##">Click</button>');
         const component = renderingFunc({ clickHandler });
         const button = component.element;
 
@@ -385,7 +374,7 @@ describe('Compomint Template Engine', () => {
           mouseover: mouseoverHandler,
           mouseout: mouseoutHandler
         };
-        const renderingFunc = Compomint.template('event-map', '<div data-co-event="##:data.eventMap##">Hover</div>');
+        const renderingFunc = compomint.template('event-map', '<div data-co-event="##:data.eventMap##">Hover</div>');
         const component = renderingFunc({ eventMap });
         const div = component.element;
 
@@ -402,7 +391,7 @@ describe('Compomint Template Engine', () => {
       it('should execute "load" event immediately', () => {
         const loadHandler = jest.fn();
         const eventMap = { load: loadHandler };
-        const renderingFunc = Compomint.template('event-load', '<div data-co-event="##:data.eventMap##">Load</div>');
+        const renderingFunc = compomint.template('event-load', '<div data-co-event="##:data.eventMap##">Load</div>');
         const component = renderingFunc({ eventMap });
         expect(loadHandler).toHaveBeenCalledTimes(1);
         expect(loadHandler).toHaveBeenCalledWith(
@@ -419,7 +408,7 @@ describe('Compomint Template Engine', () => {
 
       it('should assign element via "namedElement" key in event map', () => {
         const eventMap = { namedElement: 'myDivNamedElement' };
-        const renderingFunc = Compomint.template('event-namedElement', '<div data-co-event="##:data.eventMap##">Ref</div>');
+        const renderingFunc = compomint.template('event-namedElement', '<div data-co-event="##:data.eventMap##">Ref</div>');
         const component = renderingFunc({ eventMap });
         expect(component.myDivNamedElement).toBe(component.element);
         expect(component.element.hasAttribute('data-co-event')).toBe(false);
@@ -431,7 +420,7 @@ describe('Compomint Template Engine', () => {
           triggerName: 'myTrigger',
           click: clickHandler
         };
-        const renderingFunc = Compomint.template('event-trigger', '<button data-co-event="##:data.eventMap##">Trigger</button>');
+        const renderingFunc = compomint.template('event-trigger', '<button data-co-event="##:data.eventMap##">Trigger</button>');
         const component = renderingFunc({ eventMap });
 
         expect(component.trigger.myTrigger.click).toBeDefined();
@@ -449,7 +438,7 @@ describe('Compomint Template Engine', () => {
       it('should handle custom data (object)', () => {
         const handler = jest.fn();
         const custom = { id: 100, type: 'obj' };
-        const renderingFunc = Compomint.template('event-custom-obj', '<button data-co-event="##:data.handler::data.custom##">Data</button>');
+        const renderingFunc = compomint.template('event-custom-obj', '<button data-co-event="##:data.handler::data.custom##">Data</button>');
         const component = renderingFunc({ handler, custom });
         component.element.click();
         expect(handler).toHaveBeenCalledWith(
@@ -462,7 +451,7 @@ describe('Compomint Template Engine', () => {
 
       it('should handle custom data (variable)', () => {
         const handler = jest.fn();
-        const renderingFunc = Compomint.template('event-custom-var', '##let customVar = {id: 101};##<button data-co-event="##:data.handler::customVar##">Data</button>');
+        const renderingFunc = compomint.template('event-custom-var', '##let customVar = {id: 101};##<button data-co-event="##:data.handler::customVar##">Data</button>');
         const component = renderingFunc({ handler });
         component.element.click();
         expect(handler).toHaveBeenCalledWith(
@@ -475,7 +464,7 @@ describe('Compomint Template Engine', () => {
 
       it('should handle custom data (string)', () => {
         const handler = jest.fn();
-        const renderingFunc = Compomint.template('event-custom-str', '<button data-co-event="##:data.handler::\'test data\'##">Data</button>');
+        const renderingFunc = compomint.template('event-custom-str', '<button data-co-event="##:data.handler::\'test data\'##">Data</button>');
         const component = renderingFunc({ handler });
         component.element.click();
         expect(handler).toHaveBeenCalledWith(
@@ -488,7 +477,7 @@ describe('Compomint Template Engine', () => {
 
       it('should handle custom data (number)', () => {
         const handler = jest.fn();
-        const renderingFunc = Compomint.template('event-custom-num', '<button data-co-event="##:data.handler::100##">Data</button>');
+        const renderingFunc = compomint.template('event-custom-num', '<button data-co-event="##:data.handler::100##">Data</button>');
         const component = renderingFunc({ handler });
         component.element.click();
         expect(handler).toHaveBeenCalledWith(
@@ -504,7 +493,7 @@ describe('Compomint Template Engine', () => {
         const handler2 = jest.fn();
         const custom1 = { id: 1 };
         const custom2 = { id: 2 };
-        const renderingFunc = Compomint.template('event-multi-handlers', '<div data-co-event="##:data.h1::data.c1 ::: data.h2::data.c2##">Multi</div>');
+        const renderingFunc = compomint.template('event-multi-handlers', '<div data-co-event="##:data.h1::data.c1 ::: data.h2::data.c2##">Multi</div>');
         const component = renderingFunc({ h1: handler1, c1: custom1, h2: handler2, c2: custom2 });
         component.element.click();
 
@@ -519,26 +508,26 @@ describe('Compomint Template Engine', () => {
     // --- element Tests (##%) ---
     describe('element (##%)', () => {
       it('should insert string content', () => {
-        const renderingFunc = Compomint.template('el-insert-string', '<div>Before ##% "Inserted String" ## After</div>');
+        const renderingFunc = compomint.template('el-insert-string', '<div>Before ##% "Inserted String" ## After</div>');
         const component = renderingFunc({});
         expect(component.element.innerHTML).toBe('Before Inserted String After');
       });
 
       it('should insert number content', () => {
-        const renderingFunc = Compomint.template('el-insert-number', '<div>Value: ##% 12345 ##</div>');
+        const renderingFunc = compomint.template('el-insert-number', '<div>Value: ##% 12345 ##</div>');
         const component = renderingFunc({});
         expect(component.element.innerHTML).toBe('Value: 12345');
       });
 
       it('should insert HTML string (single element)', () => {
-        const renderingFunc = Compomint.template('el-insert-html-single', '<div>##% "<span>HTML Span</span>" ##</div>');
+        const renderingFunc = compomint.template('el-insert-html-single', '<div>##% "<span>HTML Span</span>" ##</div>');
         const component = renderingFunc({});
         expect(component.element.innerHTML).toBe('<span>HTML Span</span>');
         expect(component.element.firstChild.tagName).toBe('SPAN');
       });
 
       it('should insert HTML string (multiple elements)', () => {
-        const renderingFunc = Compomint.template('el-insert-html-multi', '<div>##% "<i>Italic</i><b>Bold</b>" ##</div>');
+        const renderingFunc = compomint.template('el-insert-html-multi', '<div>##% "<i>Italic</i><b>Bold</b>" ##</div>');
         const component = renderingFunc({});
         expect(component.element.innerHTML).toBe('<i>Italic</i><b>Bold</b>');
         expect(component.element.children.length).toBe(2);
@@ -549,7 +538,7 @@ describe('Compomint Template Engine', () => {
       it('should insert a Node', () => {
         const p = document.createElement('p');
         p.textContent = 'Paragraph Node';
-        const renderingFunc = Compomint.template('el-insert-node', '<div>##% data.node ##</div>');
+        const renderingFunc = compomint.template('el-insert-node', '<div>##% data.node ##</div>');
         const component = renderingFunc({ node: p });
         expect(component.element.innerHTML).toBe('<p>Paragraph Node</p>');
         expect(component.element.firstChild).toBe(p); // Should be the exact same node instance
@@ -559,7 +548,7 @@ describe('Compomint Template Engine', () => {
         const iNode = document.createElement('i');
         iNode.textContent = 'Three';
         const items = ['One', '<span>Two</span>', iNode, 4];
-        const renderingFunc = Compomint.template('el-insert-array', '<div>##% data.items ##</div>');
+        const renderingFunc = compomint.template('el-insert-array', '<div>##% data.items ##</div>');
         const component = renderingFunc({ items: items });
         expect(component.element.innerHTML).toBe('One<span>Two</span><i>Three</i>4');
         expect(component.element.childNodes.length).toBe(4);
@@ -570,9 +559,9 @@ describe('Compomint Template Engine', () => {
       });
 
       it('should insert another Compomint component', () => {
-        const innerRender = Compomint.template('inner-comp', '<section>Inner Component</section>');
+        const innerRender = compomint.template('inner-comp', '<section>Inner Component</section>');
         const innerComponent = innerRender({});
-        const renderingFunc = Compomint.template('el-insert-component', '<div>Outer: ##% data.inner ##</div>');
+        const renderingFunc = compomint.template('el-insert-component', '<div>Outer: ##% data.inner ##</div>');
         const component = renderingFunc({ inner: innerComponent });
         expect(component.element.innerHTML).toBe('Outer: <section>Inner Component</section>');
         expect(component.element.querySelector('section')).toBe(innerComponent.element);
@@ -580,7 +569,7 @@ describe('Compomint Template Engine', () => {
       });
 
       it('should handle nonblocking element insertion (##% ... ::true)', () => {
-        const renderingFunc = Compomint.template('el-insert-nb', '<div>##% "<span>NB Content</span>" :: true ##</div>');
+        const renderingFunc = compomint.template('el-insert-nb', '<div>##% "<span>NB Content</span>" :: true ##</div>');
         const component = renderingFunc({});
         // Initially, the placeholder is there
         expect(component.element.querySelector('template[data-co-tmpl-element-id]')).not.toBeNull();
@@ -593,7 +582,7 @@ describe('Compomint Template Engine', () => {
       });
 
       it('should handle nonblocking element insertion with delay (##% ... ::ms)', () => {
-        const renderingFunc = Compomint.template('el-insert-nb-delay', '<div>##% "Delayed" :: 50 ##</div>');
+        const renderingFunc = compomint.template('el-insert-nb-delay', '<div>##% "Delayed" :: 50 ##</div>');
         const component = renderingFunc({});
         expect(component.element.querySelector('template[data-co-tmpl-element-id]')).not.toBeNull();
         jest.advanceTimersByTime(49);
@@ -607,12 +596,12 @@ describe('Compomint Template Engine', () => {
       it('should call beforeAppendTo and afterAppendTo for component scope', () => {
         const beforeHook = jest.fn();
         const afterHook = jest.fn();
-        const innerRender = Compomint.template('inner-hooks', '<span>Hooks</span>');
+        const innerRender = compomint.template('inner-hooks', '<span>Hooks</span>');
         const innerComponent = innerRender({});
         innerComponent.beforeAppendTo = beforeHook;
         innerComponent.afterAppendTo = afterHook;
 
-        const renderingFunc = Compomint.template('el-insert-hooks', '<div>##% data.inner ##</div>');
+        const renderingFunc = compomint.template('el-insert-hooks', '<div>##% data.inner ##</div>');
         const component = renderingFunc({ inner: innerComponent });
 
         // beforeHook should be called synchronously during replacement
@@ -634,7 +623,7 @@ describe('Compomint Template Engine', () => {
         const item2 = { element: document.createElement('b'), beforeAppendTo: beforeHook2, afterAppendTo: afterHook2 };
         item2.element.textContent = 'Two';
 
-        const renderingFunc = Compomint.template('el-insert-array-hooks', '<div>##% data.items ##</div>');
+        const renderingFunc = compomint.template('el-insert-array-hooks', '<div>##% data.items ##</div>');
         const component = renderingFunc({ items: [item1, item2] });
 
         expect(beforeHook1).toHaveBeenCalledTimes(1);
@@ -649,12 +638,12 @@ describe('Compomint Template Engine', () => {
       });
 
       it('should handle missing placeholder gracefully', () => {
-        const renderingFunc = Compomint.template('el-insert-missing-placeholder', '<div>Placeholder removed</div>');
+        const renderingFunc = compomint.template('el-insert-missing-placeholder', '<div>Placeholder removed</div>');
         const component = renderingFunc({});
 
         // Manually simulate lazy execution with a placeholder ID that won't be found
         const lazyScope = { elementArray: [{ childTarget: 'Content', nonblocking: false }] };
-        const settings = Compomint.templateSettings;
+        const templateConfig = compomint.templateConfig;
         const docFragment = component.element; // Use the actual rendered element fragment
 
         // Temporarily disable throwError to check console warning
@@ -662,7 +651,7 @@ describe('Compomint Template Engine', () => {
         const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => { });
 
         expect(() => {
-          settings.element.lazyExec({}, lazyScope, component, docFragment);
+          templateConfig.rules.element.lazyExec({}, lazyScope, component, docFragment);
         }).not.toThrow();
 
         // Check if a warning was logged (if configs.debug was true)
@@ -673,7 +662,7 @@ describe('Compomint Template Engine', () => {
       });
 
       it('should handle invalid childTarget gracefully', () => {
-        const renderingFunc = Compomint.template('el-insert-invalid-target', '<div>##% data.invalid ##</div>');
+        const renderingFunc = compomint.template('el-insert-invalid-target', '<div>##% data.invalid ##</div>');
         const component = renderingFunc({ invalid: { some: 'object' } }); // Not a Node, string, number, array, or function
 
         // Placeholder should be removed
@@ -695,42 +684,42 @@ describe('Compomint Template Engine', () => {
     describe('interpolate rule (##=...##)', () => {
       it('should interpolate simple variable values', () => {
         const templateString = '<div>Name: ##=data.name##, Age: ##=data.age##, Active: ##=data.isActive##</div>';
-        const renderingFunc = Compomint.template('interp-vars', templateString);
+        const renderingFunc = compomint.template('interp-vars', templateString);
         const component = renderingFunc({ name: 'Test', age: 99, isActive: true });
         expect(component.element.innerHTML).toBe('Name: Test, Age: 99, Active: true');
       });
 
       it('should interpolate results of expressions', () => {
         const templateString = '<p>Sum: ##=data.a + data.b##</p>';
-        const renderingFunc = Compomint.template('interp-expr', templateString);
+        const renderingFunc = compomint.template('interp-expr', templateString);
         const component = renderingFunc({ a: 5, b: 3 });
         expect(component.element.innerHTML).toBe('Sum: 8');
       });
 
       it('should call and interpolate the result of a function', () => {
         const templateString = '<span>Value: ##=data.getValue()##</span>';
-        const renderingFunc = Compomint.template('interp-func', templateString);
+        const renderingFunc = compomint.template('interp-func', templateString);
         const component = renderingFunc({ getValue: () => 'From Function' });
         expect(component.element.innerHTML).toBe('Value: From Function');
       });
 
       it('should render empty string for null or undefined', () => {
         const templateString = '<div>Null: [##=data.isNull##], Undefined: [##=data.isUndef##]</div>';
-        const renderingFunc = Compomint.template('interp-nullish', templateString);
+        const renderingFunc = compomint.template('interp-nullish', templateString);
         const component = renderingFunc({ isNull: null, isUndef: undefined });
         expect(component.element.innerHTML).toBe('Null: [], Undefined: []');
       });
 
       it('should not escape HTML content', () => {
         const templateString = '<div>##=data.htmlContent##</div>';
-        const renderingFunc = Compomint.template('interp-html', templateString);
+        const renderingFunc = compomint.template('interp-html', templateString);
         const component = renderingFunc({ htmlContent: '<strong>Bold</strong>' });
         expect(component.element.innerHTML).toBe('<strong>Bold</strong>');
       });
 
       it('should handle complex nested expressions', () => {
         const templateString = '<div>##= data.user ? data.user.name.toUpperCase() : "Guest" ##</div>';
-        const renderingFunc = Compomint.template('interp-complex', templateString);
+        const renderingFunc = compomint.template('interp-complex', templateString);
         const component1 = renderingFunc({ user: { name: 'Alice' } });
         expect(component1.element.innerHTML).toBe('ALICE');
         const component2 = renderingFunc({ user: null });
@@ -739,14 +728,14 @@ describe('Compomint Template Engine', () => {
 
       it('should render tag attribute', () => {
         const templateString = '<div title="##=data.title##"></div>';
-        const renderingFunc = Compomint.template('interp-attribute', templateString);
+        const renderingFunc = compomint.template('interp-attribute', templateString);
         const component = renderingFunc({ title: 'Test Title' });
         expect(component.element.getAttribute('title')).toBe('Test Title');
       });
 
       it('should render tag attribute', () => {
         const templateString = '<input type="checkbox" ##=data.checked ? "checked" : ""##></input>';
-        const renderingFunc = Compomint.template('interp-attribute', templateString);
+        const renderingFunc = compomint.template('interp-attribute', templateString);
         const component1 = renderingFunc({ checked: true });
         expect(component1.element.outerHTML).toBe('<input type="checkbox" checked="">');
         const component2 = renderingFunc({ checked: false });
@@ -759,7 +748,7 @@ describe('Compomint Template Engine', () => {
     // --- namedElement Tests ---
     describe('namedElement (data-co-named-element)', () => {
       it('should assign element to component scope using string literal key', () => {
-        const renderingFunc = Compomint.template('named-el-string', '<button data-co-named-element="##:\'myButton\'##">Click</button>');
+        const renderingFunc = compomint.template('named-el-string', '<button data-co-named-element="##:\'myButton\'##">Click</button>');
         const component = renderingFunc({});
         expect(component.myButton).toBeDefined();
         expect(component.myButton instanceof HTMLButtonElement).toBe(true);
@@ -768,7 +757,7 @@ describe('Compomint Template Engine', () => {
       });
 
       it('should assign element to component scope using variable key', () => {
-        const renderingFunc = Compomint.template('named-el-var', '## let btnKey = "theButton"; ##<span data-co-named-element="##:btnKey##">Span</span>');
+        const renderingFunc = compomint.template('named-el-var', '## let btnKey = "theButton"; ##<span data-co-named-element="##:btnKey##">Span</span>');
         const component = renderingFunc({});
         expect(component.theButton).toBeDefined();
         expect(component.theButton instanceof HTMLSpanElement).toBe(true);
@@ -777,15 +766,15 @@ describe('Compomint Template Engine', () => {
       });
 
       it('should not throw error if element is not found', () => {
-        const renderingFunc = Compomint.template('named-el-missing', '<div><!-- Element removed before lazyExec --></div>');
+        const renderingFunc = compomint.template('named-el-missing', '<div><!-- Element removed before lazyExec --></div>');
         const component = renderingFunc({});
         // Manually simulate the state where the element is gone before lazyExec runs
         const lazyScope = { namedElementArray: ['missingElement'] };
-        const settings = Compomint.templateSettings;
+        const templateConfig = compomint.templateConfig;
         const docFragment = document.createDocumentFragment(); // Empty fragment
 
         expect(() => {
-          settings.namedElement.lazyExec({}, lazyScope, component, docFragment);
+          templateConfig.rules.namedElement.lazyExec({}, lazyScope, component, docFragment);
         }).not.toThrow();
         expect(component.missingElement).toBeUndefined();
       });
@@ -797,7 +786,7 @@ describe('Compomint Template Engine', () => {
         const testFunc = jest.fn();
         window.testFunc = testFunc; // Make globally accessible for the template's Function scope
 
-        const renderingFunc = Compomint.template('el-ref-scope', `
+        const renderingFunc = compomint.template('el-ref-scope', `
         <input type="text" data-co-element-ref="##:myInput##" value="Initial">
         ###
           // Test access within a lazy block
@@ -821,18 +810,18 @@ describe('Compomint Template Engine', () => {
         // This test focuses on the internal mechanism if needed,
         // but testing the *effect* (like above) is often more practical.
         const refFunc = jest.fn();
-        const renderingFunc = Compomint.template('el-ref-internal', '<div data-co-element-ref="##:internalRef##">Ref</div>');
+        const renderingFunc = compomint.template('el-ref-internal', '<div data-co-element-ref="##:internalRef##">Ref</div>');
         const component = renderingFunc({});
 
         // Simulate lazy execution manually to inspect the function
         const lazyScope = { elementRefArray: [refFunc] };
-        const settings = Compomint.templateSettings;
+        const templateConfig = compomint.templateConfig;
         const docFragment = document.createDocumentFragment();
         const div = document.createElement('div');
         div.setAttribute('data-co-element-ref', '0'); // Match the index
         docFragment.appendChild(div);
 
-        settings.elementRef.lazyExec({}, lazyScope, component, docFragment);
+        templateConfig.rules.elementRef.lazyExec({}, lazyScope, component, docFragment);
 
         expect(refFunc).toHaveBeenCalledTimes(1);
         expect(refFunc).toHaveBeenCalledWith(div); // Called with the target element
@@ -841,16 +830,16 @@ describe('Compomint Template Engine', () => {
 
       it('should not throw error if element is not found', () => {
         const refFunc = jest.fn();
-        const renderingFunc = Compomint.template('el-ref-missing', '<div><!-- Element removed --></div>');
+        const renderingFunc = compomint.template('el-ref-missing', '<div><!-- Element removed --></div>');
         const component = renderingFunc({});
 
         // Simulate lazy execution manually
         const lazyScope = { elementRefArray: [refFunc] };
-        const settings = Compomint.templateSettings;
+        const templateConfig = compomint.templateConfig;
         const docFragment = document.createDocumentFragment(); // Empty
 
         expect(() => {
-          settings.elementRef.lazyExec({}, lazyScope, component, docFragment);
+          templateConfig.rules.elementRef.lazyExec({}, lazyScope, component, docFragment);
         }).not.toThrow();
         expect(refFunc).not.toHaveBeenCalled();
       });
@@ -863,7 +852,7 @@ describe('Compomint Template Engine', () => {
           console.log(test)
         });
         const customData = { id: 123, type: 'test' };
-        const renderingFunc = Compomint.template('el-load-basic', '<div data-co-load="##:data.handler::data.custom##">Load Me</div>');
+        const renderingFunc = compomint.template('el-load-basic', '<div data-co-load="##:data.handler::data.custom##">Load Me</div>');
         const component = renderingFunc({ handler: loadHandler, custom: customData });
         const element = component.element;
         const parent = document.createElement('div'); // Mock parent
@@ -885,7 +874,7 @@ describe('Compomint Template Engine', () => {
 
       it('should call load function without custom data', () => {
         const loadHandler = jest.fn();
-        const renderingFunc = Compomint.template('el-load-no-custom', '<span data-co-load="##:data.handler##">Load Me Too</span>');
+        const renderingFunc = compomint.template('el-load-no-custom', '<span data-co-load="##:data.handler##">Load Me Too</span>');
         const component = renderingFunc({ handler: loadHandler });
         const element = component.element;
         const parent = document.createElement('div');
@@ -906,16 +895,16 @@ describe('Compomint Template Engine', () => {
 
       it('should not throw error if element is not found', () => {
         const loadHandler = jest.fn();
-        const renderingFunc = Compomint.template('el-load-missing', '<div><!-- Element removed --></div>');
+        const renderingFunc = compomint.template('el-load-missing', '<div><!-- Element removed --></div>');
         const component = renderingFunc({ handler: loadHandler });
 
         // Simulate lazy execution manually
         const lazyScope = { elementLoadArray: [{ loadFunc: loadHandler, customData: null }] };
-        const settings = Compomint.templateSettings;
+        const templateConfig = compomint.templateConfig;
         const docFragment = document.createDocumentFragment(); // Empty
 
         expect(() => {
-          settings.elementLoad.lazyExec({ handler: loadHandler }, lazyScope, component, docFragment);
+          templateConfig.rules.elementLoad.lazyExec({ handler: loadHandler }, lazyScope, component, docFragment);
         }).not.toThrow();
         expect(loadHandler).not.toHaveBeenCalled();
       });
@@ -926,7 +915,7 @@ describe('Compomint Template Engine', () => {
     describe('lazyEvaluate (###)', () => {
       it('should execute code after initial render', () => {
         const lazyHandler = jest.fn();
-        const renderingFunc = Compomint.template('lazy-eval-basic', '<div>### data.handler(data.value) ##</div>');
+        const renderingFunc = compomint.template('lazy-eval-basic', '<div>### data.handler(data.value) ##</div>');
         const component = renderingFunc({ handler: lazyHandler, value: 42 });
 
         expect(lazyHandler).toHaveBeenCalledTimes(1);
@@ -940,7 +929,7 @@ describe('Compomint Template Engine', () => {
           expect(element.tagName).toBe('SPAN');
           expect(data.value).toBe('test');
         });
-        const renderingFunc = Compomint.template('lazy-eval-this-single', '<span>### data.handler(this, data) ##</span>');
+        const renderingFunc = compomint.template('lazy-eval-this-single', '<span>### data.handler(this, data) ##</span>');
         const component = renderingFunc({ handler: lazyHandler, value: 'test' });
 
         expect(lazyHandler).toHaveBeenCalledTimes(1);
@@ -953,7 +942,7 @@ describe('Compomint Template Engine', () => {
           expect(element).toBe(window);
           expect(data.value).toBe('multi');
         });
-        const renderingFunc = Compomint.template('lazy-eval-this-multi', '<i>Italic</i><b>Bold</b>### data.handler(this, data) ##');
+        const renderingFunc = compomint.template('lazy-eval-this-multi', '<i>Italic</i><b>Bold</b>### data.handler(this, data) ##');
         const wrapperDiv = document.createElement('div');
         const component = renderingFunc({ handler: lazyHandler, value: 'multi' }, wrapperDiv); // Render into wrapper
 
@@ -964,7 +953,7 @@ describe('Compomint Template Engine', () => {
         const calls = [];
         const handler1 = jest.fn(() => calls.push(1));
         const handler2 = jest.fn(() => calls.push(2));
-        const renderingFunc = Compomint.template('lazy-eval-multi', '<div>### data.h1() ###<p>Middle</p>### data.h2() ##</div>');
+        const renderingFunc = compomint.template('lazy-eval-multi', '<div>### data.h1() ###<p>Middle</p>### data.h2() ##</div>');
         const component = renderingFunc({ h1: handler1, h2: handler2 });
 
         expect(handler1).toHaveBeenCalledTimes(1);
@@ -976,7 +965,7 @@ describe('Compomint Template Engine', () => {
     // --- escape Tests (##-) ---
     describe('escape (##-)', () => {
       it('should escape HTML special characters', () => {
-        const renderingFunc = Compomint.template('escape-html', '<div>##- data.unsafe ##</div>');
+        const renderingFunc = compomint.template('escape-html', '<div>##- data.unsafe ##</div>');
         const component = renderingFunc({ unsafe: '<script>alert("xss")</script>&\'"`' });
         // expect(component.element.innerHTML).toBe('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;&amp;&#x27;&#x60;');
         expect(component.element.innerHTML).toBe('&lt;script&gt;alert("xss")&lt;/script&gt;&amp;\'"`');
@@ -984,19 +973,19 @@ describe('Compomint Template Engine', () => {
       });
 
       it('should not escape normal text', () => {
-        const renderingFunc = Compomint.template('escape-normal', '<p>##- data.safe ##</p>');
+        const renderingFunc = compomint.template('escape-normal', '<p>##- data.safe ##</p>');
         const component = renderingFunc({ safe: 'This is safe text 123.' });
         expect(component.element.innerHTML).toBe('This is safe text 123.');
       });
 
       it('should render empty string for null or undefined', () => {
-        const renderingFunc = Compomint.template('escape-nullish', '<span>[##- data.val1 ##] [##- data.val2 ##]</span>');
+        const renderingFunc = compomint.template('escape-nullish', '<span>[##- data.val1 ##] [##- data.val2 ##]</span>');
         const component = renderingFunc({ val1: null, val2: undefined });
         expect(component.element.innerHTML).toBe('[] []');
       });
 
       it('should escape result of function calls', () => {
-        const renderingFunc = Compomint.template('escape-func', '<div>##- data.getUnsafe() ##</div>');
+        const renderingFunc = compomint.template('escape-func', '<div>##- data.getUnsafe() ##</div>');
         const component = renderingFunc({ getUnsafe: () => '<a>Link</a>' });
         expect(component.element.innerHTML).toBe('&lt;a&gt;Link&lt;/a&gt;');
       });
@@ -1005,19 +994,19 @@ describe('Compomint Template Engine', () => {
     // --- evaluate Tests (##) ---
     describe('evaluate (##)', () => {
       it('should execute arbitrary JavaScript code', () => {
-        const renderingFunc = Compomint.template('eval-basic', '## let x = 5; let y = 10; ##<div>Result: ##= x + y ##</div>');
+        const renderingFunc = compomint.template('eval-basic', '## let x = 5; let y = 10; ##<div>Result: ##= x + y ##</div>');
         const component = renderingFunc({});
         expect(component.element.innerHTML).toBe('Result: 15');
       });
 
       it('should allow flow control (loops)', () => {
-        const renderingFunc = Compomint.template('eval-loop', '<ul>## for(let i = 0; i < data.items.length; i++) { ##<li>Item ##= i+1 ##: ##= data.items[i] ##</li>## } ##</ul>');
+        const renderingFunc = compomint.template('eval-loop', '<ul>## for(let i = 0; i < data.items.length; i++) { ##<li>Item ##= i+1 ##: ##= data.items[i] ##</li>## } ##</ul>');
         const component = renderingFunc({ items: ['A', 'B', 'C'] });
         expect(component.element.innerHTML).toBe('<li>Item 1: A</li><li>Item 2: B</li><li>Item 3: C</li>');
       });
 
       it('should allow flow control (conditionals)', () => {
-        const renderingFunc = Compomint.template('eval-if', '## if (data.isAdmin) { ##<span>Admin</span>## } else { ##<span>User</span>## } ##');
+        const renderingFunc = compomint.template('eval-if', '## if (data.isAdmin) { ##<span>Admin</span>## } else { ##<span>User</span>## } ##');
         const componentAdmin = renderingFunc({ isAdmin: true });
         expect(componentAdmin.element.outerHTML).toBe('<span>Admin</span>');
         const componentUser = renderingFunc({ isAdmin: false });
@@ -1026,16 +1015,16 @@ describe('Compomint Template Engine', () => {
 
       it('should modify the output buffer (__p)', () => {
         // This tests the underlying mechanism where ## code ## can directly manipulate __p
-        const renderingFunc = Compomint.template('eval-buffer', '<div>Start## __p += " Middle "; ##End</div>');
+        const renderingFunc = compomint.template('eval-buffer', '<div>Start## __p += " Middle "; ##End</div>');
         const component = renderingFunc({});
         expect(component.element.innerHTML).toBe('Start Middle End');
       });
 
       it('should have access to data, status, component, and i18n', () => {
         const i18nMock = { greeting: 'Hello' };
-        Compomint.i18n['eval-scope'] = i18nMock; // Mock i18n for this template
+        compomint.i18n['eval-scope'] = i18nMock; // Mock i18n for this template
 
-        const renderingFunc = Compomint.template('eval-scope', `
+        const renderingFunc = compomint.template('eval-scope', `
         ##
           let dataVal = data.value;
           status.processed = true;
@@ -1050,7 +1039,7 @@ describe('Compomint Template Engine', () => {
         expect(component.status.processed).toBe(true);
         expect(component.element.innerHTML).toBe('Data: 123 | Status: true | Comp: Set In Eval | I18n: Hello');
 
-        delete Compomint.i18n['eval-scope']; // Clean up mock
+        delete compomint.i18n['eval-scope']; // Clean up mock
       });
     });
 
@@ -1060,32 +1049,32 @@ describe('Compomint Template Engine', () => {
   describe('Rendering (tmpl function)', () => {
 
     it('should render simple HTML', () => {
-      const renderingFunc = Compomint.template('render-simple', '<h1>Title</h1>');
+      const renderingFunc = compomint.template('render-simple', '<h1>Title</h1>');
       const component = renderingFunc({});
       expect(component.element.outerHTML).toBe('<h1>Title</h1>');
     });
 
     it('should render with data interpolation (##=)', () => {
-      const renderingFunc = Compomint.template('render-interp', '<div>Hello ##=data.name##! Age: ##=data.age##</div>');
+      const renderingFunc = compomint.template('render-interp', '<div>Hello ##=data.name##! Age: ##=data.age##</div>');
       const component = renderingFunc({ name: 'Tester', age: 30 });
       expect(component.element.innerHTML).toBe('Hello Tester! Age: 30');
       expect(component.data).toEqual({ name: 'Tester', age: 30 });
     });
 
     it('should handle HTML escaping (##-)', () => {
-      const renderingFunc = Compomint.template('render-escape', '<div>##-data.html##</div>');
+      const renderingFunc = compomint.template('render-escape', '<div>##-data.html##</div>');
       const component = renderingFunc({ html: '<strong>Bold</strong>' });
       expect(component.element.innerHTML).toBe('&lt;strong&gt;Bold&lt;/strong&gt;');
     });
 
     it('should execute JavaScript evaluation (##)', () => {
-      const renderingFunc = Compomint.template('render-eval', '<ul>## for(let i=0; i<data.items.length; i++){ ##<li>##=data.items[i]##</li>## } ##</ul>');
+      const renderingFunc = compomint.template('render-eval', '<ul>## for(let i=0; i<data.items.length; i++){ ##<li>##=data.items[i]##</li>## } ##</ul>');
       const component = renderingFunc({ items: ['A', 'B'] });
       expect(component.element.innerHTML).toBe('<li>A</li><li>B</li>');
     });
 
     it('should render into a wrapper element', () => {
-      const renderingFunc = Compomint.template('render-wrapper', '<p>Content</p>');
+      const renderingFunc = compomint.template('render-wrapper', '<p>Content</p>');
       const wrapper = document.createElement('div');
       document.body.appendChild(wrapper);
       const component = renderingFunc({}, wrapper);
@@ -1096,7 +1085,7 @@ describe('Compomint Template Engine', () => {
     });
 
     it('should return a DocumentFragment for multiple root nodes', () => {
-      const renderingFunc = Compomint.template('render-fragment', '<td>1</td><td>2</td>');
+      const renderingFunc = compomint.template('render-fragment', '<td>1</td><td>2</td>');
       const component = renderingFunc({});
       expect(component.element instanceof DocumentFragment).toBe(true);
       expect(component.element.children.length).toBe(2);
@@ -1106,7 +1095,7 @@ describe('Compomint Template Engine', () => {
 
     it('should execute callback after rendering', () => {
       const callback = jest.fn();
-      const renderingFunc = Compomint.template('render-callback', '<span>CB</span>');
+      const renderingFunc = compomint.template('render-callback', '<span>CB</span>');
       const component = renderingFunc({}, callback);
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith(component);
@@ -1114,14 +1103,14 @@ describe('Compomint Template Engine', () => {
 
     it('should execute callback after rendering', () => {
       const callback = jest.fn();
-      const renderingFunc = Compomint.template('render-callback', '<span>CB</span>');
+      const renderingFunc = compomint.template('render-callback', '<span>CB</span>');
       const component = renderingFunc({}, callback);
       expect(callback).toHaveBeenCalledTimes(1);
       expect(callback).toHaveBeenCalledWith(component);
     });
 
     it('should apply $props to the root element', () => {
-      const renderingFunc = Compomint.template('render-props', '<div>Props</div>');
+      const renderingFunc = compomint.template('render-props', '<div>Props</div>');
       const component = renderingFunc({ $props: { id: 'myDiv', className: 'test', 'data-value': 123, 'data-test-value': 'my test' } });
       expect(component.element.id).toBe('myDiv');
       expect(component.element.className).toBe('test');
@@ -1132,7 +1121,7 @@ describe('Compomint Template Engine', () => {
 
     it('should execute callback after rendering with data object', () => {
       const callback = jest.fn();
-      const renderingFunc = Compomint.template('render-data-object', '<div>##=data.val##</div>');
+      const renderingFunc = compomint.template('render-data-object', '<div>##=data.val##</div>');
       const component = renderingFunc({ val: 123, $callback: callback });
       expect(component.element.innerHTML).toBe('123');
       expect(callback).toHaveBeenCalledTimes(1);
@@ -1140,7 +1129,7 @@ describe('Compomint Template Engine', () => {
     });
 
     it('should render an empty template placeholder if data is null/undefined', () => {
-      const renderingFunc = Compomint.template('render-empty', '<div>##=data.val##</div>');
+      const renderingFunc = compomint.template('render-empty', '<div>##=data.val##</div>');
       const componentNull = renderingFunc(null);
       expect(componentNull.element.tagName).toBe('TEMPLATE');
       expect(componentNull.element.dataset.coEmptyTemplate).toBe('render-empty');
@@ -1151,7 +1140,7 @@ describe('Compomint Template Engine', () => {
     });
 
     it('should handle runtime errors during rendering', () => {
-      const renderingFunc = Compomint.template('runtime-error', '<div>##= data.nonExistent.prop ##</div>');
+      const renderingFunc = compomint.template('runtime-error', '<div>##= data.nonExistent.prop ##</div>');
       configs.throwError = true;
       expect(() => {
         renderingFunc({ some: 'data' });
@@ -1173,14 +1162,14 @@ describe('Compomint Template Engine', () => {
 
     it('should execute lazy evaluation blocks (###) after render', () => {
       const lazyFunc = jest.fn();
-      const renderingFunc = Compomint.template('lazy-eval', '<div>### data.lazyFunc(data.val) ###</div>');
+      const renderingFunc = compomint.template('lazy-eval', '<div>### data.lazyFunc(data.val) ###</div>');
       const component = renderingFunc({ val: 10, lazyFunc });
       expect(lazyFunc).toHaveBeenCalledTimes(1);
       expect(lazyFunc).toHaveBeenCalledWith(10);
     });
 
     it('should assign named elements (data-co-named-element - string)', () => {
-      const renderingFunc = Compomint.template('named-el', '<button data-co-named-element="##:\'myButton\'##">Click</button>');
+      const renderingFunc = compomint.template('named-el', '<button data-co-named-element="##:\'myButton\'##">Click</button>');
       const component = renderingFunc({});
       expect(component.myButton).toBeDefined();
       expect(component.myButton.tagName).toBe('BUTTON');
@@ -1188,7 +1177,7 @@ describe('Compomint Template Engine', () => {
     });
 
     it('should assign named elements (data-co-named-element - variable)', () => {
-      const renderingFunc = Compomint.template('named-el', '##let myButton = "myButton";##<button data-co-named-element="##:myButton##">Click</button>');
+      const renderingFunc = compomint.template('named-el', '##let myButton = "myButton";##<button data-co-named-element="##:myButton##">Click</button>');
       const component = renderingFunc({});
       expect(component.myButton).toBeDefined();
       expect(component.myButton.tagName).toBe('BUTTON');
@@ -1199,7 +1188,7 @@ describe('Compomint Template Engine', () => {
       const lazyFunc = jest.fn((element) => {
         expect(element.tagName).toBe('INPUT');
       });
-      const renderingFunc = Compomint.template('el-ref', '<input data-co-element-ref="##:myInput##"></input>###data.lazyFunc(myInput);##');
+      const renderingFunc = compomint.template('el-ref', '<input data-co-element-ref="##:myInput##"></input>###data.lazyFunc(myInput);##');
       const component = renderingFunc({ lazyFunc });
       expect(lazyFunc).toHaveBeenCalled();
       expect(component.element.hasAttribute('data-co-element-ref')).toBe(false); // Attribute should be removed
@@ -1208,7 +1197,7 @@ describe('Compomint Template Engine', () => {
 
     it('should execute element load functions (data-co-load)', () => {
       const loadFunc = jest.fn();
-      const renderingFunc = Compomint.template('el-load', '<div data-co-load="##:data.loadFunc::\'custom\'##">Load</div>');
+      const renderingFunc = compomint.template('el-load', '<div data-co-load="##:data.loadFunc::\'custom\'##">Load</div>');
       const component = renderingFunc({ loadFunc });
       expect(loadFunc).toHaveBeenCalledTimes(1);
       expect(loadFunc).toHaveBeenCalledWith(
@@ -1224,7 +1213,7 @@ describe('Compomint Template Engine', () => {
     });
 
     it('should insert elements (##%)', () => {
-      const renderingFunc = Compomint.template('el-insert', '<div>Before ##% data.content ## After</div>');
+      const renderingFunc = compomint.template('el-insert', '<div>Before ##% data.content ## After</div>');
 
       // Number
       let component = renderingFunc({ content: 123 });
@@ -1255,7 +1244,7 @@ describe('Compomint Template Engine', () => {
       expect(component.element.innerHTML).toBe('Before One<span>Two</span><i>Three</i> After');
 
       // Component Scope
-      const innerRender = Compomint.template('inner-comp', '<section>Inner</section>');
+      const innerRender = compomint.template('inner-comp', '<section>Inner</section>');
       const innerComponent = innerRender({});
       component = renderingFunc({ content: innerComponent });
       expect(component.element.innerHTML).toBe('Before <section>Inner</section> After');
@@ -1263,7 +1252,7 @@ describe('Compomint Template Engine', () => {
     });
 
     it('should handle nonblocking element insertion (##% ... ::true)', () => {
-      const renderingFunc = Compomint.template('el-insert-nb', '<div>##% \'<span>NB</span>\' :: true ##</div>');
+      const renderingFunc = compomint.template('el-insert-nb', '<div>##% \'<span>NB</span>\' :: true ##</div>');
       const component = renderingFunc({});
       // Initially, the placeholder is there
       expect(component.element.querySelector('template[data-co-tmpl-element-id]')).not.toBeNull();
@@ -1275,10 +1264,10 @@ describe('Compomint Template Engine', () => {
     });
 
     it('should handle nonblocking element insertion with delay (##% ... ::ms)', () => {
-      const innerRender = Compomint.template('inner-comp', '<section>Delay</section>');
+      const innerRender = compomint.template('inner-comp', '<section>Delay</section>');
       const innerComponent = innerRender({});
 
-      const renderingFunc = Compomint.template('el-insert-nb-delay', '<div>##% data.content :: 50 ##</div>');
+      const renderingFunc = compomint.template('el-insert-nb-delay', '<div>##% data.content :: 50 ##</div>');
       const component = renderingFunc({ content: innerComponent });
       expect(component.element.querySelector('template[data-co-tmpl-element-id]')).not.toBeNull();
       jest.advanceTimersByTime(49);
@@ -1291,7 +1280,7 @@ describe('Compomint Template Engine', () => {
     describe('Event Handling (data-co-event)', () => {
       it('should attach a simple click handler', () => {
         const clickHandler = jest.fn();
-        const renderingFunc = Compomint.template('event-click', '<button data-co-event="##:data.clickHandler##">Click</button>');
+        const renderingFunc = compomint.template('event-click', '<button data-co-event="##:data.clickHandler##">Click</button>');
         const component = renderingFunc({ clickHandler });
         const button = component.element;
 
@@ -1316,7 +1305,7 @@ describe('Compomint Template Engine', () => {
           mouseover: mouseoverHandler,
           mouseout: mouseoutHandler
         };
-        const renderingFunc = Compomint.template('event-map', '<div data-co-event="##:data.eventMap##">Hover</div>');
+        const renderingFunc = compomint.template('event-map', '<div data-co-event="##:data.eventMap##">Hover</div>');
         const component = renderingFunc({ eventMap });
         const div = component.element;
 
@@ -1332,7 +1321,7 @@ describe('Compomint Template Engine', () => {
       it('should execute "load" event immediately', () => {
         const loadHandler = jest.fn();
         const eventMap = { load: loadHandler };
-        const renderingFunc = Compomint.template('event-load', '<div data-co-event="##:data.eventMap##">Load</div>');
+        const renderingFunc = compomint.template('event-load', '<div data-co-event="##:data.eventMap##">Load</div>');
         const component = renderingFunc({ eventMap });
         expect(loadHandler).toHaveBeenCalledTimes(1);
         expect(loadHandler).toHaveBeenCalledWith(
@@ -1348,7 +1337,7 @@ describe('Compomint Template Engine', () => {
 
       it('should assign element via "namedElement" key in event map', () => {
         const eventMap = { namedElement: 'myDivNamedElement' };
-        const renderingFunc = Compomint.template('event-namedElement', '<div data-co-event="##:data.eventMap##">Ref</div>');
+        const renderingFunc = compomint.template('event-namedElement', '<div data-co-event="##:data.eventMap##">Ref</div>');
         const component = renderingFunc({ eventMap });
         expect(component.myDivNamedElement).toBe(component.element);
       });
@@ -1359,7 +1348,7 @@ describe('Compomint Template Engine', () => {
           triggerName: 'myTrigger',
           click: clickHandler
         };
-        const renderingFunc = Compomint.template('event-trigger', '<button data-co-event="##:data.eventMap##">Trigger</button>');
+        const renderingFunc = compomint.template('event-trigger', '<button data-co-event="##:data.eventMap##">Trigger</button>');
         const component = renderingFunc({ eventMap });
 
         expect(component.trigger.myTrigger.click).toBeDefined();
@@ -1372,7 +1361,7 @@ describe('Compomint Template Engine', () => {
 
       it('should handle custom data (object)', () => {
         const handler = jest.fn();
-        const renderingFunc = Compomint.template('event-custom', '<button data-co-event="##:data.handler:: {id: 100} ##">Data</button>');
+        const renderingFunc = compomint.template('event-custom', '<button data-co-event="##:data.handler:: {id: 100} ##">Data</button>');
         const component = renderingFunc({ handler });
         component.element.click();
         expect(handler).toHaveBeenCalledWith(
@@ -1388,7 +1377,7 @@ describe('Compomint Template Engine', () => {
 
       it('should handle custom data (variable)', () => {
         const handler = jest.fn();
-        const renderingFunc = Compomint.template('event-custom', '##let customData = {id: 101};##<button data-co-event="##:data.handler::customData ##">Data</button>');
+        const renderingFunc = compomint.template('event-custom', '##let customData = {id: 101};##<button data-co-event="##:data.handler::customData ##">Data</button>');
         const component = renderingFunc({ handler });
         component.element.click();
         expect(handler).toHaveBeenCalledWith(
@@ -1404,7 +1393,7 @@ describe('Compomint Template Engine', () => {
 
       it('should handle custom data (string)', () => {
         const handler = jest.fn();
-        const renderingFunc = Compomint.template('event-custom', '<button data-co-event="##:data.handler::\'test data\' ##">Data</button>');
+        const renderingFunc = compomint.template('event-custom', '<button data-co-event="##:data.handler::\'test data\' ##">Data</button>');
         const component = renderingFunc({ handler });
         component.element.click();
         expect(handler).toHaveBeenCalledWith(
@@ -1420,7 +1409,7 @@ describe('Compomint Template Engine', () => {
 
       it('should handle custom data (number)', () => {
         const handler = jest.fn();
-        const renderingFunc = Compomint.template('event-custom', '<button data-co-event="##:data.handler::100 ##">Data</button>');
+        const renderingFunc = compomint.template('event-custom', '<button data-co-event="##:data.handler::100 ##">Data</button>');
         const component = renderingFunc({ handler });
         component.element.click();
         expect(handler).toHaveBeenCalledWith(
@@ -1443,7 +1432,7 @@ describe('Compomint Template Engine', () => {
   describe('Component Methods', () => {
 
     it('_id should have a unique _id', () => {
-      const renderingFunc = Compomint.template('scope-id', '<span id="##=component._id##">ID</span>');
+      const renderingFunc = compomint.template('scope-id', '<span id="##=component._id##">ID</span>');
       const component1 = renderingFunc({});
       const component2 = renderingFunc({});
       expect(component1._id).toBeDefined();
@@ -1455,7 +1444,7 @@ describe('Compomint Template Engine', () => {
     });
 
     it('remove() should remove the element', () => {
-      const renderingFunc = Compomint.template('scope-remove', '<span>Remove Me</span>');
+      const renderingFunc = compomint.template('scope-remove', '<span>Remove Me</span>');
       const component = renderingFunc({});
       document.body.appendChild(component.element);
       expect(component.element.isConnected).toBe(true);
@@ -1465,7 +1454,7 @@ describe('Compomint Template Engine', () => {
     });
 
     it('remove(true) should leave a placeholder', () => {
-      const renderingFunc = Compomint.template('component-remove-spacer', '<div>Remove Me</div>');
+      const renderingFunc = compomint.template('component-remove-spacer', '<div>Remove Me</div>');
       const component = renderingFunc({});
       document.body.appendChild(component.element);
       const originalElement = component.element;
@@ -1476,7 +1465,7 @@ describe('Compomint Template Engine', () => {
     });
 
     it('appendTo() should append the element', () => {
-      const renderingFunc = Compomint.template('component-append', '<i>Append</i>');
+      const renderingFunc = compomint.template('component-append', '<i>Append</i>');
       const component = renderingFunc({});
       const div = document.createElement('div');
       document.body.appendChild(div);
@@ -1487,8 +1476,8 @@ describe('Compomint Template Engine', () => {
     });
 
     it('replace() should replace the element', () => {
-      const render1 = Compomint.template('component-replace1', '<span>One</span>');
-      const render2 = Compomint.template('component-replace2', '<em>Two</em>');
+      const render1 = compomint.template('component-replace1', '<span>One</span>');
+      const render2 = compomint.template('component-replace2', '<em>Two</em>');
       const component1 = render1({});
       const component2 = render2({});
       document.body.appendChild(component1.element);
@@ -1504,7 +1493,7 @@ describe('Compomint Template Engine', () => {
     });
 
     it('render() should re-render the component', () => {
-      const renderingFunc = Compomint.template('component-render', '<div>##=data.val##</div>');
+      const renderingFunc = compomint.template('component-render', '<div>##=data.val##</div>');
       let component = renderingFunc({ val: 1 });
       document.body.appendChild(component.element);
       expect(component.element.innerHTML).toBe('1');
@@ -1525,7 +1514,7 @@ describe('Compomint Template Engine', () => {
 
 
     it('render() should re-render the component without parent element', () => {
-      const renderingFunc = Compomint.template('component-render', '<div>##=data.val##</div>');
+      const renderingFunc = compomint.template('component-render', '<div>##=data.val##</div>');
       let component = renderingFunc({ val: 1 });
 
       expect(component.element.innerHTML).toBe('1');
@@ -1545,7 +1534,7 @@ describe('Compomint Template Engine', () => {
     });
 
     it('refresh() should re-render with merged data', () => {
-      const renderingFunc = Compomint.template('component-refresh', '<p>##=data.a##-##=data.b##</p>');
+      const renderingFunc = compomint.template('component-refresh', '<p>##=data.a##-##=data.b##</p>');
       let component = renderingFunc({ a: 'X' });
       document.body.appendChild(component.element);
       expect(component.element.innerHTML).toBe('X-');
@@ -1560,7 +1549,7 @@ describe('Compomint Template Engine', () => {
   });
 
   // --- tools Utility Tests ---
-  describe('Compomint.tools Utilities', () => {
+  describe('compomint.tools Utilities', () => {
     describe('escapeHtml', () => {
       it('should escape HTML characters', () => {
         expect(tools.escapeHtml.escape('<div class="foo">'))
@@ -1580,7 +1569,7 @@ describe('Compomint Template Engine', () => {
     describe('addTmpl / addTmpls', () => {
       it('should add a template from a string', () => {
         compomint.addTmpl('util-add', '<span>Test</span>');
-        const renderingFunc = Compomint.tmpl('util-add');
+        const renderingFunc = compomint.tmpl('util-add');
         expect(typeof renderingFunc).toBe('function');
         expect(renderingFunc({}).element.outerHTML).toBe('<span>Test</span>');
       });
@@ -1589,10 +1578,10 @@ describe('Compomint Template Engine', () => {
         const div = document.createElement('div');
         div.innerHTML = '<template id="t1">T1</template><script type="text/template" id="t2">T2</script><template id="t3">T3</template><script type="text/compomint" id="t4">T4</script>';
         compomint.addTmpls(div);
-        expect(typeof Compomint.tmpl('t1')).toBe('function');
-        expect(typeof Compomint.tmpl('t2')).toBe('function');
-        expect(typeof Compomint.tmpl('t3')).toBe('function');
-        expect(typeof Compomint.tmpl('t4')).toBe('function');
+        expect(typeof compomint.tmpl('t1')).toBe('function');
+        expect(typeof compomint.tmpl('t2')).toBe('function');
+        expect(typeof compomint.tmpl('t3')).toBe('function');
+        expect(typeof compomint.tmpl('t4')).toBe('function');
       });
 
       it('should remove inner templates if requested', () => {
@@ -1602,10 +1591,10 @@ describe('Compomint Template Engine', () => {
         expect(div.querySelector('template')).not.toBeNull();
         expect(div.querySelector('script[type="text/template"]')).not.toBeNull();
         expect(div.querySelector('script[type="text/compomint"]')).not.toBeNull();
-        expect(typeof Compomint.tmpl('t1')).not.toBe('function');
-        expect(typeof Compomint.tmpl('t2')).not.toBe('function');
-        expect(typeof Compomint.tmpl('t3')).toBe('function');
-        expect(typeof Compomint.tmpl('t4')).not.toBe('function');
+        expect(typeof compomint.tmpl('t1')).not.toBe('function');
+        expect(typeof compomint.tmpl('t2')).not.toBe('function');
+        expect(typeof compomint.tmpl('t3')).toBe('function');
+        expect(typeof compomint.tmpl('t4')).not.toBe('function');
       });
 
 
@@ -1620,21 +1609,21 @@ describe('Compomint Template Engine', () => {
     describe('i18n', () => {
       beforeEach(() => {
         document.documentElement.lang = 'en';
-        Compomint.i18n = {}; // Reset i18n store
+        compomint.i18n = {}; // Reset i18n store
       });
 
       it('addI18n should store translations', () => {
         compomint.addI18n('test.greeting', { en: 'Hello', fr: 'Bonjour' });
-        expect(typeof Compomint.i18n.test.greeting).toBe('function');
-        expect(Compomint.i18n.test.greeting()).toBe('Hello');
+        expect(typeof compomint.i18n.test.greeting).toBe('function');
+        expect(compomint.i18n.test.greeting()).toBe('Hello');
       });
 
       it('i18n retrieval function should work with different languages', () => {
         compomint.addI18n('farewell', { en: 'Bye', fr: 'Au revoir' });
         document.documentElement.lang = 'fr';
-        expect(Compomint.i18n.farewell()).toBe('Au revoir');
+        expect(compomint.i18n.farewell()).toBe('Au revoir');
         document.documentElement.lang = 'de'; // Missing language
-        expect(Compomint.i18n.farewell('Default Bye')).toBe('Default Bye');
+        expect(compomint.i18n.farewell('Default Bye')).toBe('Default Bye');
       });
 
       it('addI18ns should add multiple translations(1)', () => {
@@ -1642,11 +1631,11 @@ describe('Compomint Template Engine', () => {
           'common.ok': { en: 'OK', fr: 'Oui' },
           'common.cancel': { en: 'Cancel', fr: 'Annuler' }
         });
-        expect(Compomint.i18n.common.ok()).toBe('OK');
-        expect(Compomint.i18n.common.cancel()).toBe('Cancel');
+        expect(compomint.i18n.common.ok()).toBe('OK');
+        expect(compomint.i18n.common.cancel()).toBe('Cancel');
         document.documentElement.lang = 'fr';
-        expect(Compomint.i18n.common.ok()).toBe('Oui');
-        expect(Compomint.i18n.common.cancel()).toBe('Annuler');
+        expect(compomint.i18n.common.ok()).toBe('Oui');
+        expect(compomint.i18n.common.cancel()).toBe('Annuler');
       });
 
 
@@ -1657,11 +1646,11 @@ describe('Compomint Template Engine', () => {
             cancel: { en: 'Cancel', fr: 'Annuler' }
           }
         });
-        expect(Compomint.i18n.common.ok()).toBe('OK');
-        expect(Compomint.i18n.common.cancel()).toBe('Cancel');
+        expect(compomint.i18n.common.ok()).toBe('OK');
+        expect(compomint.i18n.common.cancel()).toBe('Cancel');
         document.documentElement.lang = 'fr';
-        expect(Compomint.i18n.common.ok()).toBe('Oui');
-        expect(Compomint.i18n.common.cancel()).toBe('Annuler');
+        expect(compomint.i18n.common.ok()).toBe('Oui');
+        expect(compomint.i18n.common.cancel()).toBe('Annuler');
       });
 
     });

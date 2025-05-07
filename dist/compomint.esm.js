@@ -1,117 +1,72 @@
-function _arrayLikeToArray(r, a) {
-  (null == a || a > r.length) && (a = r.length);
-  for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e];
-  return n;
-}
-function _arrayWithoutHoles(r) {
-  if (Array.isArray(r)) return _arrayLikeToArray(r);
-}
-function _iterableToArray(r) {
-  if ("undefined" != typeof Symbol && null != r[Symbol.iterator] || null != r["@@iterator"]) return Array.from(r);
-}
-function _nonIterableSpread() {
-  throw new TypeError("Invalid attempt to spread non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
-}
-function _toConsumableArray(r) {
-  return _arrayWithoutHoles(r) || _iterableToArray(r) || _unsupportedIterableToArray(r) || _nonIterableSpread();
-}
-function _unsupportedIterableToArray(r, a) {
-  if (r) {
-    if ("string" == typeof r) return _arrayLikeToArray(r, a);
-    var t = {}.toString.call(r).slice(8, -1);
-    return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0;
-  }
-}
-
 /*
  * Copyright (c) 2025-present, Choi Sungho
  * Code released under the MIT license
  */
-
-(function () {
-
-  // Polyfill
-  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign#Polyfill
-  if (typeof Object.assign != "function") {
-    // Must be writable: true, enumerable: false, configurable: true
+// Extend Window interface
+// Polyfill for Object.assign
+if (typeof Object.assign != "function") {
     Object.defineProperty(Object, "assign", {
-      value: function assign(target) {
-        // .length of function is 2
-        // 'use strict';
-        if (target == null) {
-          // TypeError if undefined or null
-          throw new TypeError("Cannot convert undefined or null to object");
-        }
-        var to = Object(target);
-        for (var index = 0, length = arguments.length <= 1 ? 0 : arguments.length - 1; index < length; index++) {
-          var nextSource = index + 1 < 1 || arguments.length <= index + 1 ? undefined : arguments[index + 1];
-          if (nextSource != null) {
-            // Skip over if undefined or null
-            for (var nextKey in nextSource) {
-              if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
-                to[nextKey] = nextSource[nextKey];
-              }
+        value: function assign(target, ...params) {
+            if (target == null) {
+                throw new TypeError("Cannot convert undefined or null to object");
             }
-          }
-        }
-        return to;
-      },
-      writable: true,
-      configurable: true
-    });
-  }
-
-  // from:https://github.com/jserz/js_piece/blob/master/DOM/ChildNode/remove()/remove().md
-
-  (function (arr) {
-    arr.forEach(function (item) {
-      if (!item) return;
-      if (item.hasOwnProperty("remove")) {
-        return;
-      }
-      Object.defineProperty(item, "remove", {
-        configurable: true,
-        enumerable: true,
+            let to = Object(target);
+            for (let index = 0, length = params.length; index < length; index++) {
+                let nextSource = params[index];
+                if (nextSource != null) {
+                    for (let nextKey in nextSource) {
+                        if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
+                            to[nextKey] = nextSource[nextKey];
+                        }
+                    }
+                }
+            }
+            return to;
+        },
         writable: true,
-        value: function remove() {
-          if (this.parentNode !== null) {
-            this.parentNode.removeChild(this);
-          }
+        configurable: true,
+    });
+}
+// Polyfill for ChildNode.remove
+(function (arr) {
+    arr.forEach(function (item) {
+        if (!item || item.hasOwnProperty("remove")) {
+            return;
         }
-      });
+        Object.defineProperty(item, "remove", {
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            value: function remove() {
+                if (this.parentNode !== null) {
+                    this.parentNode.removeChild(this);
+                }
+            },
+        });
     });
-  })([Element.prototype, CharacterData.prototype, DocumentType.prototype]);
-
-  // https://stackoverflow.com/questions/37588326/reliabilty-of-isconnected-field-in-dom-node
-  (function (supported) {
-    if (supported) return;
+})([Element.prototype, CharacterData.prototype, DocumentType.prototype]);
+// Polyfill for Node.isConnected
+(function (supported) {
+    if (supported)
+        return;
     Object.defineProperty(window.Node.prototype, "isConnected", {
-      get: function get() {
-        return document.body.contains(this);
-      }
+        get: function () {
+            return document.body.contains(this);
+        },
     });
-  })("isConnected" in window.Node.prototype);
-  var root = this;
-  var Compomint = root.compomint = root.compomint || {};
-  var tmplTool = Compomint.tmplTool = Compomint.tmplTool || {};
-  var showTime = tmplTool.showTime || false;
-  var debug = tmplTool.debug != undefined ? tmplTool.debug : false;
-  tmplTool.requestCacheControl || true;
-  var throwError = tmplTool.throwError != undefined ? tmplTool.throwError : true;
-  var cachedTmpl = Compomint.tmplCache = Compomint.tmplCache || new Map();
-  if (!cachedTmpl.has("anonymous")) {
-    cachedTmpl.set("anonymous", {
-      elements: new Set()
-    });
-  }
-  var isSupportTemplateTag = "content" in document.createElement("template");
-  root.tmpl = {};
-
-  // When customizing `templateSettings`, if you don't want to define an
-  // interpolation, evaluation or escaping regex, we need one that is
-  // guaranteed not to match.
-  var noMatch = /(.)^/;
-  var escapes = {
+})("isConnected" in window.Node.prototype);
+const compomint = {};
+const tmpl = {};
+const tools = (compomint.tools = compomint.tools || {});
+const configs = (compomint.configs = Object.assign({ printExecTime: false, debug: false, throwError: true }, compomint.configs));
+const domParser = new DOMParser();
+const cachedTmpl = (compomint.tmplCache = compomint.tmplCache || new Map());
+if (!cachedTmpl.has("anonymous")) {
+    cachedTmpl.set("anonymous", { elements: new Set() }); // Cast to TemplateMeta
+}
+const isSupportTemplateTag = "content" in document.createElement("template");
+const noMatch = /(.)^/;
+const escapes = {
     "'": "\\'",
     "\\": "\\\\",
     "\r": "\\r",
@@ -121,940 +76,1461 @@ function _unsupportedIterableToArray(r, a) {
     "\u2029": "\u2029",
     "><": "><",
     "<": "<",
-    ">": ">"
-    //'#': '#'
-  };
-  var escaper = /\>( |\n)+\<|\>( |\n)+|( |\n)+\<|\\|'|\r|\n|\t|\u2028|\u2029/g;
-  var firstElementChild = function firstElementChild(ele) {
-    if (ele.firstElementChild) return ele.firstElementChild;
-    var children = ele.childNodes;
-    for (var i = 0, size = children.length; i < size; i++) {
-      if (children[i] instanceof Element) {
-        return children[i];
-      }
+    ">": ">",
+};
+const escaper = /\>( |\n)+\<|\>( |\n)+|( |\n)+\<|\\|'|\r|\n|\t|\u2028|\u2029/g;
+const firstElementChild = function (ele) {
+    if (ele.firstElementChild)
+        return ele.firstElementChild;
+    const children = ele.childNodes;
+    for (let i = 0, size = children.length; i < size; i++) {
+        if (children[i] instanceof Element) {
+            return children[i];
+        }
     }
     return null;
-  };
-  var childElementCount = function childElementCount(ele) {
-    return ele.childElementCount || Array.prototype.filter.call(ele.childNodes, function (child) {
-      return child instanceof Element;
-    }).length;
-  };
-  var _cleanNode = function cleanNode(node) {
-    for (var n = 0; n < node.childNodes.length; n++) {
-      var child = node.childNodes[n];
-      if (child.nodeType === 8 || child.nodeType === 3 && !/\S/.test(child.nodeValue)) {
-        node.removeChild(child);
-        n--;
-      } else if (child.nodeType === 1) {
-        _cleanNode(child);
-      }
+};
+const childElementCount = function (ele) {
+    return (ele.childElementCount ||
+        Array.prototype.filter.call(ele.childNodes, function (child) {
+            return child instanceof Element;
+        }).length);
+};
+const cleanNode = function (node) {
+    for (let n = 0; n < node.childNodes.length; n++) {
+        const child = node.childNodes[n];
+        if (child.nodeType === 8 || // Comment node
+            (child.nodeType === 3 && !/\S/.test(child.nodeValue || '')) // Text node with only whitespace
+        ) {
+            node.removeChild(child);
+            n--; // Adjust index after removal
+        }
+        else if (child.nodeType === 1) {
+            // Element node
+            cleanNode(child); // Recurse
+        }
     }
-  };
-  Compomint.templateSettings = {
-    firstElementChild: firstElementChild,
-    childElementCount: childElementCount,
-    style: {
-      pattern: /(\<style id=[\s\S]+?\>[\s\S]+?\<\/style\>)/g,
-      exec: function exec(style) {
-        var dumy = document.createElement("template");
-        dumy.innerHTML = style;
-        var styleNode = (dumy.content || dumy).querySelector("style");
-        var oldStyleNode = document.getElementById(styleNode.id);
-        if (oldStyleNode) oldStyleNode.parentNode.removeChild(oldStyleNode);
-        document.head.appendChild(styleNode);
-        return "";
-      }
-    },
-    commentArea: {
-      pattern: /#\\#([\s\S]+?)#\\#/g,
-      exec: function exec(commentArea) {
-        return "'+\n'##".concat(commentArea, "##'+\n'");
-      }
-    },
-    preEvaluate: {
-      pattern: /##!([\s\S]+?)##/g,
-      exec: function exec(preEvaluate, tmplId) {
-        new Function("tmplId", preEvaluate)(tmplId);
-        return "";
-      }
-    },
-    interpolate: {
-      //pattern: /(?:##=|\$\{)([\s\S]+?)(?:##|\})/g, // ##=##, ${}
-      pattern: /##=([\s\S]+?)##/g,
-      // ##=##, ${}
-      exec: function exec(interpolate) {
-        var interpolateSyntax = "typeof (interpolate)=='function' ? (interpolate)() : (interpolate)";
-        return "';(() => {let interpolate=".concat(interpolate, ";\n__p+=((__t=(").concat(interpolateSyntax, "))==null?'':__t);})()\n__p+='");
-      }
-    },
-    namedElement: {
-      pattern: /data-co-named-element="##:([\s\S]+?)##"/g,
-      exec: function exec(key) {
-        var source = "';\nvar eventId = (__lazyScope.namedElementArray.length);\n__p+='data-co-named-element=\"'+eventId+'\"';\n\n__lazyScope.namedElementArray[eventId] = ".concat(key, ";\n__p+='");
-        return source;
-      },
-      lazyExec: function lazyExec(data, lazyScope, tmplScope, wrapper) {
-        lazyScope.namedElementArray.forEach(function (key, eventId) {
-          var $elementTrigger = wrapper.querySelector('[data-co-named-element="' + eventId + '"]');
-          if (!$elementTrigger) return;
-          delete $elementTrigger.dataset.coNamedElement;
-          tmplScope[key] = $elementTrigger;
-        });
-      }
-    },
-    elementRef: {
-      pattern: /data-co-element-ref="##:([\s\S]+?)##"/g,
-      exec: function exec(key) {
-        var source = "';\nvar eventId = (__lazyScope.elementRefArray.length);\n__p+='data-co-element-ref=\"'+eventId+'\"';\nvar ".concat(key, " = null;\n__lazyScope.elementRefArray[eventId] = function(target) {").concat(key, " = target;};\n__p+='");
-        return source;
-      },
-      lazyExec: function lazyExec(data, lazyScope, tmplScope, wrapper) {
-        lazyScope.elementRefArray.forEach(function (func, eventId) {
-          var $elementTrigger = wrapper.querySelector('[data-co-element-ref="' + eventId + '"]');
-          if (!$elementTrigger) return;
-          delete $elementTrigger.dataset.coVar;
-          func.call($elementTrigger, $elementTrigger);
-        });
-      }
-    },
-    elementLoad: {
-      pattern: /data-co-load="##:([\s\S]+?)##"/g,
-      exec: function exec(elementLoad) {
-        var elementLoadSplitArray = elementLoad.split("::");
-        var source = "';\nlet eventId = (__lazyScope.elementLoadArray.length);\n__p+='data-co-load=\"'+eventId+'\"';\n__lazyScope.elementLoadArray[eventId] = {loadFunc: ".concat(elementLoadSplitArray[0], ", customData: ").concat(elementLoadSplitArray[1], "};\n__p+='");
-        return source;
-      },
-      lazyExec: function lazyExec(data, lazyScope, tmplScope, wrapper) {
-        lazyScope.elementLoadArray.forEach(function (elementLoad, eventId) {
-          var $elementTrigger = wrapper.querySelector('[data-co-load="' + eventId + '"]');
-          if (!$elementTrigger) return;
-          delete $elementTrigger.dataset.coLoad;
-          var parentElement = $elementTrigger.parentElement;
-          elementLoad.loadFunc.call($elementTrigger, $elementTrigger, {
-            "data": data,
-            "element": $elementTrigger,
-            "customData": elementLoad.customData,
-            "parentElement": parentElement,
-            "component": tmplScope
-          });
-        });
-      }
-    },
-    event: {
-      pattern: /data-co-event="##:([\s\S]+?)##"/g,
-      exec: function exec(event) {
-        var eventStrArray = event.split(":::");
-        var source = "';\n(() => {let eventId = (__lazyScope.eventArray.length);\n__p+='data-co-event=\"'+eventId+'\"';\n";
-        var eventArray = new Array();
-        for (var i = 0, size = eventStrArray.length; i < size; i++) {
-          var eventSplitArray = eventStrArray[i].split("::");
-          eventArray.push("{eventFunc: ".concat(eventSplitArray[0], ", $parent: this, customData: ").concat(eventSplitArray[1], "}"));
-        }
-        source += "__lazyScope.eventArray[eventId] = [".concat(eventArray.join(","), "];})()\n__p+='");
-        return source;
-      },
-      lazyExec: function lazyExec(data, lazyScope, tmplScope, wrapper) {
-        var self = this;
-        var attacher = self.event.attacher;
-        lazyScope.eventArray.forEach(function (selectedArray, eventId) {
-          var $elementTrigger = wrapper.querySelector("[data-co-event=\"".concat(eventId, "\"]"));
-          if (!$elementTrigger) return;
-          delete $elementTrigger.dataset.coEvent;
-          var _loop = function _loop() {
-            var selected = selectedArray[i];
-            if (selectedArray[i].eventFunc) {
-              if (selected.eventFunc instanceof Array) {
-                selected.eventFunc.forEach(function (func) {
-                  attacher(self, data, lazyScope, tmplScope, wrapper, $elementTrigger, func, selected);
-                });
-              } else {
-                attacher(self, data, lazyScope, tmplScope, wrapper, $elementTrigger, selected.eventFunc, selected);
-              }
+};
+const stringToElement = function (str) {
+    if (typeof str === 'number' || !isNaN(Number(str))) {
+        return document.createTextNode(String(str));
+    }
+    else if (typeof str === 'string') {
+        try {
+            const doc = domParser.parseFromString(str, "text/html");
+            const body = doc.body;
+            if (body.childNodes.length === 1) {
+                return body.firstChild;
             }
-          };
-          for (var i = 0, size = selectedArray.length; i < size; i++) {
-            _loop();
-          }
-        });
-      },
-      trigger: function trigger(target, eventName) {
-        var customEvent = new Event(eventName, {
-          bubbles: true,
-          cancelable: true
-        });
-        target.dispatchEvent(customEvent);
-      },
-      attacher: function attacher(self, data, lazyScope, tmplScope, wrapper, $elementTrigger, eventFunc, eventData) {
-        var trigger = self.event.trigger;
-        var $childTarget = self.firstElementChild(wrapper);
-        var $targetElement = self.childElementCount(wrapper) == 1 ? $childTarget : null;
-        if (!eventFunc) {
-          return;
-        }
-        var eventFuncParams = [$elementTrigger, null, {
-          "data": data,
-          "customData": eventData.customData,
-          "element": $elementTrigger,
-          "componentElement": $targetElement || $childTarget.parentElement,
-          "component": tmplScope
-        }];
-        if (eventFunc instanceof Function) {
-          $elementTrigger.addEventListener("click", function (event) {
-            event.stopPropagation();
-            eventFuncParams[1] = event;
-            eventFunc.call.apply(eventFunc, eventFuncParams);
-          });
-          return;
-        }
-        var triggerKey = eventFunc.triggerKey;
-        if (triggerKey) {
-          tmplScope.trigger = tmplScope.trigger || {};
-          tmplScope.trigger[triggerKey] = {};
-        }
-        Object.keys(eventFunc).forEach(function (eventType) {
-          if (eventType == "load") {
-            var _eventFunc$eventType;
-            eventFuncParams[1] = $elementTrigger;
-            (_eventFunc$eventType = eventFunc[eventType]).call.apply(_eventFunc$eventType, eventFuncParams);
-            return;
-          } else if (eventType == "ref") {
-            tmplScope[eventFunc[eventType]] = $elementTrigger;
-            return;
-          } else if (eventType == "triggerKey") {
-            return;
-          }
-          $elementTrigger.addEventListener(eventType, function (event) {
-            var _eventFunc$eventType2;
-            event.stopPropagation();
-            eventFuncParams[1] = event;
-            (_eventFunc$eventType2 = eventFunc[eventType]).call.apply(_eventFunc$eventType2, eventFuncParams);
-          });
-          if (triggerKey) {
-            tmplScope.trigger[triggerKey][eventType] = function () {
-              trigger($elementTrigger, eventType);
-            };
-          }
-        });
-      }
-    },
-    element: {
-      pattern: /##%([\s\S]+?)##/g,
-      exec: function exec(target) {
-        var elementSplitArray = target.split("::");
-        var source = "';\n(() => {let elementId = (__lazyScope.elementArray.length);\n__p+='<template data-co-tmpl-element-id=\"'+elementId+'\"></template>';\n__lazyScope.elementArray[elementId] = {target: ".concat(elementSplitArray[0], ", nonblocking: ").concat(elementSplitArray[1] || false, "};})()\n__p+='");
-        return source;
-      },
-      lazyExec: function lazyExec(data, lazyScope, tmplScope, wrapper) {
-        var self = this;
-        lazyScope.elementArray.forEach(function (ele, elementId) {
-          var childTarget = ele.target;
-          var nonblocking = ele.nonblocking;
-          var $tmplElement = wrapper.querySelector("template[data-co-tmpl-element-id=\"".concat(elementId, "\"]"));
-          if (childTarget instanceof Array) {
-            var docFragment = document.createDocumentFragment();
-            childTarget.forEach(function (child) {
-              if (!child) return;
-              var childElement = child.element || child;
-              if (typeof childElement === "string") {
-                docFragment.appendChild(self.element.stringToElement(childElement));
-              } else if (typeof childElement === "number") {
-                docFragment.appendChild(self.element.stringToElement(childElement));
-              } else if (typeof childElement === "function") {
-                docFragment.appendChild(self.element.stringToElement(childElement()));
-              } else {
-                docFragment.appendChild(childElement);
-              }
-              if (child.beforeAppendTo) {
-                child.parent = child.parentNode;
-                child.parentScope = tmplScope;
-                if (child.beforeAppendTo) child.beforeAppendTo();
-              }
-            });
-            $tmplElement.parentNode.replaceChild(docFragment, $tmplElement);
-            childTarget.forEach(function (child) {
-              if (child && child.afterAppendTo) setTimeout(function () {
-                child.afterAppendTo();
-              });
-            });
-          } else if (typeof childTarget === "string") {
-            $tmplElement.parentNode.replaceChild(self.element.stringToElement(childTarget), $tmplElement);
-          } else if (typeof childTarget === "number") {
-            $tmplElement.parentNode.replaceChild(self.element.stringToElement(childTarget), $tmplElement);
-          } else if (typeof childTarget === "function") {
-            $tmplElement.parentNode.replaceChild(self.element.stringToElement(childTarget()), $tmplElement);
-          } else if ((childTarget && (childTarget.element || childTarget)) instanceof Element) {
-            var doFunc = function doFunc() {
-              var childElement = childTarget.element || childTarget;
-              var parentNode = $tmplElement.parentNode;
-              var node1 = null;
-              if (childElement instanceof DocumentFragment) {
-                node1 = childElement.firstChild;
-              }
-              if (childTarget.beforeAppendTo) childTarget.beforeAppendTo();
-              parentNode.replaceChild(childElement, $tmplElement);
-              if (childTarget.afterAppendTo) setTimeout(function () {
-                childTarget.afterAppendTo();
-              });
-              if (childTarget.tmplId) {
-                if (node1) {
-                  childTarget["this"] = node1.parentNode;
+            else {
+                const fragment = document.createDocumentFragment();
+                while (body.firstChild) {
+                    fragment.appendChild(body.firstChild);
                 }
-                childTarget.parentScope = tmplScope;
-              }
-            };
-            nonblocking == undefined || nonblocking === false ? doFunc() : setTimeout(doFunc, nonblocking);
-          } else {
-            $tmplElement.parentNode.removeChild($tmplElement);
-          }
-        });
-      },
-      stringToElement: function stringToElement(str) {
-        if (!isNaN(str)) {
-          return document.createTextNode(str);
-        } else if (str && str.startsWith("<>")) {
-          var temp = document.createElement("template");
-          temp.innerHTML = str.replace("<>", "");
-          return temp.content;
-        } else {
-          return document.createTextNode(str);
+                return fragment;
+            }
         }
-      }
+        catch (e) {
+            return document.createTextNode(str);
+        }
+    }
+    else {
+        return document.createTextNode('');
+    }
+};
+compomint.templateConfig = {
+    rules: {
+        style: {
+            pattern: /(\<style id=[\s\S]+?\>[\s\S]+?\<\/style\>)/g,
+            exec: function (style) {
+                const dumy = document.createElement("template");
+                dumy.innerHTML = style;
+                const styleNode = (dumy.content || dumy).querySelector("style");
+                if (!styleNode || !styleNode.id)
+                    return ""; // Skip if no style node or ID
+                const oldStyleNode = document.getElementById(styleNode.id);
+                if (oldStyleNode)
+                    oldStyleNode.parentNode?.removeChild(oldStyleNode);
+                document.head.appendChild(styleNode);
+                return "";
+            },
+        },
+        commentArea: {
+            pattern: /##\*([\s\S]+?)##/g,
+            exec: function (commentArea) {
+                return ``;
+            },
+        },
+        preEvaluate: {
+            pattern: /##!([\s\S]+?)##/g,
+            exec: function (preEvaluate, tmplId) {
+                try {
+                    new Function("tmplId", preEvaluate)(tmplId);
+                }
+                catch (e) {
+                    if (configs.throwError) {
+                        console.error(`Template preEvaluate error in "${tmplId}", ${e.name}: ${e.message}`);
+                        throw e;
+                    }
+                    else {
+                        console.warn(`Template preEvaluate error in "${tmplId}", ${e.name}: ${e.message}`);
+                    }
+                }
+                return ``;
+            },
+        },
+        interpolate: {
+            pattern: /##=([\s\S]+?)##/g,
+            exec: function (interpolate) {
+                const interpolateSyntax = `typeof (interpolate)=='function' ? (interpolate)() : (interpolate)`;
+                return (`';\n(() => {let __t, interpolate=${interpolate};\n__p+=((__t=(${interpolateSyntax}))==null ? '' : String(__t) );})();\n__p+='`); // Ensure string conversion
+            },
+        },
+        escape: {
+            pattern: /##-([\s\S]+?)##/g,
+            exec: function (escape) {
+                const escapeSyntax = `compomint.tools.escapeHtml.escape(typeof (escape)=='function' ? (escape)() : (escape))`;
+                return (`';\n(() => {let __t, escape=${escape};\n__p+=((__t=(${escapeSyntax}))==null ? '' : String(__t) );})();\n__p+='`); // Ensure string conversion before escape
+            },
+        },
+        elementProps: {
+            pattern: /data-co-props="##:([\s\S]+?)##"/g,
+            exec: function (props) {
+                const source = `';\nvar eventId = (__lazyScope.elementPropsArray.length);\n__p+='data-co-props="'+eventId+'"';\n
+__lazyScope.elementPropsArray[eventId] = ${props};\n__p+='`;
+                return source;
+            },
+            lazyExec: function (data, lazyScope, component, wrapper) {
+                lazyScope.elementPropsArray.forEach(function (props, eventId) {
+                    if (!props)
+                        return;
+                    const $elementTrigger = wrapper.querySelector(`[data-co-props="${eventId}"]`);
+                    if (!$elementTrigger)
+                        return;
+                    delete $elementTrigger.dataset.coProps;
+                    Object.keys(props).forEach(function (key) {
+                        $elementTrigger.setAttribute(key, String(props[key])); // Ensure value is string
+                    });
+                });
+            }
+        },
+        namedElement: {
+            pattern: /data-co-named-element="##:([\s\S]+?)##"/g,
+            exec: function (key) {
+                const source = `';\nvar eventId = (__lazyScope.namedElementArray.length);\n__p+='data-co-named-element="'+eventId+'"';\n
+__lazyScope.namedElementArray[eventId] = ${key};\n__p+='`;
+                return source;
+            },
+            lazyExec: function (data, lazyScope, component, wrapper) {
+                lazyScope.namedElementArray.forEach(function (key, eventId) {
+                    const $elementTrigger = wrapper.querySelector(`[data-co-named-element="${eventId}"]`);
+                    if (!$elementTrigger) {
+                        if (configs.debug)
+                            console.warn(`Named element target not found for ID ${eventId} in template ${component.tmplId}`);
+                        return;
+                    }
+                    delete $elementTrigger.dataset.coNamedElement;
+                    component[key] = $elementTrigger;
+                });
+            },
+        },
+        elementRef: {
+            pattern: /data-co-element-ref="##:([\s\S]+?)##"/g,
+            exec: function (key) {
+                const source = `';\nvar eventId = (__lazyScope.elementRefArray.length);\n__p+='data-co-element-ref="'+eventId+'"';
+var ${key} = null;\n__lazyScope.elementRefArray[eventId] = function(target) {${key} = target;};\n__p+='`;
+                return source;
+            },
+            lazyExec: function (data, lazyScope, component, wrapper) {
+                lazyScope.elementRefArray.forEach(function (func, eventId) {
+                    const $elementTrigger = wrapper.querySelector(`[data-co-element-ref="${eventId}"]`);
+                    if (!$elementTrigger) {
+                        if (configs.debug)
+                            console.warn(`Element ref target not found for ID ${eventId} in template ${component.tmplId}`);
+                        return;
+                    }
+                    delete $elementTrigger.dataset.coElementRef;
+                    func.call($elementTrigger, $elementTrigger);
+                });
+            },
+        },
+        elementLoad: {
+            pattern: /data-co-load="##:([\s\S]+?)##"/g,
+            exec: function (elementLoad) {
+                const elementLoadSplitArray = elementLoad.split("::");
+                const source = `';\nlet eventId = (__lazyScope.elementLoadArray.length);\n__p+='data-co-load="'+eventId+'"';
+__lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, customData: ${elementLoadSplitArray[1]}};\n__p+='`;
+                return source;
+            },
+            lazyExec: function (data, lazyScope, component, wrapper) {
+                lazyScope.elementLoadArray.forEach(function (elementLoad, eventId) {
+                    const $elementTrigger = wrapper.querySelector(`[data-co-load="${eventId}"]`);
+                    if (!$elementTrigger) {
+                        if (configs.debug)
+                            console.warn(`Element load target not found for ID ${eventId} in template ${component.tmplId}`);
+                        return;
+                    }
+                    delete $elementTrigger.dataset.coLoad;
+                    try {
+                        elementLoad.loadFunc.call($elementTrigger, $elementTrigger, {
+                            "data": data,
+                            "element": $elementTrigger,
+                            "customData": elementLoad.customData,
+                            "component": component,
+                        });
+                    }
+                    catch (e) {
+                        console.error(`Error executing elementLoad function for ID ${eventId} in template ${component.tmplId}:`, e, elementLoad.loadFunc);
+                        if (configs.throwError)
+                            throw e;
+                    }
+                });
+            },
+        },
+        event: {
+            pattern: /data-co-event="##:([\s\S]+?)##"/g,
+            exec: function (event) {
+                const eventStrArray = event.split(":::");
+                let source = `';\n(() => {let eventId = (__lazyScope.eventArray.length);\n__p+='data-co-event="'+eventId+'"';\n`;
+                const eventArray = [];
+                for (let i = 0, size = eventStrArray.length; i < size; i++) {
+                    const eventSplitArray = eventStrArray[i].split("::");
+                    eventArray.push(`{eventFunc: ${eventSplitArray[0]}, $parent: this, customData: ${eventSplitArray[1]}}`);
+                }
+                source += `__lazyScope.eventArray[eventId] = [${eventArray.join(",")}];})()\n__p+='`;
+                return source;
+            },
+            lazyExec: function (data, lazyScope, component, wrapper) {
+                const self = this; // Cast self to TemplateSettings
+                const attacher = self.attacher;
+                if (!attacher)
+                    return; // Guard against missing attacher
+                lazyScope.eventArray.forEach(function (selectedArray, eventId) {
+                    const $elementTrigger = wrapper.querySelector(`[data-co-event="${eventId}"]`);
+                    if (!$elementTrigger) {
+                        if (configs.debug)
+                            console.warn(`Event target not found for ID ${eventId} in template ${component.tmplId}`);
+                        return;
+                    }
+                    delete $elementTrigger.dataset.coEvent;
+                    for (let i = 0, size = selectedArray.length; i < size; i++) {
+                        const selected = selectedArray[i];
+                        if (selected.eventFunc) {
+                            if (Array.isArray(selected.eventFunc)) {
+                                selected.eventFunc.forEach(function (func) {
+                                    attacher(self, data, lazyScope, component, wrapper, $elementTrigger, func, selected);
+                                });
+                            }
+                            else {
+                                attacher(self, data, lazyScope, component, wrapper, $elementTrigger, selected.eventFunc, selected);
+                            }
+                        }
+                    }
+                });
+            },
+            trigger: function (target, eventName) {
+                const customEvent = new Event(eventName, {
+                    bubbles: true,
+                    cancelable: true
+                });
+                target.dispatchEvent(customEvent);
+            },
+            attacher: function (self, // Type properly if possible
+            data, lazyScope, component, wrapper, $elementTrigger, eventFunc, eventData) {
+                const trigger = self.trigger;
+                const $childTarget = firstElementChild(wrapper);
+                const $targetElement = childElementCount(wrapper) == 1 ? $childTarget : null;
+                if (!eventFunc) {
+                    return;
+                }
+                const eventFuncParams = [
+                    $elementTrigger,
+                    null,
+                    {
+                        "data": data,
+                        "customData": eventData.customData,
+                        "element": $elementTrigger,
+                        "componentElement": $targetElement || $childTarget?.parentElement,
+                        "component": component,
+                    },
+                ];
+                if (typeof eventFunc === 'function') {
+                    $elementTrigger.addEventListener("click", function (event) {
+                        event.stopPropagation();
+                        eventFuncParams[1] = event;
+                        try {
+                            eventFunc.call(...eventFuncParams);
+                        }
+                        catch (e) {
+                            console.error(`Error in event handler for template ${component.tmplId}:`, e, eventFunc);
+                            if (configs.throwError)
+                                throw e;
+                        }
+                    });
+                    return;
+                }
+                const eventMap = eventFunc;
+                const triggerName = eventMap.triggerName; // Optional key to store trigger functions
+                if (triggerName) {
+                    component.trigger = component.trigger || {};
+                    component.trigger[triggerName] = {};
+                }
+                Object.keys(eventMap).forEach(function (eventType) {
+                    if (eventType == "load") {
+                        eventFuncParams[1] = $elementTrigger;
+                        try {
+                            eventMap[eventType].call(...eventFuncParams);
+                        }
+                        catch (e) {
+                            console.error(`Error in 'load' event handler for template ${component.tmplId}:`, e, eventMap[eventType]);
+                            if (configs.throwError)
+                                throw e;
+                        }
+                        return;
+                    }
+                    else if (eventType == "namedElement") {
+                        component[eventMap[eventType]] = $elementTrigger;
+                        return;
+                    }
+                    else if (eventType == "triggerName") {
+                        return;
+                    }
+                    $elementTrigger.addEventListener(eventType, function (event) {
+                        event.stopPropagation();
+                        eventFuncParams[1] = event;
+                        try {
+                            eventMap[eventType].call(...eventFuncParams);
+                        }
+                        catch (e) {
+                            console.error(`Error in '${eventType}' event handler for template ${component.tmplId}:`, e, eventMap[eventType]);
+                            if (configs.throwError)
+                                throw e;
+                        }
+                    });
+                    if (triggerName && trigger) {
+                        component.trigger[triggerName][eventType] = function () {
+                            trigger($elementTrigger, eventType);
+                        };
+                    }
+                });
+            },
+        },
+        element: {
+            pattern: /##%([\s\S]+?)##/g,
+            exec: function (target) {
+                const elementSplitArray = target.split("::");
+                const source = `';\n(() => {
+let elementId = (__lazyScope.elementArray.length);
+__p+='<template data-co-tmpl-element-id="'+elementId+'"></template>';
+__lazyScope.elementArray[elementId] = {childTarget: ${elementSplitArray[0]}, nonblocking: ${(elementSplitArray[1] || false)}};})();
+__p+='`;
+                return source;
+            },
+            lazyExec: function (data, lazyScope, component, wrapper) {
+                lazyScope.elementArray.forEach(function (ele, elementId) {
+                    const childTarget = ele.childTarget;
+                    const nonblocking = ele.nonblocking;
+                    const $tmplElement = wrapper.querySelector(`template[data-co-tmpl-element-id="${elementId}"]`);
+                    if (!$tmplElement) {
+                        if (configs.debug)
+                            console.warn(`Element insertion placeholder not found for ID ${elementId} in template ${component.tmplId}`);
+                        return;
+                    }
+                    if (!$tmplElement.parentNode) {
+                        if (configs.debug)
+                            console.warn(`Element insertion placeholder for ID ${elementId} in template ${component.tmplId} has no parent.`);
+                        return;
+                    }
+                    const doFunc = function () {
+                        if (!$tmplElement || !$tmplElement.parentNode) {
+                            if (configs.debug)
+                                console.warn(`Placeholder for ID ${elementId} removed before insertion in template ${component.tmplId}.`);
+                            return;
+                        }
+                        try {
+                            if (childTarget instanceof Array) {
+                                const docFragment = document.createDocumentFragment();
+                                childTarget.forEach(function (child) {
+                                    if (!child)
+                                        return;
+                                    const childElement = child.element || child;
+                                    let nodeToAppend = null;
+                                    if (typeof childElement === "string" || typeof childElement === "number") {
+                                        nodeToAppend = stringToElement(childElement);
+                                    }
+                                    else if (typeof childElement === "function") {
+                                        nodeToAppend = stringToElement(childElement());
+                                    }
+                                    else if (childElement instanceof Node) {
+                                        nodeToAppend = childElement;
+                                    }
+                                    else {
+                                        if (configs.debug)
+                                            console.warn(`Invalid item type in element array for ID ${elementId}, template ${component.tmplId}:`, childElement);
+                                        return;
+                                    }
+                                    if (child.beforeAppendTo) {
+                                        try {
+                                            child.beforeAppendTo();
+                                        }
+                                        catch (e) {
+                                            console.error("Error in beforeAppendTo (array item):", e);
+                                        }
+                                    }
+                                    if (nodeToAppend)
+                                        docFragment.appendChild(nodeToAppend);
+                                });
+                                $tmplElement.parentNode.replaceChild(docFragment, $tmplElement);
+                                childTarget.forEach(function (child) {
+                                    if (child && child.afterAppendTo) {
+                                        setTimeout(() => {
+                                            try {
+                                                child.afterAppendTo();
+                                            }
+                                            catch (e) {
+                                                console.error("Error in afterAppendTo (array item):", e);
+                                            }
+                                        }, 0);
+                                    }
+                                });
+                            }
+                            else if (typeof childTarget === "string" || typeof childTarget === "number") {
+                                $tmplElement.parentNode.replaceChild(stringToElement(childTarget), $tmplElement);
+                            }
+                            else if (typeof childTarget === "function") {
+                                $tmplElement.parentNode.replaceChild(stringToElement(childTarget()), $tmplElement);
+                            }
+                            else if (childTarget && (childTarget.element || childTarget) instanceof Node) {
+                                const childScope = childTarget; // Assume it might be a scope
+                                const childElement = childScope.element || childScope;
+                                if (childScope.beforeAppendTo) {
+                                    try {
+                                        childScope.beforeAppendTo();
+                                    }
+                                    catch (e) {
+                                        console.error("Error in beforeAppendTo:", e);
+                                    }
+                                }
+                                $tmplElement.parentNode.replaceChild(childElement, $tmplElement);
+                                if (childScope.afterAppendTo) {
+                                    setTimeout(() => {
+                                        try {
+                                            if (childScope.afterAppendTo)
+                                                childScope.afterAppendTo();
+                                        }
+                                        catch (e) {
+                                            console.error("Error in afterAppendTo:", e);
+                                        }
+                                    }, 0);
+                                }
+                                if (childScope.tmplId) {
+                                    childScope.parentComponent = component;
+                                }
+                            }
+                            else {
+                                if (configs.debug)
+                                    console.warn(`Invalid target for element insertion ID ${elementId}, template ${component.tmplId}:`, childTarget);
+                                $tmplElement.parentNode.removeChild($tmplElement);
+                            }
+                        }
+                        catch (e) {
+                            console.error(`Error during element insertion for ID ${elementId}, template ${component.tmplId}:`, e);
+                            if (configs.throwError)
+                                throw e;
+                            if ($tmplElement && $tmplElement.parentNode) {
+                                try {
+                                    $tmplElement.parentNode.removeChild($tmplElement);
+                                }
+                                catch (removeError) { /* Ignore */ }
+                            }
+                        }
+                    }; // end doFunc
+                    (nonblocking == undefined || nonblocking === false)
+                        ? doFunc()
+                        : setTimeout(doFunc, typeof nonblocking === 'number' ? nonblocking : 0);
+                }); // end forEach
+            }
+        },
+        lazyEvaluate: {
+            pattern: /###([\s\S]+?)##/g,
+            exec: function (lazyEvaluate) {
+                const source = `';\n__lazyScope.lazyEvaluateArray.push(function(data) {${lazyEvaluate}});\n__p+='`;
+                return source;
+            },
+            lazyExec: function (data, lazyScope, component, wrapper) {
+                const $childTarget = firstElementChild(wrapper);
+                const $targetElement = childElementCount(wrapper) == 1 ? $childTarget : null;
+                lazyScope.lazyEvaluateArray.forEach(function (selectedFunc, idx) {
+                    try {
+                        selectedFunc.call($targetElement || wrapper, data); // Use wrapper if multiple elements
+                    }
+                    catch (e) {
+                        console.error(`Error in lazyEvaluate block ${idx} for template ${component.tmplId}:`, e, selectedFunc);
+                        if (configs.throwError)
+                            throw e;
+                    }
+                });
+                return;
+            },
+        },
+        evaluate: {
+            pattern: /##([\s\S]+?)##/g,
+            exec: (evaluate) => {
+                return "';\n" + evaluate + "\n__p+='";
+            },
+        },
     },
-    lazyEvaluate: {
-      pattern: /###([\s\S]+?)##/g,
-      exec: function exec(lazyEvaluate) {
-        var source = "';\n__lazyScope.lazyEvaluateArray.push(function(data) {".concat(lazyEvaluate, "});\n__p+='");
-        return source;
-      },
-      lazyExec: function lazyExec(data, lazyScope, tmplScope, wrapper) {
-        var $childTarget = this.firstElementChild(wrapper);
-        var $targetElement = this.childElementCount(wrapper) == 1 ? $childTarget : null;
-        lazyScope.lazyEvaluateArray.forEach(function (selectedFunc, idx) {
-          selectedFunc.call($targetElement || $childTarget.parentElement, data);
-        });
-        return;
-      }
-    },
-    escape: {
-      pattern: /##-([\s\S]+?)##/g,
-      exec: function exec(escape) {
-        return "'+\n((__t=(".concat(escape, "))==null?'':compomint.tmplTool.escapeHtml.escape(__t))+\n'");
-      }
-    },
-    evaluate: {
-      pattern: /##([\s\S]+?)##/g,
-      exec: function exec(evaluate) {
-        return "';\n" + evaluate + "\n__p+='";
-      }
-    },
-    /*
-    normal  : {
-      pattern: /([\s\S]+?)/g,
-      exec: function(normal) {
-        //console.log(normal);
-        return normal.replace(escaper, escapeFunc);
-      }
-    },
-    */
-    dataKeyName: "data",
-    statusKeyName: "status",
-    componentKeyName: "component",
-    i18nKeyName: "i18n"
-  };
-  var escapeHtml = function () {
-    var escapeMap = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#x27;",
-      "`": "&#x60;",
-      "\n": "&#10;"
+    keys: {
+        dataKeyName: "data",
+        statusKeyName: "status",
+        componentKeyName: "component",
+        i18nKeyName: "i18n",
+    }
+}; // Cast to TemplateSettings
+const escapeHtml = (function () {
+    const escapeMap = {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#x27;", // Use HTML entity for single quote
+        "`": "&#x60;", // Use HTML entity for backtick
+        //"\n": "&#10;", // Keep newline escaping if needed, otherwise remove
     };
-    var unescapeMap = function () {
-      var unescapeMap = {};
-      Object.keys(escapeMap).forEach(function (ele) {
-        unescapeMap[escapeMap[ele]] = ele;
-      });
-      return unescapeMap;
-    }();
-
-    // from underscore.js
-    var createEscaper = function createEscaper(map) {
-      var escaper = function escaper(match) {
-        return map[match];
-      };
-      var source = "(?:".concat(Object.keys(map).join("|"), ")");
-      var testRegexp = RegExp(source);
-      var replaceRegexp = RegExp(source, "g");
-      return function (string) {
-        string = string == null ? "" : "".concat(string);
-        return testRegexp.test(string) ? string.replace(replaceRegexp, escaper) : string;
-      };
+    const unescapeMap = Object.fromEntries(Object.entries(escapeMap).map(([key, value]) => [value, key]));
+    const createEscaper = function (map) {
+        const escaper = function (match) {
+            return map[match];
+        };
+        const source = `(?:${Object.keys(map).join("|").replace(/\\/g, '\\\\')})`; // Escape backslashes if any keys have them
+        const testRegexp = RegExp(source);
+        const replaceRegexp = RegExp(source, "g");
+        return function (string) {
+            string = string == null ? "" : `${string}`;
+            return testRegexp.test(string)
+                ? string.replace(replaceRegexp, escaper)
+                : string;
+        };
     };
     return {
-      escape: createEscaper(escapeMap),
-      unescape: createEscaper(unescapeMap)
+        escape: createEscaper(escapeMap),
+        unescape: createEscaper(unescapeMap),
     };
-  }();
-  tmplTool.escapeHtml = escapeHtml;
-  var matcherFunc = function matcherFunc(settings) {
-    var patternArray = new Array();
-    var execArray = new Array();
-    var lazyExecArray = {};
-    var lazyScope = {};
-    var setting = null;
-    Object.keys(settings).forEach(function (key) {
-      setting = settings[key];
-      if (setting.pattern) {
-        patternArray.push((setting.pattern || noMatch).source);
-        execArray.push(setting.exec);
-      }
-      if (setting.lazyExec) {
-        lazyExecArray["".concat(key, "Array")] = setting.lazyExec;
-        lazyScope["".concat(key, "Array")] = new Array();
-      }
+})();
+tools.escapeHtml = escapeHtml;
+const matcherFunc = function (templateRules) {
+    const patternArray = [];
+    const execArray = [];
+    const lazyExecMap = {};
+    const lazyScopeSeed = {};
+    Object.keys(templateRules).forEach(function (key) {
+        const templateRule = templateRules[key]; // Type assertion
+        if (templateRule && typeof templateRule === 'object' && templateRule.pattern instanceof RegExp && typeof templateRule.exec === 'function') {
+            patternArray.push((templateRule.pattern || noMatch).source);
+            execArray.push(templateRule.exec);
+        }
+        if (templateRule && typeof templateRule === 'object' && typeof templateRule.lazyExec === 'function') {
+            const arrayKey = `${key}Array`;
+            lazyExecMap[arrayKey] = templateRule.lazyExec;
+            lazyScopeSeed[arrayKey] = [];
+        }
     });
     return {
-      settings: settings,
-      pattern: new RegExp(patternArray.join("|"), "g"),
-      exec: execArray,
-      lazyExecKeys: Object.keys(lazyScope),
-      lazyExec: lazyExecArray,
-      lazyScopeSeed: JSON.stringify(lazyScope)
+        templateRules: templateRules,
+        pattern: new RegExp(patternArray.join("|"), "g"),
+        exec: execArray,
+        lazyExecKeys: Object.keys(lazyScopeSeed),
+        lazyExec: lazyExecMap,
+        lazyScopeSeed: JSON.stringify(lazyScopeSeed),
     };
-  };
-  var escapeFunc = function escapeFunc(match) {
+};
+const escapeFunc = function (match) {
     return escapes[match] || escapes[match.replace(/[ \n]/g, "")] || "";
-  };
-  var defaultMatcher = matcherFunc(Compomint.templateSettings);
-  var templateParser = function templateParser(tmplId, text, matcher) {
-    if (showTime) console.time("tmpl: ".concat(tmplId));
-    var index = 0;
-    var source = "";
-    text.replace(matcher.pattern, function () {
-      for (var _len = arguments.length, params = new Array(_len), _key = 0; _key < _len; _key++) {
-        params[_key] = arguments[_key];
-      }
-      //let match = arguments[0];
-      //let offset = arguments[arguments.length-2];
-      var match = params[0];
-      var offset = params[params.length - 2];
-      source += text.slice(index, offset).replace(escaper, escapeFunc);
-      var selected,
-        i = null;
-      //Array.prototype.slice.call(arguments, 1, -2).some(function(value, idx, arr) {
-      params.slice(1, -2).some(function (value, idx, arr) {
-        if (!!value) {
-          selected = value;
-          i = idx;
-          return true;
+};
+const defaultMatcher = matcherFunc(compomint.templateConfig.rules);
+const templateParser = function (tmplId, text, matcher) {
+    if (configs.printExecTime)
+        console.time(`tmpl: ${tmplId}`);
+    let index = 0;
+    let source = "";
+    text.replace(matcher.pattern, function (...params) {
+        const match = params[0];
+        const offset = params[params.length - 2];
+        source += text.slice(index, offset).replace(escaper, escapeFunc);
+        let selectedMatchContent;
+        let matchIndex = null;
+        params.slice(1, -2).some(function (value, idx) {
+            if (value !== undefined) {
+                selectedMatchContent = value;
+                matchIndex = idx;
+                return true;
+            }
+            return false;
+        });
+        if (selectedMatchContent !== undefined && matchIndex !== null) {
+            try {
+                source += matcher.exec[matchIndex].call(matcher.templateRules, selectedMatchContent, tmplId);
+            }
+            catch (e) {
+                console.error(`Error executing template rule index ${matchIndex} for match "${selectedMatchContent}" in template "${tmplId}":`, e);
+                if (configs.throwError)
+                    throw e;
+                source += '';
+            }
         }
-        return false;
-      });
-      if (!selected) return match;
-      source += matcher.exec[i].call(matcher.settings, selected, tmplId);
-      index = offset + match.length;
-      return match;
+        else {
+            source += match.replace(escaper, escapeFunc);
+        }
+        index = offset + match.length;
+        return match;
     });
-    if (showTime) console.timeEnd("tmpl: ".concat(tmplId));
-    return source + text.slice(index).replace(escaper, escapeFunc);
-  };
-
-  // JavaScript micro-templating, similar to John Resig's implementation.
-  var templateBuilder = Compomint.template = function compomint_templateBuilder(tmplId, templateText, tmplSettings) {
-    var settings = Compomint.templateSettings;
-    var matcher = defaultMatcher;
-    if (tmplSettings) {
-      settings = Object.assign({}, Compomint.templateSettings, tmplSettings);
-      matcher = matcherFunc(settings);
+    source += text.slice(index).replace(escaper, escapeFunc);
+    if (configs.printExecTime)
+        console.timeEnd(`tmpl: ${tmplId}`);
+    return source;
+};
+const templateBuilder = (compomint.template = function compomint_templateBuilder(tmplId, templateText, customTemplateConfig) {
+    let templateConfig = compomint.templateConfig;
+    let matcher = defaultMatcher;
+    if (customTemplateConfig) {
+        templateConfig = Object.assign({}, compomint.templateConfig, customTemplateConfig);
+        matcher = matcherFunc(templateConfig.rules);
     }
-    var source = "/* tmplId: ".concat(tmplId, " */\n//# sourceURL=http://tmpl//").concat(tmplId.split("-").join("//"), ".js\nlet __t,__p='';\n__p+='").concat(templateParser(tmplId, templateText, matcher), "';\nreturn __p;");
+    const source = `
+/* tmplId: ${tmplId} */
+//# sourceURL=http://tmpl//${tmplId.split("-").join("//")}.js
+if (__debugger) {
+debugger;
+}
+let __p='';
+__p+='${templateParser(tmplId, templateText, matcher)}';
+return __p;`;
+    let sourceGenFunc = null;
     try {
-      renderFunc = new Function(settings.dataKeyName, settings.statusKeyName, settings.componentKeyName, settings.i18nKeyName, "__lazyScope", source);
-    } catch (e) {
-      var debugErrorLine = function debugErrorLine(source, e) {
-        console.log(tmplId, e.lineNumber, e.columnNumber);
-        new Function(settings.dataKeyName, settings.statusKeyName, settings.componentKeyName, settings.i18nKeyName, "__lazyScope", source);
-      };
-      if (throwError) {
-        debugErrorLine(source, e);
-        throw e;
-      } else {
-        return;
-      }
+        sourceGenFunc = new Function(templateConfig.keys.dataKeyName, templateConfig.keys.statusKeyName, templateConfig.keys.componentKeyName, templateConfig.keys.i18nKeyName, "compomint", "tmpl", "__lazyScope", "__debugger", source);
     }
-    var tmpl = function compomint_tmpl(data, wrapperElement, callback, tmplScope) {
-      if (wrapperElement instanceof Function) {
-        callback = wrapperElement;
-        wrapperElement = undefined;
-      }
-      var dataKeyName = settings.dataKeyName;
-      var statusKeyName = settings.statusKeyName;
-      var lazyScope = JSON.parse(matcher.lazyScopeSeed);
-      tmplScope = Object.assign(tmplScope || {}, {
-        tmplId: tmplId,
-        //_id: tmplTool.genId(tmplId),
-        //[statusKeyName]: {},
-        replace: function replace(scope) {
-          tmplScope.element.parentElement.replaceChild(scope.element || scope, tmplScope.element);
-        },
-        remove: function remove(spacer) {
-          if (tmplScope.beforeRemove) tmplScope.beforeRemove();
-          if (tmplScope.element.parentElement) {
-            if (spacer) {
-              var dumy = document.createElement("template");
-              tmplScope.element.parentElement.replaceChild(dumy, tmplScope.element);
-              tmplScope.element = dumy;
-            } else {
-              tmplScope.element.parentElement.removeChild(tmplScope.element);
+    catch (e) {
+        if (configs.throwError) {
+            console.error(`Template compilation error in "${tmplId}", ${e.name}: ${e.message}`);
+            try { // Attempt re-run for potential browser debugging
+                new Function(templateConfig.keys.dataKeyName, templateConfig.keys.statusKeyName, templateConfig.keys.componentKeyName, templateConfig.keys.i18nKeyName, "compomint", "tmpl", "__lazyScope", "__debugger", source);
             }
-          }
-          if (tmplScope.afterRemove) tmplScope.afterRemove();
-          return tmplScope.element;
-        },
-        appendTo: function appendTo(parentElement) {
-          if (tmplScope.beforeAppendTo) tmplScope.beforeAppendTo();
-          if (parentElement) parentElement.appendChild(tmplScope.element);
-          if (tmplScope.afterAppendTo) tmplScope.afterAppendTo();
-          return tmplScope;
+            catch { /* Ignore re-run error */ }
+            throw e;
         }
-      });
-      if (!tmplScope._id) {
-        tmplScope._id = tmplTool.genId(tmplId);
-      }
-      tmplScope[dataKeyName] = data;
-      if (tmplScope[statusKeyName] == undefined) tmplScope[statusKeyName] = {};
-      var hasParent = wrapperElement ? true : false;
-      var temp = document.createElement("template");
-      var returnTarget = null;
-      if (showTime) console.time("render: ".concat(tmplId));
-      var html = null;
-      try {
-        html = !data ? "<template></template>" : renderFunc.call(wrapperElement, data, tmplScope[statusKeyName], tmplScope, Compomint.i18n[tmplId], lazyScope);
-      } catch (e) {
-        var _debugErrorLine = function _debugErrorLine(source) {
-          console.log("Error: ".concat(tmplId));
-          renderFunc.call(wrapperElement, data, tmplScope[statusKeyName], tmplScope, Compomint.i18n[tmplId], lazyScope);
+        else {
+            return (() => ({})); // Return a dummy function if not throwing
+        }
+    }
+    const renderingFunc = function compomint_renderingFuncBuilder(...params) {
+        let data;
+        let wrapperElement;
+        let callback;
+        let baseComponent;
+        // Argument parsing logic
+        const firstArg = params[0];
+        if (firstArg && typeof firstArg === 'object' && (firstArg.$wrapperElement || firstArg.$callback || firstArg.$baseComponent)) {
+            data = { ...firstArg }; // Clone data object
+            wrapperElement = data.$wrapperElement;
+            delete data.$wrapperElement;
+            callback = data.$callback;
+            delete data.$callback;
+            baseComponent = data.$baseComponent;
+            delete data.$baseComponent;
+        }
+        else {
+            data = firstArg;
+            if (typeof params[1] === 'function') {
+                wrapperElement = undefined;
+                callback = params[1];
+                baseComponent = params[2];
+            }
+            else {
+                wrapperElement = params[1];
+                callback = params[2];
+                baseComponent = params[3];
+            }
+        }
+        const dataKeyName = templateConfig.keys.dataKeyName;
+        const statusKeyName = templateConfig.keys.statusKeyName;
+        const lazyScope = JSON.parse(matcher.lazyScopeSeed);
+        const component = Object.assign(baseComponent || {}, {
+            tmplId: tmplId,
+            element: null, // Initialize element
+            status: (baseComponent && baseComponent.status) || {}, // Ensure status exists
+            replace: function (newComponent) {
+                const self = this;
+                if (!self.element || !(self.element instanceof Node) || !self.element.parentElement) {
+                    if (configs.debug)
+                        console.warn(`Cannot replace template "${tmplId}": element not in DOM.`);
+                    return;
+                }
+                self.element.parentElement.replaceChild(newComponent.element || newComponent, self.element);
+            },
+            remove: function (spacer = false) {
+                const self = this;
+                if (self.beforeRemove) {
+                    try {
+                        self.beforeRemove();
+                    }
+                    catch (e) {
+                        console.error("Error in beforeRemove:", e);
+                    }
+                }
+                const parent = (self.element instanceof Node) ? self.element.parentElement : null;
+                let removedElement = self.element; // Store reference
+                if (parent) {
+                    if (spacer) {
+                        const dumy = document.createElement("template");
+                        parent.replaceChild(dumy, self.element);
+                        self.element = dumy; // Update scope's element reference
+                    }
+                    else {
+                        parent.removeChild(self.element);
+                    }
+                }
+                else if (configs.debug) {
+                    console.warn(`Cannot remove template "${tmplId}": element not in DOM.`);
+                }
+                if (self.afterRemove) {
+                    try {
+                        self.afterRemove();
+                    }
+                    catch (e) {
+                        console.error("Error in afterRemove:", e);
+                    }
+                }
+                return removedElement;
+            },
+            appendTo: function (parentElement) {
+                const self = this;
+                if (self.beforeAppendTo) {
+                    try {
+                        self.beforeAppendTo();
+                    }
+                    catch (e) {
+                        console.error("Error in beforeAppendTo:", e);
+                    }
+                }
+                if (parentElement && self.element instanceof Node) {
+                    parentElement.appendChild(self.element);
+                }
+                else if (configs.debug) {
+                    console.warn(`Cannot append template "${tmplId}": parentElement or scope.element is missing or not a Node.`);
+                }
+                if (self.afterAppendTo) {
+                    setTimeout(() => { try {
+                        self.afterAppendTo();
+                    }
+                    catch (e) {
+                        console.error("Error in afterAppendTo:", e);
+                    } }, 0);
+                }
+                return self;
+            },
+            release: function () { },
+            render: function (newData) { /* Implementation below */ return this; },
+            refresh: function (reflashData) { /* Implementation below */ return this; },
+            reflash: function (reflashData) { /* Implementation below */ return this; },
+        }); // Cast to ComponentScope
+        if (!component._id) {
+            component._id = tools.genId(tmplId);
+        }
+        component[dataKeyName] = data;
+        if (component[statusKeyName] == undefined) {
+            component[statusKeyName] = {};
+        }
+        const hasParent = wrapperElement instanceof Element;
+        const temp = document.createElement("template");
+        let returnTarget = null;
+        if (configs.printExecTime)
+            console.time(`render: ${tmplId}`);
+        let renderedHTML = null;
+        try {
+            renderedHTML = !data
+                ? `<template data-co-empty-template="${tmplId}"></template>`
+                : sourceGenFunc.call(// Use non-null assertion
+                wrapperElement || null, data, component[statusKeyName], component, compomint.i18n[tmplId], compomint, tmpl, lazyScope, configs.debug // Pass debug flag for __debugger
+                );
+        }
+        catch (e) {
+            if (configs.throwError) {
+                console.error(`Runtime error during render of "${tmplId}":`, e.message);
+                console.log("--- Data ---", data, "------------");
+                try { // Attempt re-run with debugger
+                    sourceGenFunc.call(wrapperElement || null, data, component[statusKeyName], component, compomint.i18n[tmplId], lazyScope, true);
+                }
+                catch { /* Ignore */ }
+                throw e;
+            }
+            else {
+                console.warn(`Render failed for "${tmplId}". Returning scope with comment node.`);
+                component.element = document.createComment(`Render Error: ${tmplId}`);
+                return component;
+            }
+        }
+        if (configs.printExecTime)
+            console.timeEnd(`render: ${tmplId}`);
+        temp.innerHTML = renderedHTML;
+        let docFragment = temp.content || temp;
+        if (docFragment.tagName == "TEMPLATE" && !temp.content) { // Check for IE11 case
+            const children = Array.from(docFragment.childNodes);
+            docFragment = document.createDocumentFragment();
+            children.forEach(child => docFragment.appendChild(child));
+        }
+        const lazyExec = matcher.lazyExec;
+        if (data) {
+            matcher.lazyExecKeys.forEach(function (key) {
+                if (lazyScope[key] && lazyScope[key].length > 0) {
+                    try {
+                        lazyExec[key].call(templateConfig.rules[key.slice(0, -5)], data, lazyScope, component, docFragment); // Cast needed
+                    }
+                    catch (e) {
+                        if (configs.throwError) {
+                            console.error(`Error during lazy execution of "${key}" for template "${tmplId}":`, e);
+                            throw e;
+                        }
+                    }
+                }
+            });
+        }
+        if (hasParent && wrapperElement) {
+            while (wrapperElement.firstChild) {
+                wrapperElement.removeChild(wrapperElement.firstChild);
+            }
+            component.wrapperElement = wrapperElement;
+        }
+        // Handle shadow DOM creation
+        const shadowStyle = docFragment.querySelector ? docFragment.querySelector("style") : null;
+        if (shadowStyle && docFragment.querySelector) { // Check if querySelector exists
+            const host = document.createElement(tmplId); // Use tmplId as host tag name
+            try {
+                const shadow = host.attachShadow({ mode: "open" });
+                while (docFragment.firstChild) {
+                    shadow.appendChild(docFragment.firstChild);
+                }
+                docFragment = host; // Replace fragment with the host element
+            }
+            catch (e) {
+                console.error(`Failed to attach shadow DOM for template "${tmplId}":`, e);
+                // Proceed without shadow DOM if attachShadow fails
+            }
+        }
+        if (docFragment.firstChild && docFragment.firstChild.nodeType == 8) {
+            returnTarget = docFragment.firstChild;
+        }
+        else if (childElementCount(docFragment) == 1) {
+            returnTarget = firstElementChild(docFragment);
+            if (hasParent && wrapperElement && returnTarget) {
+                if (component.beforeAppendTo) {
+                    try {
+                        component.beforeAppendTo();
+                    }
+                    catch (e) {
+                        console.error("Error in beforeAppendTo:", e);
+                    }
+                }
+                wrapperElement.appendChild(returnTarget);
+                if (component.afterAppendTo) {
+                    setTimeout(() => { try {
+                        component.afterAppendTo();
+                    }
+                    catch (e) {
+                        console.error("Error in afterAppendTo:", e);
+                    } }, 0);
+                }
+            }
+        }
+        else {
+            if (hasParent && wrapperElement) {
+                if (component.beforeAppendTo) {
+                    try {
+                        component.beforeAppendTo();
+                    }
+                    catch (e) {
+                        console.error("Error in beforeAppendTo:", e);
+                    }
+                }
+                wrapperElement.appendChild(docFragment);
+                if (component.afterAppendTo) {
+                    setTimeout(() => { try {
+                        component.afterAppendTo();
+                    }
+                    catch (e) {
+                        console.error("Error in afterAppendTo:", e);
+                    } }, 0);
+                }
+                returnTarget = wrapperElement;
+            }
+            else {
+                returnTarget = docFragment;
+            }
+        }
+        if (data && data.$props && returnTarget instanceof Element) {
+            for (const prop in data.$props) {
+                try {
+                    const value = data.$props[prop];
+                    if (prop.startsWith('data-')) {
+                        const camelCased = prop.substring(5).replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+                        returnTarget.dataset[camelCased] = String(value);
+                    }
+                    else if (prop in returnTarget) {
+                        returnTarget[prop] = value;
+                    }
+                    else {
+                        returnTarget.setAttribute(prop, String(value));
+                    }
+                }
+                catch (e) {
+                    console.error(`Error applying prop "${prop}" to element in template "${tmplId}":`, e);
+                }
+            }
+        }
+        if (returnTarget instanceof Node && returnTarget.normalize) {
+            returnTarget.normalize();
+        }
+        if (returnTarget instanceof Node) {
+            cleanNode(returnTarget);
+        }
+        component.element = returnTarget; // Assign final element/fragment
+        if (tools.liveReloadSupport) {
+            try {
+                tools.liveReloadSupport(component);
+            }
+            catch (e) {
+                console.error("Error in liveReloadSupport:", e);
+            }
+        }
+        if (callback) {
+            try {
+                callback.call(wrapperElement || null, component);
+            }
+            catch (e) {
+                console.error(`Error in template callback for "${tmplId}":`, e);
+                if (configs.throwError)
+                    throw e;
+            }
+        }
+        // Define Component Methods (Render/Refresh/Release)
+        component.release = function () {
+            const self = this;
+            const props = Object.getOwnPropertyNames(self);
+            const keepProps = [statusKeyName, '_id'];
+            for (let i = 0; i < props.length; i++) {
+                const prop = props[i];
+                if (typeof self[prop] !== 'function' && !keepProps.includes(prop)) {
+                    delete self[prop];
+                }
+            }
         };
-        if (throwError) {
-          _debugErrorLine(source, e);
-          throw e;
-        } else {
-          return;
-        }
-      }
-      if (showTime) console.timeEnd("render: ".concat(tmplId));
-      temp.innerHTML = html;
-      var docFragment = temp.content || temp;
-      if (docFragment.tagName == "TEMPLATE") {
-        // for IE11
-        var children = docFragment.children;
-        docFragment = document.createDocumentFragment();
-        Array.prototype.forEach.call(children, function (child) {
-          docFragment.appendChild(child);
-        });
-      }
-      var lazyExec = matcher.lazyExec;
-      if (data) matcher.lazyExecKeys.forEach(function (key) {
-        if (lazyScope[key].length == 0) return;
-        lazyExec[key].call(settings, data, lazyScope, tmplScope, docFragment);
-      });
-      if (hasParent) {
-        while (wrapperElement.firstElementChild) {
-          wrapperElement.removeChild(wrapperElement.firstElementChild);
-        }
-        tmplScope.wrapperElement = wrapperElement;
-      }
-      if (docFragment.firstChild && docFragment.firstChild.nodeType == 8) {
-        returnTarget = docFragment.firstChild;
-      } else if (childElementCount(docFragment) == 1) {
-        returnTarget = firstElementChild(docFragment);
-        if (hasParent) {
-          if (tmplScope.beforeAppendTo) tmplScope.beforeAppendTo();
-          wrapperElement.appendChild(returnTarget);
-          if (tmplScope.afterAppendTo) tmplScope.afterAppendTo();
-        }
-      } else {
-        if (hasParent) {
-          if (tmplScope.beforeAppendTo) tmplScope.beforeAppendTo();
-          wrapperElement.appendChild(docFragment);
-          if (tmplScope.afterAppendTo) tmplScope.afterAppendTo();
-          returnTarget = wrapperElement;
-        } else {
-          returnTarget = docFragment;
-        }
-      }
-      if (data && data.$props) {
-        for (var prop in data.$props) {
-          returnTarget[prop] = data.$props[prop];
-        }
-      }
-      returnTarget.normalize();
-      _cleanNode(returnTarget);
-      tmplScope.element = returnTarget;
-      if (tmplTool.liveReloadSupport) tmplTool.liveReloadSupport(tmplScope);
-
-      // style to shadow
-      var style = returnTarget.querySelector ? returnTarget.querySelector("style[scoped], style[shadow]") : null;
-      if (style && returnTarget.createShadowRoot) {
-        var shadow = returnTarget.createShadowRoot();
-        document.head.appendChild(style);
-        var styles = "";
-        var sheet = style.sheet;
-        for (var i = 0, size = sheet.cssRules.length; i < size; i++) {
-          styles += "::content ".concat(sheet.cssRules[i].cssText.replace("::content", ""));
-        }
-        style.innerHTML = styles;
-        shadow.appendChild(style);
-        var content = document.createElement("content");
-        content.setAttribute("select", "*");
-        shadow.appendChild(content);
-      }
-      if (callback) {
-        callback.call(wrapperElement, tmplScope);
-      }
-      tmplScope.release = function () {
-        var props = Object.getOwnPropertyNames(tmplScope);
-        props.splice(props.indexOf(statusKeyName), 1);
-        for (var _i = 0; _i < props.length; _i++) {
-          delete tmplScope[props[_i]];
-        }
-      };
-      tmplScope.render = function (fdata) {
-        var tmplScope = this.tmplScope || this;
-        var target = tmplScope.element;
-        var tmpl = compomint.tmpl(tmplScope.tmplId);
-        var beforeRemove = tmplScope.beforeRemove;
-        var afterRemove = tmplScope.afterRemove;
-        tmplScope.element = void 0;
-        tmplScope.data = void 0;
-        tmplScope.render = void 0;
-        tmplScope.beforeRemove = void 0;
-        tmplScope.afterRemove = void 0;
-        if (tmplScope.wrapperElement) {
-          var _wrapperElement = tmplScope.wrapperElement;
-          if (beforeRemove) beforeRemove();
-          tmplScope.release();
-          tmplScope = tmpl(fdata, _wrapperElement, null, tmplScope);
-          if (afterRemove) afterRemove();
-          return tmplScope;
-        } else {
-          tmplScope.release();
-          tmplScope = tmpl(fdata, null, null, tmplScope);
-          if (target.parentElement) {
-            var newElement = tmplScope.element;
-            if (beforeRemove) beforeRemove();
-            if (tmplScope.beforeAppendTo) tmplScope.beforeAppendTo();
-            target.parentElement.replaceChild(newElement, target);
-            while (target.firstChild) {
-              target.removeChild(target.firstChild);
+        component.render = function (newData) {
+            const currentComponent = this;
+            const targetElement = currentComponent.element;
+            const parent = (targetElement instanceof Node) ? targetElement.parentElement : null;
+            const wrapper = currentComponent.wrapperElement;
+            const tmplFunc = compomint.tmpl(currentComponent.tmplId);
+            if (!tmplFunc) {
+                console.error(`Cannot re-render: Template function for "${currentComponent.tmplId}" not found.`);
+                return currentComponent;
             }
-            target = void 0;
-            if (tmplScope.afterAppendTo) tmplScope.afterAppendTo();
-            if (afterRemove) afterRemove();
-          }
-          return tmplScope;
-        }
-      };
-      tmplScope.refresh = function (fdata) {
-        var tmplScope = this.tmplScope || this;
-        tmplScope.element;
-        var data = tmplScope.data;
-        if (tmplScope.beforeRefresh) tmplScope.beforeRefresh();
-        var scope = tmplScope.render(Object.assign(data || {}, fdata));
-        if (tmplScope.afterRefresh) tmplScope.afterRefresh();
-        return scope;
-      };
-      tmplScope.reflash = tmplScope.refresh;
-      return tmplScope;
-    };
-    Object.defineProperty(tmpl, "name", {
-      value: tmplId,
-      writable: false
-    });
-    //tmpl.source = 'function ' + tmplId + '_source (' + (settings.variable || 'data') + '){\n' + source + '}';
-    var tmpl_source = "function ".concat(tmplId, "_source (").concat(settings.variable || "data", "){\n").concat(source, "}");
+            const hooks = {
+                beforeAppendTo: currentComponent.beforeAppendTo, afterAppendTo: currentComponent.afterAppendTo,
+                beforeRemove: currentComponent.beforeRemove, afterRemove: currentComponent.afterRemove,
+                beforeRefresh: currentComponent.beforeRefresh, afterRefresh: currentComponent.afterRefresh
+            };
+            if (currentComponent.beforeRemove) {
+                try {
+                    currentComponent.beforeRemove();
+                }
+                catch (e) {
+                    console.error("Error in beforeRemove during render:", e);
+                }
+            }
+            let newComponent;
+            if (wrapper) {
+                newComponent = tmplFunc(newData, wrapper, undefined, currentComponent); // Reuse scope object
+            }
+            else if (parent && targetElement instanceof Node) {
+                newComponent = tmplFunc(newData, undefined, undefined, currentComponent); // Reuse scope object
+                if (newComponent.element instanceof Node) {
+                    if (newComponent.beforeAppendTo) {
+                        try {
+                            newComponent.beforeAppendTo();
+                        }
+                        catch (e) {
+                            console.error("Error in beforeAppendTo during render:", e);
+                        }
+                    }
+                    parent.replaceChild(newComponent.element, targetElement);
+                    if (newComponent.afterAppendTo) {
+                        setTimeout(() => { try {
+                            newComponent.afterAppendTo();
+                        }
+                        catch (e) {
+                            console.error("Error in afterAppendTo during render:", e);
+                        } }, 0);
+                    }
+                }
+                else if (configs.debug) {
+                    console.warn(`Re-render of "${currentComponent.tmplId}" resulted in no element or target was missing.`);
+                }
+            }
+            else {
+                // No parent, just create new scope (likely detached)
+                newComponent = tmplFunc(newData, undefined, undefined, currentComponent);
+            }
+            if (currentComponent.afterRemove) {
+                try {
+                    currentComponent.afterRemove();
+                }
+                catch (e) {
+                    console.error("Error in afterRemove during render:", e);
+                }
+            }
+            Object.assign(newComponent, hooks); // Restore hooks
+            return newComponent;
+        };
+        component.refresh = function (reflashData) {
+            const currentComponent = this;
+            const currentData = currentComponent[dataKeyName];
+            if (currentComponent.beforeRefresh) {
+                try {
+                    currentComponent.beforeRefresh();
+                }
+                catch (e) {
+                    console.error("Error in beforeRefresh:", e);
+                }
+            }
+            const newData = Object.assign({}, currentData || {}, reflashData);
+            const newComponent = currentComponent.render(newData);
+            if (currentComponent.afterRefresh) {
+                try {
+                    currentComponent.afterRefresh();
+                }
+                catch (e) {
+                    console.error("Error in afterRefresh:", e);
+                }
+            }
+            return newComponent;
+        };
+        component.reflash = component.refresh;
+        return component;
+    }; // End of renderingFunc definition
+    Object.defineProperty(renderingFunc, "name", { value: `render_${tmplId}`, writable: false });
     if (tmplId) {
-      var tmplMeta = {
-        tmpl: tmpl,
-        source: escapeHtml.escape(tmpl_source),
-        templateText: escapeHtml.escape(templateText)
-      };
-      cachedTmpl.set(tmplId, tmplMeta);
-      var tmplIdNames = tmplId.split("-");
-      if (tmplIdNames.length > 1) {
-        var group = tmplIdNames[0];
-        var groupObj = root.tmpl[group];
-        if (!groupObj) {
-          root.tmpl[group] = groupObj = {};
-        }
-        var tmplIdSub = tmplIdNames.slice(1).join("").replace(/-([a-z])/g, function (g) {
-          return g[1].toUpperCase();
-        });
-        groupObj[tmplIdSub] = tmplMeta.tmpl;
-      }
-    }
-    return tmpl;
-  };
-  Compomint.remapTmpl = function (json) {
-    Object.keys(json).forEach(function (key) {
-      cachedTmpl.set(json[key], cachedTmpl.get(key));
-    });
-  };
-  Compomint.tmpl = function (tmplId) {
-    var tmplFunc = cachedTmpl.get(tmplId);
-    return tmplFunc ? tmplFunc.tmpl : null;
-  };
-  var safeTemplate = function safeTemplate(source) {
-    var template;
-    if (source.querySelectorAll) {
-      return source;
-    } else if (isSupportTemplateTag) {
-      template = document.createElement("template");
-      //template.innerHTML = source.replace(/(?<=<template[^]*?)<(?=[^]*?<\/template>)/g, '&lt;');
-      template.innerHTML = source.replace(/<(?!template|\/template|body|\/body|html|\/html|head|\/head|script|\/script|link|\/link|meta|\/meta|!--)/gi, "&lt;");
-      /*
-      template.innerHTML = source.replace(/<template([\s\S]*?)<\/template>/gi, (match, p1)=>{
-        return `<template${p1.replace(/</g, '&lt;')}</template>`;
-      });
-      */
-    } else {
-      template = document.createElement("template");
-      template.innerHTML = source.replace(/<(?!template|\/template|body|\/body|html|\/html|head|\/head|script|\/script|link|\/link|meta|\/meta|!--)/gi, "&lt;").replace(/<template/g, '<script type="template"').replace(/<\/template>/g, "</script>");
-    }
-    return template;
-  };
-  var addTmpl = tmplTool.addTmpl = function (tmplId, element, tmplSettings) {
-    var templateText = element instanceof Element ? element.innerHTML : element;
-    templateText = escapeHtml.unescape(templateText.replace(/<!---|--->/gi, ""));
-    return templateBuilder(tmplId, templateText, tmplSettings);
-  };
-  var addTmpls = tmplTool.addTmpls = function (source, removeInnerTemplate, tmplSettings) {
-    if (typeof removeInnerTemplate !== "boolean" && tmplSettings == undefined) tmplSettings = removeInnerTemplate;
-    var template = safeTemplate(source);
-    var tmplNodes = (template.content || template).querySelectorAll('template,script[type="template"]');
-    var node = null;
-    for (var i = 0, size = tmplNodes.length; i < size; i++) {
-      node = tmplNodes.item(i);
-      node.dataset.coLoadScript ? addTmpl(node.id, node, tmplSettings)({}) : addTmpl(node.id, node, tmplSettings);
-      if (removeInnerTemplate) node.parentNode.removeChild(node);
-    }
-    return template;
-  };
-  tmplTool.addTmplByUrl = function compomint_addTmplByUrl(importData, option, callback) {
-    if (!callback && typeof option === "function") {
-      callback = option;
-      option = {};
-    }
-    option = Object.assign({
-      loadScript: true,
-      loadStyle: true,
-      loadLink: true
-    }, option);
-    var importDataParser = function importDataParser(obj) {
-      if (typeof obj === "string") {
-        return {
-          url: obj,
-          option: option
+        const tmplMeta = configs.debug ? {
+            renderingFunc: renderingFunc,
+            source: escapeHtml.escape(`function ${tmplId}_source (${templateConfig.keys.dataKeyName}, ${templateConfig.keys.statusKeyName}, ${templateConfig.keys.componentKeyName}, ${templateConfig.keys.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`),
+            templateText: escapeHtml.escape(templateText),
+        } : {
+            renderingFunc: renderingFunc,
         };
-      } else {
-        obj.option = Object.assign({}, option, obj.option);
-        return obj;
-      }
-    };
-    var appendToHead = function appendToHead(elements) {
-      if (elements && elements.length > 0) {
-        Array.prototype.forEach.call(elements, function (element) {
-          if (element.id) {
-            var oldElement = document.getElementById(element.id);
-            if (oldElement) oldElement.parentNode.removeChild(oldElement);
-          }
-          document.body.appendChild(element);
-        });
-      }
-    };
-    var importFunc = function importFunc(source, option) {
-      var template = safeTemplate(source);
-      addTmpls(template, option.tmplSettings);
-      var content = template.content || template;
-      if (option.loadLink) {
-        var links = content.querySelectorAll("link");
-        appendToHead(links);
-      }
-      if (option.loadStyle) {
-        var styles = content.querySelectorAll("style[id]");
-        appendToHead(styles);
-      }
-      if (option.loadScript) {
-        var scripts = content.querySelectorAll('script[id]:not([type="template"])');
-        scripts = Array.prototype.filter.call(scripts, function (node) {
-          return node.innerHTML;
-        }).map(function (node) {
-          var scriptText = node.innerHTML;
-          var scriptElm = document.createElement("script");
-          var inlineCode = document.createTextNode(scriptText);
-          scriptElm.appendChild(inlineCode);
-          return scriptElm;
-        });
-        appendToHead(scripts);
-      }
-    };
-    if (Array.isArray(importData)) {
-      var arraySize = importData.length;
-      importData.forEach(function (data) {
-        data = importDataParser(data);
-        var src = data.url;
-        if (src.indexOf(".js") > -1) {
-          var script = tag("script", {
-            async: true,
-            src: src
-          });
-          script.addEventListener("load", function (event) {
-            arraySize--;
-            if (arraySize == 0 && callback) callback();
-          });
-          document.head.appendChild(script);
-          if (arraySize == 0 && callback) callback();
-        } else if (src.indexOf(".css") > -1) {
-          var link = tag("link", {
-            type: "text/css",
-            rel: "stylesheet",
-            href: src
-          });
-          document.head.appendChild(link);
-          arraySize--;
-          if (arraySize == 0 && callback) callback();
-        } else {
-          requestFunc(data.url, null, function (source) {
-            importFunc(source, data.option);
-            arraySize--;
-            if (arraySize == 0 && callback) callback();
-          });
-        }
-      });
-    } else {
-      importData = importDataParser(importData);
-      requestFunc(importData, null, function (source) {
-        importFunc(source, importData.option);
-        if (callback) callback();
-      });
-    }
-  };
-  var requestFunc = function requestFunc(url, option, callback) {
-    var xmlhttp = new XMLHttpRequest();
-    /*
-    let stroage = localStorage || sessionStorage;
-    if (requestCacheControl && stroage) {
-      let cacheStatus = JSON.stringify(stroage['compomint.requestCacheStatus'] || '{}');
-      let urlCacheStatus = cacheStatus[url];
-      if (urlCacheStatus) {
-        let lastModified = urlCacheStatus['Last-Modified'];
-        let eTag = urlCacheStatus['ETag'];
-       }
-    }
-    */
-    xmlhttp.onreadystatechange = function () {
-      if (xmlhttp.readyState == XMLHttpRequest.DONE) {
-        if (xmlhttp.status == 200 || xmlhttp.status === 0) {
-          callback(xmlhttp.responseText, xmlhttp.status, xmlhttp);
-        } else if (xmlhttp.status == 400) {
-          alert("There was an error 400");
-        } else {
-          console.log("!200", xmlhttp.status, url, option);
-        }
-      }
-    };
-    if (option) {
-      xmlhttp.open(option.method || "GET", url, true);
-      if (option.timeout) xmlhttp.timeout = option.timeout;
-      if (option.headers) Object.keys(option.headers).forEach(function (key) {
-        xmlhttp.setRequestHeader(key, option.headers[key]);
-      });
-      xmlhttp.send(option.body);
-    } else {
-      xmlhttp.open("GET", url, true);
-      xmlhttp.send();
-    }
-  };
-  Compomint.i18n = {};
-  tmplTool.i18n = function (i18nObj, defaultText) {
-    var label = i18nObj[document.documentElement.lang] || defaultText;
-    if (!label) {
-      if (debug) console.log("Label not exist! (lang: ".concat(document.documentElement.lang, ")"));
-    }
-    return label;
-  };
-  tmplTool.addI18n = function (fullKey, i18nObj) {
-    var langKeyNames = fullKey.split(".");
-    var target = Compomint.i18n;
-    var keyLength = langKeyNames.length - 1;
-    langKeyNames.forEach(function (key, i) {
-      if (keyLength === i) {
-        if (!target[key]) {
-          target[key] = function (defaultText) {
-            var label = i18nObj[document.documentElement.lang] || defaultText;
-            if (!label) {
-              if (debug) console.log("Label key [" + fullKey + "] is empty!");
+        cachedTmpl.set(tmplId, tmplMeta);
+        const tmplIdNames = tmplId.split("-");
+        if (tmplIdNames.length > 1) {
+            const group = tmplIdNames[0];
+            let groupObj = tmpl[group];
+            if (!groupObj) {
+                tmpl[group] = groupObj = {};
             }
-            return label;
-          };
+            const tmplIdSub = tmplIdNames
+                .slice(1)
+                .map((part, index) => index === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1))
+                .join('');
+            groupObj[tmplIdSub] = tmplMeta.renderingFunc;
         }
-        Object.keys(i18nObj).filter(function (lang) {
-          return i18nObj[lang] instanceof Object;
-        }).forEach(function (subKey) {
-          tmplTool.addI18n(fullKey + "." + subKey, i18nObj[subKey]);
-          delete i18nObj[subKey];
-          return;
+    }
+    return renderingFunc;
+}); // End of templateBuilder
+compomint.remapTmpl = function (json) {
+    Object.keys(json).forEach(function (oldKey) {
+        const newKey = json[oldKey];
+        const meta = cachedTmpl.get(oldKey);
+        if (meta) {
+            cachedTmpl.set(newKey, meta);
+            if (configs.debug)
+                console.log(`Remapped template "${oldKey}" to "${newKey}"`);
+        }
+        else if (configs.debug) {
+            console.warn(`Cannot remap template: Old key "${oldKey}" not found in cache.`);
+        }
+    });
+};
+compomint.tmpl = function (tmplId) {
+    const tmplMeta = cachedTmpl.get(tmplId);
+    return tmplMeta ? tmplMeta.renderingFunc : null;
+};
+const safeTemplate = function (source) {
+    let template;
+    if (source instanceof Element) {
+        if (source.tagName === 'TEMPLATE')
+            return source;
+        return source; // Assume it's a container element
+    }
+    else if (typeof source !== 'string') {
+        if (configs.debug)
+            console.warn("safeTemplate received non-string/non-element source:", source);
+        source = '';
+    }
+    template = document.createElement("template");
+    if (isSupportTemplateTag) {
+        const encodedSource = source.replace(/<(?!template|\/template|body|\/body|html|\/html|head|\/head|style|\/style|script|\/script|link|\/link|meta|\/meta|!--)/gi, "&lt;");
+        template.innerHTML = encodedSource;
+    }
+    else {
+        const encodedSource = source
+            .replace(/<(?!template|\/template|body|\/body|html|\/html|head|\/head|style|\/style|script|\/script|link|\/link|meta|\/meta|!--)/gi, "&lt;")
+            .replace(/<template/g, '<script type="template"')
+            .replace(/<\/template>/g, "</script>");
+        template.innerHTML = encodedSource;
+    }
+    return template;
+};
+const addTmpl = (compomint.addTmpl = function (tmplId, element, templateConfig) {
+    let templateText = element instanceof Element ? element.innerHTML : String(element);
+    templateText = escapeHtml.unescape(templateText.replace(/<!---|--->/gi, ""));
+    return templateBuilder(tmplId, templateText, templateConfig);
+});
+const addTmpls = (compomint.addTmpls = function (source, removeInnerTemplate, templateConfig) {
+    if (typeof removeInnerTemplate !== "boolean" && templateConfig == undefined) {
+        templateConfig = removeInnerTemplate;
+        removeInnerTemplate = false;
+    }
+    else {
+        removeInnerTemplate = !!removeInnerTemplate;
+    }
+    const container = safeTemplate(source);
+    const content = container.content || container; // Use content if available
+    const tmplNodes = content.querySelectorAll('template[id], script[type="text/template"][id], script[type="text/compomint"][id]');
+    tmplNodes.forEach(node => {
+        const tmplId = node.id;
+        if (!tmplId)
+            return;
+        if (node.dataset.coLoadScript !== undefined) {
+            addTmpl(tmplId, node, templateConfig)({}); // Execute immediately if data-co-load-script
+        }
+        else {
+            addTmpl(tmplId, node, templateConfig);
+        }
+        if (removeInnerTemplate && node.parentNode) {
+            node.parentNode.removeChild(node);
+        }
+    });
+    return container;
+});
+(compomint.addTmplByUrl = function compomint_addTmplByUrl(importData, option, callback) {
+    if (!callback && typeof option === "function") {
+        callback = option;
+        option = {};
+    }
+    const defaultOptions = {
+        loadScript: true, loadStyle: true, loadLink: true, templateConfig: undefined
+    };
+    const mergedOptions = Object.assign({}, defaultOptions, option); // Ensure option is object
+    const importDataParser = (obj) => {
+        if (typeof obj === "string") {
+            return { url: obj, option: mergedOptions };
+        }
+        else if (obj && typeof obj === 'object' && obj.url) {
+            return { url: obj.url, option: Object.assign({}, mergedOptions, obj.option) };
+        }
+        else {
+            console.error("Invalid import data format in addTmplByUrl:", obj);
+            return null;
+        }
+    };
+    const appendElements = (elements) => {
+        elements.forEach(element => {
+            if (!element)
+                return;
+            if (element.id) {
+                const oldElement = document.getElementById(element.id);
+                if (oldElement)
+                    oldElement.parentNode?.removeChild(oldElement);
+            }
+            if (element.tagName === 'SCRIPT' || element.tagName === 'LINK' || element.tagName === 'STYLE') {
+                document.head.appendChild(element);
+            }
+            else {
+                document.body.appendChild(element);
+            }
         });
-      } else {
-        if (!target[key]) {
-          target[key] = {};
+    };
+    const importFunc = (source, currentOption) => {
+        const templateContainer = safeTemplate(source);
+        addTmpls(templateContainer, false, currentOption.tmplSettings);
+        const content = templateContainer.content || templateContainer;
+        if (currentOption.loadLink) {
+            const links = content.querySelectorAll('link[rel="stylesheet"]');
+            appendElements(links);
         }
-        target = target[key];
-      }
+        if (currentOption.loadStyle) {
+            const styles = content.querySelectorAll("style[id]");
+            appendElements(styles);
+        }
+        if (currentOption.loadScript) {
+            const scripts = content.querySelectorAll('script:not([type]), script[type="text/javascript"], script[type="module"]');
+            const executableScripts = Array.from(scripts)
+                .filter(node => {
+                let parent = node.parentNode;
+                while (parent) {
+                    if (parent.nodeName === 'TEMPLATE' || (parent.nodeName === 'SCRIPT' && parent.type.includes('template')))
+                        return false;
+                    parent = parent.parentNode;
+                }
+                return true;
+            })
+                .map(node => {
+                const scriptElm = document.createElement("script");
+                node.getAttributeNames().forEach(name => scriptElm.setAttribute(name, node.getAttribute(name)));
+                if (node.innerHTML)
+                    scriptElm.textContent = node.innerHTML;
+                return scriptElm;
+            });
+            appendElements(executableScripts);
+        }
+    };
+    const loadResource = (dataItem) => {
+        return new Promise((resolve, reject) => {
+            const parsedData = importDataParser(dataItem);
+            if (!parsedData) {
+                resolve(); // Resolve immediately for invalid data
+                return;
+            }
+            const src = parsedData.url;
+            const currentOption = parsedData.option;
+            if (src.endsWith(".js")) {
+                const script = genElement("script", { async: true, src: src });
+                //script.onload = () => resolve();
+                script.onerror = () => { console.error(`Failed to load script: ${src}`); }; // Resolve even on error
+                document.head.appendChild(script);
+                resolve();
+            }
+            else if (src.endsWith(".css")) {
+                const link = genElement("link", { type: "text/css", rel: "stylesheet", href: src });
+                //link.onload = () => resolve(); // CSS load might be unreliable
+                link.onerror = () => { console.error(`Failed to load stylesheet: ${src}`); }; // Resolve even on error
+                document.head.appendChild(link);
+                resolve();
+                // Resolve slightly early for CSS? Or rely on potential browser caching?
+                // For simplicity, let's resolve on load/error.
+            }
+            else {
+                requestFunc(src, null, (source, status) => {
+                    if (status === 200 || status === 0) {
+                        try {
+                            importFunc(source, currentOption); // Use non-null assertion for source
+                        }
+                        catch (e) {
+                            console.error(`Error processing imported HTML from ${src}:`, e);
+                        }
+                    }
+                    else {
+                        console.error(`Failed to fetch template file: ${src} (Status: ${status})`);
+                    }
+                    resolve(); // Resolve after processing or error
+                });
+            }
+        });
+    };
+    const finalCallback = callback || (() => { }); // Ensure callback is a function
+    if (Array.isArray(importData)) {
+        if (importData.length === 0) {
+            finalCallback();
+            return;
+        }
+        Promise.all(importData.map(loadResource)).then(finalCallback).catch(err => {
+            console.error("Error loading resources in addTmplByUrl:", err);
+            finalCallback(); // Call callback even if some resources failed
+        });
+    }
+    else {
+        loadResource(importData).then(finalCallback).catch(err => {
+            console.error("Error loading resource in addTmplByUrl:", err);
+            finalCallback(); // Call callback even if resource failed
+        });
+    }
+});
+const requestFunc = function (url, option, callback) {
+    const xmlhttp = new XMLHttpRequest();
+    xmlhttp.onreadystatechange = function () {
+        if (xmlhttp.readyState == XMLHttpRequest.DONE) {
+            if (xmlhttp.status == 200 || xmlhttp.status === 0) {
+                callback(xmlhttp.responseText, xmlhttp.status, xmlhttp);
+            }
+            else {
+                if (xmlhttp.status == 404)
+                    console.error(`Error 404: Not Found - ${url}`);
+                else if (xmlhttp.status >= 400)
+                    console.error(`HTTP Error ${xmlhttp.status} for ${url}`);
+                else
+                    console.error(`Request failed for ${url}`, xmlhttp.statusText);
+                callback(null, xmlhttp.status, xmlhttp);
+            }
+        }
+    };
+    xmlhttp.onerror = function () {
+        console.error(`Network error requesting ${url}`);
+        callback(null, 0, xmlhttp);
+    };
+    xmlhttp.ontimeout = function () {
+        console.error(`Request timed out for ${url}`);
+        callback(null, 408, xmlhttp);
+    };
+    try {
+        const method = (option && option.method) || "GET";
+        xmlhttp.open(method, url, true);
+        if (option) {
+            if (option.timeout)
+                xmlhttp.timeout = option.timeout;
+            if (option.headers) {
+                Object.entries(option.headers).forEach(([key, value]) => {
+                    xmlhttp.setRequestHeader(key, value);
+                });
+            }
+            xmlhttp.send(option.body || null);
+        }
+        else {
+            xmlhttp.send();
+        }
+    }
+    catch (e) {
+        console.error(`Error sending request to ${url}:`, e);
+        callback(null, 0, xmlhttp);
+    }
+};
+compomint.i18n = {};
+compomint.addI18n = function (fullKey, i18nObj) {
+    if (!fullKey || typeof fullKey !== 'string' || !i18nObj || typeof i18nObj !== 'object') {
+        console.error("Invalid arguments for addI18n:", fullKey, i18nObj);
+        return;
+    }
+    const langKeyNames = fullKey.split(".");
+    let target = compomint.i18n;
+    const keyLength = langKeyNames.length - 1;
+    langKeyNames.forEach(function (key, i) {
+        if (!key)
+            return;
+        if (keyLength === i) {
+            if (!target[key]) {
+                target[key] = function (defaultText) {
+                    const lang = document.documentElement.lang || 'en';
+                    let label = i18nObj[lang];
+                    if (label === undefined || label === null) {
+                        label = defaultText;
+                        if (configs.debug)
+                            console.warn(`i18n: Label key ["${fullKey}"] for lang "${lang}" is missing. Using default: "${defaultText}"`);
+                    }
+                    return label !== undefined && label !== null ? String(label) : '';
+                };
+            }
+            // Handle nested objects within the language definitions
+            Object.keys(i18nObj)
+                .filter((lang) => i18nObj[lang] instanceof Object && !Array.isArray(i18nObj[lang])) // Check for plain objects
+                .forEach((subKey) => {
+                compomint.addI18n(fullKey + "." + subKey, i18nObj[subKey]);
+                // delete i18nObj[subKey]; // Avoid deleting if it's also a language key
+            });
+        }
+        else {
+            if (!target[key]) {
+                target[key] = {};
+            }
+            target = target[key];
+        }
     });
-  };
-  tmplTool.addI18ns = function (i18nObjs) {
+};
+compomint.addI18ns = function (i18nObjs) {
     Object.keys(i18nObjs || {}).forEach(function (key) {
-      tmplTool.addI18n(key, i18nObjs[key]);
+        compomint.addI18n(key, i18nObjs[key]);
     });
-  };
-  var elementCount = 0;
-  tmplTool.genId = function (tmplId) {
+};
+let elementCount = 0;
+tools.genId = function (tmplId) {
     elementCount++;
     return tmplId + elementCount;
-  };
-  var tag = tmplTool.tag = function (tagName, attrs) {
-    attrs = attrs || [];
-    var element = document.createElement(tagName);
-    Object.keys(attrs).forEach(function (key) {
-      //element.setAttribute(key, attrs[key]);
-      element[key] = attrs[key];
+};
+const genElement = (tools.genElement = function (tagName, attrs = {}, ...children) {
+    const element = document.createElement(tagName);
+    let actualAttrs = {};
+    if (typeof attrs === 'string') {
+        children.unshift(attrs); // Prepend string as first child
+    }
+    else if (attrs instanceof Node) {
+        children.unshift(attrs); // Prepend Node as first child
+    }
+    else if (Array.isArray(attrs)) {
+        children = attrs.concat(children); // Concatenate arrays
+    }
+    else {
+        actualAttrs = attrs; // It's an attributes object
+    }
+    // Set attributes/properties
+    Object.keys(actualAttrs).forEach(function (key) {
+        const value = actualAttrs[key];
+        const propName = key === 'class' ? 'className' : key;
+        try {
+            if (key === 'style' && typeof value === 'object' && value !== null) {
+                Object.assign(element.style, value); // Assign style object
+            }
+            else if (key === 'dataset' && typeof value === 'object' && value !== null) {
+                Object.assign(element.dataset, value); // Assign dataset object
+            }
+            else if (key.startsWith('on') && typeof value === 'function') {
+                // Directly assign event handlers like onclick, onmouseover
+                element[key.toLowerCase()] = value;
+            }
+            else if (propName in element) {
+                element[propName] = value;
+            }
+            else {
+                element.setAttribute(key, String(value));
+            }
+        }
+        catch (e) {
+            console.error(`Error setting attribute/property "${key}" on <${tagName}>:`, e);
+        }
+    });
+    // Append children
+    children.forEach(child => {
+        if (typeof child === 'string') {
+            element.appendChild(document.createTextNode(child));
+        }
+        else if (child instanceof Node) {
+            element.appendChild(child);
+        }
     });
     return element;
-  };
-  tmplTool.props = function () {
-    for (var _len2 = arguments.length, props = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
-      props[_key2] = arguments[_key2];
-    }
-    if (!props) return;
-    props = Object.assign.apply(Object, _toConsumableArray(props));
-    var propStrArray = [];
-    Object.keys(props).forEach(function (key) {
-      if (props[key]) propStrArray.push(key + '="' + props[key] + '"');
+});
+tools.props = function (...propsObjects) {
+    if (!propsObjects || propsObjects.length === 0)
+        return "";
+    const mergedProps = Object.assign({}, ...propsObjects);
+    const propStrArray = [];
+    Object.keys(mergedProps).forEach(function (key) {
+        const value = mergedProps[key];
+        if (value || value === 0) {
+            const escapedValue = String(value).replace(/"/g, '&quot;');
+            propStrArray.push(`${key}="${escapedValue}"`);
+        }
     });
     return propStrArray.join(" ");
-  };
-  addTmpl("co-Tag", "##%compomint.tmplTool.tag(data[0], data[1])##");
-  addTmpl("co-Div", "&lt;div ##=data.id ? 'id=\"' + (data.data === true ? tmplScope._id : data.id) + '\"' : ''## ##=data.class ? 'class=\"' + data.class + '\"' : '' ## ##=data.style ? 'style=\"' + data.style + '\"' : '' ## data-co-event=\"##:data.event##\"&gt;\n      ##if (typeof data.content === \"string\") {##\n      ##=data.content##\n      ##} else {##\n        ##%data.content##\n      ##}##");
-  addTmpl("co-Input", "&lt;input name=\"##=data.name##\" type=\"##=data.type##\" value=\"##=data.value##\" ##=data.class ? 'class=\"' + data.class + '\"' : '' ## ##=data.style ? 'style=\"' + data.style + '\"' : '' ## data-co-event=\"##:data.event##\"/&gt;");
-  addTmpl("co-Select", "&lt;select name=\"##=data.name##\" value=\"##=data.value##\" ##=data.class ? 'class=\"' + data.class + '\"' : '' ## ##=data.style ? 'style=\"' + data.style + '\"' : '' ## data-co-event=\"##:data.event##\"&gt;\n      &lt;option class=\"empty\" value=\"\"&gt;##=data.placeholder##&lt;/option&gt;\n      ##%data.options.map(function(option) { '&lt;option value=\"' + option.value + '\"' + (data.value == option.value ? 'selected=\"\"' : '') + '&gt;' + option.label + '&lt;/option&gt;'})##\n      &lt;select/&gt;");
-  addTmpl("co-Template-Viewer", "<style id=\"style-ct-Base\">\n            .ct-Base h1 {\n              font-size: 24px;\n              font-weight: bold;\n            }\n            .ct-Base h2 {\n              font-size: large;\n              font-weight: bold;\n            }\n            .ct-Base .header {\n              padding: 20px;\n              padding-bottom: 0px;\n              margin-top: 10px;\n            }\n            .ct-Base .menu {\n              margin: 10px;\n              margin-top: 50px;\n              border: 1px solid #cccccc;\n            }\n            .ct-Base .menu li {\n              padding: 10px 14px;\n            }\n            .ct-Base .templateArea {\n              margin: 10px;\n              margin-top: 50px;\n              padding: 10px;\n              border: 1px solid #cccccc\n            }\n            .ct-Base .componentView {\n              margin: 10px;\n            }\n            .ct-Base button {\n              padding: 4px 10px;\n              margin: 4px;\n              border-radius: 0.5rem;\n              border: 1px solid #cccccc;\n            }\n            .ct-Base .hide {\n              display: none;\n            }\n            .ct-Base .templateText :not(pre)>code[class*=language-],\n            .ct-Base .templateText pre[class*=language-] {\n              background: #66990015;\n            }\n            .ct-Base .source :not(pre)>code[class*=language-],\n            .ct-Base .source  pre[class*=language-] {\n              background: #0077aa15;\n            }\n          </style>\n          ##\n          let components = data.components;\n          ##\n          <div class=\"ct-Base\">\n            <div class=\"header\">\n              <h1>##=data.label##</h1>\n              <span>##=data.description##</span>\n            </div>\n            <div style=\"display: flex; gap: 8px;\">\n              <ul class=\"menu\" style=\"\">\n                ##Object.keys(components).forEach(key => {##\n                  <li class=\"\"><a href=\"##='#'+key##\">##=key##</a></li>\n                ##})##\n              </ul>\n              <div class=\"content\">\n                ##Object.keys(components).forEach(key => {\n                  let componentScopes = components[key];\n                  let templateMeta = compomint.tmplCache.get(key);\n                ##\n                <div class=\"templateArea\" id=\"##=key##\" style=\"##=location.hash == '' || location.hash == ('#' + key) ? '' : 'display: none'##;\">\n                  <h2><a href=\"##='#'+key##\">##=key##</a></h2>\n                  ##if (templateMeta) {##\n                  <div style=\"display: flex; gap: 8px;\">\n                    <button data-co-event=\"##:() => templateText.classList.toggle('hide')##\">Template source</button>\n                    <button data-co-event=\"##:() => source.classList.toggle('hide')##\">Compiled source</button>\n                  </div>\n                  <hr>\n                  <div class=\"templateText hide\" data-co-element-ref=\"##:templateText##\">\n                    <h2>Template source</h2>\n                    <pre><code class=\"language-javascript\">##=templateMeta.templateText##</code></pre>\n                  </div>\n                  <hr>\n                  <div class=\"source hide\" data-co-element-ref=\"##:source##\">\n                    <h2>Compiled source</h2>\n                    <pre><code class=\"language-javascript\">##=templateMeta.source##</code></pre>\n                  </div>\n                  ##}##\n\n                  ##componentScopes.forEach(scope => {##\n                  <hr>\n                  <div class=\"componentView\">\n                    <pre><code class=\"language-javascript\">##%scope##</code></pre>\n                    ##%new Function('return '+scope+';')()##\n                  </div>\n                  <hr>\n                  ##})##\n                </div>\n                ##})##\n              </div>\n            </div>\n          </div>\n          ###\n          setTimeout(() => {\n            const anchor = document.getElementById(location.hash.replace('#', ''));\n            if (anchor) {\n              window.scrollTo({\n                top: anchor.getBoundingClientRect().top + window.scrollY,\n              })\n            }\n          });\n          window.onhashchange = () => location.reload();\n          ##");
-  return {
-    compomint: root.compomint,
-    tmpl: root.tmpl
-  };
-}).call(window);
+};
+// Add built-in components
+addTmpl("co-Ele", `##%compomint.tools.genElement(data[0], data[1])##`);
+addTmpl("co-Element", `##
+  data.tag = data.tag || 'div';
+  ##
+  &lt;##=data.tag##
+    ##=data.id ? 'id="' + (data.id === true ? component._id : data.id) + '"' : ''##
+    data-co-props="##:data.props##"
+    data-co-event="##:data.event##"&gt;
+    ##if (typeof data.content === "string") {##
+    ##=data.content##
+    ##} else {##
+      ##%data.content##
+    ##}##
+  &lt;/##=data.tag##&gt;`);
+
+export { compomint, tmpl };
 //# sourceMappingURL=compomint.esm.js.map

@@ -822,7 +822,7 @@ const customSettings = {
 // Create template with custom settings
 compomint.addTmpl('custom-template', 
   '<div>##=model.label##</div>', 
-  customSettings
+  {keys: customSettings}
 );
 
 // Use the template
