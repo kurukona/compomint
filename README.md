@@ -51,7 +51,7 @@ The framework is particularly suitable for:
 You can find example applications demonstrating Compomint in action:
 - **Compomint Core Greeting (ESM) Demo**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/greeting.esm.html) | [Demo](https://compomint.dev/examples/greeting.esm.html)
 - **Compomint Core Greeting (UMD) Demo**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/greeting.html) | [Demo](https://compomint.dev/examples/greeting.html)
-- **Component Examples**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/sample.html) | [Demo](https://compomint.dev/examples/sample.html)
+- **Component Examples**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/component_examples.html) | [Demo](https://compomint.dev/examples/component_examples.html)
 - **Simple Counter**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/counter.html) | [Demo](https://compomint.dev/examples/counter.html)
 - **Todo List**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/todo.html) | [Demo](https://compomint.dev/examples/todo.html)
 - **Calculator**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/calculator.html) | [Demo](https://compomint.dev/examples/calculator.html)
