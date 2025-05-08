@@ -1,48 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Compomint Example</title>
-  <script src="../src/compomint-core.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
       background-color: #f5f5f5;
     }
+
     .container {
       max-width: 800px;
       margin: 0 auto;
       background-color: white;
       padding: 20px;
       border-radius: 5px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
+
     h1 {
       color: #333;
       border-bottom: 1px solid #eee;
       padding-bottom: 10px;
     }
+
     .example {
       margin-bottom: 30px;
       padding: 15px;
       border: 1px solid #ddd;
       border-radius: 4px;
     }
+
     .example-title {
       font-weight: bold;
       margin-bottom: 10px;
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <h1>Compomint Component Examples</h1>
     <div id="examples"></div>
   </div>
 
-  <script>
+  <script type="module">
+    import { compomint, tmpl } from '../dist/compomint.esm.min.js';
+
     // Define templates
     compomint.addTmpls(`
   <template id="demo-Container">
@@ -412,7 +419,7 @@
     `);
 
     // Create examples
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       let examplesContainer = document.getElementById('examples');
 
       // Example 1: Button Component
@@ -421,12 +428,12 @@
         description: "A simple button component with click event handling.",
         content: tmpl.demo.Button({
           label: "Click Me!",
-          onClick: function() {
+          onClick: function () {
             alert("Button clicked!");
           }
         })
       });
-      
+
       // Example 2: Counter Component
       let counterExample = tmpl.demo.Container({
         title: "Counter Component",
@@ -435,7 +442,7 @@
           initialCount: 5
         })
       });
-      
+
       // Example 3: Todo List Component
       let todoExample = tmpl.demo.Container({
         title: "Todo List Component",
@@ -448,7 +455,7 @@
           ]
         })
       });
-      
+
       // Example 4: Color Picker Component
       let colorPickerExample = tmpl.demo.Container({
         title: "Color Picker Component",
@@ -459,7 +466,7 @@
           blue: 245
         })
       });
-      
+
       // Append all examples
       examplesContainer.appendChild(buttonExample.element);
       examplesContainer.appendChild(counterExample.element);
@@ -468,4 +475,5 @@
     });
   </script>
 </body>
+
 </html>

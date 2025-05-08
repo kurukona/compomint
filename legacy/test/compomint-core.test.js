@@ -3,10 +3,10 @@
  */
 
 // Load the Compomint library script into the JSDOM environment
-import { compomint, tmpl } from './compomint-core';
+import { compomint, tmpl } from '../src/compomint-core';
 
 
-describe('Compomint Template Engine', () => {
+describe('Compomint Core - Template Syntax', () => {
 
   let tools;
   let configs;

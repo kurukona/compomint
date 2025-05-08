@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Compomint - Simple Counter Example</title>
-  <script src="../src/compomint-core.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -12,11 +12,13 @@
       margin: 0 auto;
       padding: 20px;
     }
+
     h1 {
       color: #333;
       border-bottom: 1px solid #eee;
       padding-bottom: 10px;
     }
+
     .counter-container {
       margin: 40px 0;
       padding: 20px;
@@ -24,6 +26,7 @@
       border-radius: 8px;
       background-color: #f9f9f9;
     }
+
     pre {
       background-color: #f4f4f4;
       padding: 15px;
@@ -32,19 +35,23 @@
     }
   </style>
 </head>
+
 <body>
   <h1>Simple Counter Example</h1>
-  
-  <p>This is a simple counter example using Compomint. The counter can be incremented and decremented using the buttons below.</p>
-  
+
+  <p>This is a simple counter example using Compomint. The counter can be incremented and decremented using the buttons
+    below.</p>
+
   <div id="counter-container" class="counter-container"></div>
-  
+
   <h2>How it Works</h2>
-  
+
   <h3>Template Definition</h3>
   <pre><code id="code"></code></pre>
 
-  <script>
+  <script type="module">
+    import { compomint, tmpl } from '../dist/compomint.esm.min.js';
+
     // Define the counter template
     let template = `
   <template id="app-Counter">
@@ -101,8 +108,8 @@
     compomint.addTmpls(template);
 
     // Wait for DOM to load then create and add the counter
-    document.addEventListener('DOMContentLoaded', function() {
-      let counter = tmpl.app.Counter({initialCount: 0});
+    document.addEventListener('DOMContentLoaded', function () {
+      let counter = tmpl.app.Counter({ initialCount: 0 });
       document.getElementById('counter-container').appendChild(counter.element);
       document.getElementById('code').innerText = `compomint.addTmpls(\`${template}\`);
 
@@ -112,4 +119,5 @@ document.getElementById('counter-container').appendChild(counter.element);`;
     });
   </script>
 </body>
+
 </html>

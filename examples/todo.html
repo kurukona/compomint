@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Compomint - Todo List Example</title>
-  <script src="../src/compomint-core.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -12,11 +12,13 @@
       margin: 0 auto;
       padding: 20px;
     }
+
     h1 {
       color: #333;
       border-bottom: 1px solid #eee;
       padding-bottom: 10px;
     }
+
     .todo-container {
       margin: 40px 0;
       padding: 20px;
@@ -24,6 +26,7 @@
       border-radius: 8px;
       background-color: #f9f9f9;
     }
+
     pre {
       background-color: #f4f4f4;
       padding: 15px;
@@ -32,19 +35,23 @@
     }
   </style>
 </head>
+
 <body>
   <h1>Todo List Example</h1>
-  
-  <p>This example demonstrates a simple Todo List application created with Compomint. You can add new tasks, mark them as completed, and delete them.</p>
-  
+
+  <p>This example demonstrates a simple Todo List application created with Compomint. You can add new tasks, mark them
+    as completed, and delete them.</p>
+
   <div id="todo-container" class="todo-container"></div>
-  
+
   <h2>How it Works</h2>
-  
+
   <h3>Template Definition</h3>
   <pre><code id="code"></code></pre>
 
-  <script>
+  <script type="module">
+    import { compomint, tmpl } from '../dist/compomint.esm.min.js';
+
     // Define the TodoList template
     let template = `
   <template id="app-TodoList">
@@ -207,7 +214,7 @@
     compomint.addTmpls(template);
 
     // Wait for DOM to load then create and add the todo list
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       let todoList = tmpl.app.TodoList({
         initialTodos: [
           { id: 1, text: 'Learn Compomint', completed: true },
@@ -230,4 +237,5 @@ document.getElementById('todo-container').appendChild(todoList.element);`;
     });
   </script>
 </body>
+
 </html>

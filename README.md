@@ -49,11 +49,12 @@ The framework is particularly suitable for:
 ## Example Applications
 
 You can find example applications demonstrating Compomint in action:
-
-- **Component Examples**: [Code](https://github.com/kurukona/compomint/blob/master/examples/sample.html) | [Demo](https://kurukona.github.io/compomint/examples/sample.html)
-- **Simple Counter**: [Code](https://github.com/kurukona/compomint/blob/master/examples/counter.html) | [Demo](https://kurukona.github.io/compomint/examples/counter.html)
-- **Todo List**: [Code](https://github.com/kurukona/compomint/blob/master/examples/todo.html) | [Demo](https://kurukona.github.io/compomint/examples/todo.html)
-- **Calculator**: [Code](https://github.com/kurukona/compomint/blob/master/examples/calculator.html) | [Demo](https://kurukona.github.io/compomint/examples/calculator.html)
+- **Compomint Core Greeting (ESM) Demo**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/greeting.esm.html) | [Demo](https://compomint.dev/examples/greeting.esm.html)
+- **Compomint Core Greeting (UMD) Demo**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/greeting.html) | [Demo](https://compomint.dev/examples/greeting.html)
+- **Component Examples**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/sample.html) | [Demo](https://compomint.dev/examples/sample.html)
+- **Simple Counter**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/counter.html) | [Demo](https://compomint.dev/examples/counter.html)
+- **Todo List**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/todo.html) | [Demo](https://compomint.dev/examples/todo.html)
+- **Calculator**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/calculator.html) | [Demo](https://compomint.dev/examples/calculator.html)
 
 ## Installation
 
@@ -239,7 +240,7 @@ Instead of using the `tmpl` namespace, you can also create components by directl
 const button = compomint.tmpl('do-Simple-Button')({
   label: 'Click Me',
   color: 'white',
-  onClick: (event, {data, customData, element, componentElement, component}) => {
+  onClick: (event, {data, customData, element, componentElement, component, compomint}) => {
     alert('Button clicked!');
   }
 });
@@ -635,7 +636,7 @@ Attaches event handlers to HTML elements:
 
 // With inline function
 <button data-co-event="##:{
-  click: function(event, {data, customData, element, componentElement, component}) {
+  click: function(event, {data, customData, element, componentElement, component, compomint}) {
     console.log('Clicked:', componentElement.textContent);
     alert('Hello, ' + data.userName + '!');
   }
@@ -657,6 +658,7 @@ Event handlers receive these parameters:
    - `element` - The element that triggered the event
    - `componentElement` - The main component element
    - `component` - The element that triggered the event
+   - `compomint` - Reference to the global compomint object
 
 #### `data-co-named-element="##:variable##"` - Element References
 
@@ -709,7 +711,7 @@ Executes a function when an element is loaded into the DOM:
 <div class="chart-container" data-co-load="##:initializeChart::data.chartData##"></div>
 
 // Where initializeChart is defined as:
-function initializeChart(element, {data, customData, element, component}) {
+function initializeChart(element, {data, customData, element, component, compomint}) {
   // Initialize a chart in the element using the data
   new Chart(element, {
     type: 'line',
@@ -725,6 +727,7 @@ Load handlers receive these parameters:
    - `customData` - The optional custom data passed after `::`
    - `element` - The element itself
    - `component` - The template scope object
+   - `compomint` - Reference to the global compomint object
 
 ## Advanced Features
 

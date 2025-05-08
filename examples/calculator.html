@@ -1,10 +1,11 @@
-ompomint<!DOCTYPE html>
+ompomint
+<!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Compomint - Calculator Example</title>
-  <script src="../src/compomint-core.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -12,11 +13,13 @@ ompomint<!DOCTYPE html>
       margin: 0 auto;
       padding: 20px;
     }
+
     h1 {
       color: #333;
       border-bottom: 1px solid #eee;
       padding-bottom: 10px;
     }
+
     .calculator-container {
       margin: 40px 0;
       padding: 20px;
@@ -25,6 +28,7 @@ ompomint<!DOCTYPE html>
       background-color: #f9f9f9;
       text-align: center;
     }
+
     pre {
       background-color: #f4f4f4;
       padding: 15px;
@@ -34,19 +38,22 @@ ompomint<!DOCTYPE html>
     }
   </style>
 </head>
+
 <body>
   <h1>Calculator Example</h1>
-  
+
   <p>This example demonstrates a simple calculator built with Compomint components.</p>
-  
+
   <div id="calculator-container" class="calculator-container"></div>
-  
+
   <h2>How it Works</h2>
-  
+
   <h3>Template Definition</h3>
   <pre><code id="code"></code></pre>
 
-  <script>
+  <script type="module">
+    import { compomint, tmpl } from '../dist/compomint.esm.min.js';
+
     // Define the Calculator template
     let template = `
   <template id="app-Calculator">
@@ -256,7 +263,7 @@ ompomint<!DOCTYPE html>
     compomint.addTmpls(template);
 
     // Wait for DOM to load then create and add the calculator
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
       let calculator = tmpl.app.Calculator({});
       document.getElementById('calculator-container').appendChild(calculator.element);
       document.getElementById('code').innerText = `compomint.addTmpls(\`${template}\`);
@@ -267,4 +274,5 @@ document.getElementById('calculator-container').appendChild(calculator.element);
     });
   </script>
 </body>
+
 </html>

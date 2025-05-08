@@ -1,8 +1,596 @@
+const firstElementChild = function (ele) {
+    if (ele.firstElementChild)
+        return ele.firstElementChild;
+    const children = ele.childNodes;
+    for (let i = 0, size = children.length; i < size; i++) {
+        if (children[i] instanceof Element) {
+            return children[i];
+        }
+    }
+    return null;
+};
+const childElementCount = function (ele) {
+    return (ele.childElementCount ||
+        Array.prototype.filter.call(ele.childNodes, function (child) {
+            return child instanceof Element;
+        }).length);
+};
+const cleanNode = function (node) {
+    for (let n = 0; n < node.childNodes.length; n++) {
+        const child = node.childNodes[n];
+        if (child.nodeType === 8 || // Comment node
+            (child.nodeType === 3 && !/\S/.test(child.nodeValue || '')) // Text node with only whitespace
+        ) {
+            node.removeChild(child);
+            n--; // Adjust index after removal
+        }
+        else if (child.nodeType === 1) {
+            // Element node
+            cleanNode(child); // Recurse
+        }
+    }
+};
+const domParser = new DOMParser();
+const stringToElement = function (str) {
+    if (typeof str === 'number' || !isNaN(Number(str))) {
+        return document.createTextNode(String(str));
+    }
+    else if (typeof str === 'string') {
+        try {
+            const doc = domParser.parseFromString(str, "text/html");
+            const body = doc.body;
+            if (body.childNodes.length === 1) {
+                return body.firstChild;
+            }
+            else {
+                const fragment = document.createDocumentFragment();
+                while (body.firstChild) {
+                    fragment.appendChild(body.firstChild);
+                }
+                return fragment;
+            }
+        }
+        catch (e) {
+            return document.createTextNode(str);
+        }
+    }
+    else {
+        return document.createTextNode('');
+    }
+};
+
+// 
+// Default template settings
+//
+const defaultTemplateConfig = (configs, compomint) => ({
+    rules: {
+        style: {
+            pattern: /(\<style id=[\s\S]+?\>[\s\S]+?\<\/style\>)/g,
+            exec: function (style) {
+                // Create a temporary element to parse the style tag
+                const dumy = document.createElement("template");
+                dumy.innerHTML = style;
+                const styleNode = (dumy.content || dumy).querySelector("style");
+                if (!styleNode || !styleNode.id)
+                    return ""; // Skip if no style node or ID
+                const oldStyleNode = document.getElementById(styleNode.id);
+                if (oldStyleNode)
+                    oldStyleNode.parentNode?.removeChild(oldStyleNode);
+                document.head.appendChild(styleNode);
+                return "";
+            },
+        },
+        commentArea: {
+            pattern: /##\*([\s\S]+?)##/g,
+            exec: function (commentArea) {
+                // Return an empty string to remove the comment block
+                return ``;
+            },
+        },
+        preEvaluate: {
+            pattern: /##!([\s\S]+?)##/g,
+            exec: function (preEvaluate, tmplId) {
+                try {
+                    // Execute the code in a new function context
+                    new Function("tmplId", preEvaluate)(tmplId);
+                }
+                catch (e) {
+                    if (configs.throwError) {
+                        console.error(`Template preEvaluate error in "${tmplId}", ${e.name}: ${e.message}`);
+                        throw e;
+                    }
+                    else {
+                        console.warn(`Template preEvaluate error in "${tmplId}", ${e.name}: ${e.message}`);
+                    }
+                }
+                return ``;
+            },
+        },
+        interpolate: {
+            pattern: /##=([\s\S]+?)##/g,
+            exec: function (interpolate) {
+                // Construct JavaScript code to interpolate the value
+                const interpolateSyntax = `typeof (interpolate)=='function' ? (interpolate)() : (interpolate)`;
+                return (`';\n(() => {let __t, interpolate=${interpolate};\n__p+=((__t=(${interpolateSyntax}))==null ? '' : String(__t) );})();\n__p+='`); // Ensure string conversion
+            },
+        },
+        escape: {
+            pattern: /##-([\s\S]+?)##/g,
+            exec: function (escape) {
+                const escapeSyntax = `compomint.tools.escapeHtml.escape(typeof (escape)=='function' ? (escape)() : (escape))`;
+                // Construct JavaScript code to escape HTML characters in the value
+                return (`';\n(() => {let __t, escape=${escape};\n__p+=((__t=(${escapeSyntax}))==null ? '' : String(__t) );})();\n__p+='`); // Ensure string conversion before escape
+            },
+        },
+        elementProps: {
+            pattern: /data-co-props="##:([\s\S]+?)##"/g,
+            exec: function (props) {
+                const source = `';\nvar eventId = (__lazyScope.elementPropsArray.length);\n__p+='data-co-props="'+eventId+'"';\n
+__lazyScope.elementPropsArray[eventId] = ${props};\n__p+='`; // Store props in lazy scope
+                return source;
+            },
+            lazyExec: function (data, lazyScope, component, wrapper) {
+                // Iterate over stored props and apply them to elements
+                lazyScope.elementPropsArray.forEach(function (props, eventId) {
+                    if (!props)
+                        return;
+                    // Find the element with the corresponding data-co-props attribute
+                    const $elementTrigger = wrapper.querySelector(`[data-co-props="${eventId}"]`);
+                    // Remove the temporary attribute and set the properties
+                    if (!$elementTrigger)
+                        return;
+                    delete $elementTrigger.dataset.coProps;
+                    Object.keys(props).forEach(function (key) {
+                        $elementTrigger.setAttribute(key, String(props[key])); // Ensure value is string
+                    });
+                });
+            }
+        },
+        namedElement: {
+            pattern: /data-co-named-element="##:([\s\S]+?)##"/g,
+            exec: function (key) {
+                const source = `';\nvar eventId = (__lazyScope.namedElementArray.length);\n__p+='data-co-named-element="'+eventId+'"';\n
+__lazyScope.namedElementArray[eventId] = ${key};\n__p+='`; // Store the key in lazy scope
+                return source;
+            },
+            lazyExec: function (data, lazyScope, component, wrapper) {
+                // Iterate over stored keys and assign elements to the component
+                lazyScope.namedElementArray.forEach(function (key, eventId) {
+                    // Find the element with the corresponding data-co-named-element attribute
+                    const $elementTrigger = wrapper.querySelector(`[data-co-named-element="${eventId}"]`);
+                    // Assign the element to the component using the key
+                    if (!$elementTrigger) {
+                        if (configs.debug)
+                            console.warn(`Named element target not found for ID ${eventId} in template ${component.tmplId}`);
+                        return;
+                    }
+                    delete $elementTrigger.dataset.coNamedElement;
+                    component[key] = $elementTrigger;
+                });
+            },
+        },
+        elementRef: {
+            pattern: /data-co-element-ref="##:([\s\S]+?)##"/g,
+            exec: function (key) {
+                const source = `';\nvar eventId = (__lazyScope.elementRefArray.length);\n__p+='data-co-element-ref="'+eventId+'"';
+var ${key} = null;\n__lazyScope.elementRefArray[eventId] = function(target) {${key} = target;};\n__p+='`; // Store a function to assign the element
+                return source;
+            },
+            lazyExec: function (data, lazyScope, component, wrapper) {
+                // Iterate over stored functions and call them with the corresponding elements
+                lazyScope.elementRefArray.forEach(function (func, eventId) {
+                    // Find the element with the corresponding data-co-element-ref attribute
+                    const $elementTrigger = wrapper.querySelector(`[data-co-element-ref="${eventId}"]`);
+                    // Call the stored function with the element
+                    if (!$elementTrigger) {
+                        if (configs.debug)
+                            console.warn(`Element ref target not found for ID ${eventId} in template ${component.tmplId}`);
+                        return;
+                    }
+                    delete $elementTrigger.dataset.coElementRef;
+                    func.call($elementTrigger, $elementTrigger);
+                });
+            },
+        },
+        elementLoad: {
+            pattern: /data-co-load="##:([\s\S]+?)##"/g,
+            exec: function (elementLoad) {
+                const elementLoadSplitArray = elementLoad.split("::");
+                // Store the load function and custom data in lazy scope
+                const source = `';\nlet eventId = (__lazyScope.elementLoadArray.length);\n__p+='data-co-load="'+eventId+'"';
+__lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, customData: ${elementLoadSplitArray[1]}};\n__p+='`;
+                return source;
+            },
+            lazyExec: function (data, lazyScope, component, wrapper) {
+                // Iterate over stored load functions and execute them with the corresponding elements
+                lazyScope.elementLoadArray.forEach(function (elementLoad, eventId) {
+                    // Find the element with the corresponding data-co-load attribute
+                    const $elementTrigger = wrapper.querySelector(`[data-co-load="${eventId}"]`);
+                    if (!$elementTrigger) {
+                        if (configs.debug)
+                            console.warn(`Element load target not found for ID ${eventId} in template ${component.tmplId}`);
+                        return;
+                    }
+                    // Execute the load function with the element and context
+                    delete $elementTrigger.dataset.coLoad;
+                    try {
+                        if (typeof elementLoad.loadFunc === 'function') {
+                            const loadFuncParams = [
+                                $elementTrigger,
+                                $elementTrigger,
+                                {
+                                    "data": data,
+                                    "element": $elementTrigger,
+                                    "customData": elementLoad.customData,
+                                    "component": component,
+                                    "compomint": compomint,
+                                },
+                            ];
+                            elementLoad.loadFunc.call(...loadFuncParams);
+                        }
+                    }
+                    catch (e) {
+                        console.error(`Error executing elementLoad function for ID ${eventId} in template ${component.tmplId}:`, e, elementLoad.loadFunc);
+                        if (configs.throwError)
+                            throw e;
+                    }
+                });
+            },
+        },
+        event: {
+            pattern: /data-co-event="##:([\s\S]+?)##"/g,
+            exec: function (event) {
+                const eventStrArray = event.split(":::");
+                // Store event handlers in lazy scope
+                let source = `';\n(() => {let eventId = (__lazyScope.eventArray.length);\n__p+='data-co-event="'+eventId+'"';\n`;
+                const eventArray = [];
+                for (let i = 0, size = eventStrArray.length; i < size; i++) {
+                    const eventSplitArray = eventStrArray[i].split("::");
+                    eventArray.push(`{eventFunc: ${eventSplitArray[0]}, $parent: this, customData: ${eventSplitArray[1]}}`);
+                }
+                source += `__lazyScope.eventArray[eventId] = [${eventArray.join(",")}];})()\n__p+='`;
+                return source;
+            },
+            lazyExec: function (data, lazyScope, component, wrapper) {
+                const self = this; // Cast self to TemplateSettings
+                const attacher = self.attacher;
+                if (!attacher)
+                    return; // Guard against missing attacher
+                // Iterate over stored event handlers and attach them to elements
+                lazyScope.eventArray.forEach(function (selectedArray, eventId) {
+                    // Find the element with the corresponding data-co-event attribute
+                    const $elementTrigger = wrapper.querySelector(`[data-co-event="${eventId}"]`);
+                    if (!$elementTrigger) {
+                        if (configs.debug)
+                            console.warn(`Event target not found for ID ${eventId} in template ${component.tmplId}`); // Debugging: Log if target not found
+                        return;
+                    }
+                    delete $elementTrigger.dataset.coEvent;
+                    for (let i = 0, size = selectedArray.length; i < size; i++) {
+                        const selected = selectedArray[i];
+                        if (selected.eventFunc) {
+                            if (Array.isArray(selected.eventFunc)) {
+                                selected.eventFunc.forEach(function (func) {
+                                    attacher(self, data, lazyScope, component, wrapper, $elementTrigger, func, selected);
+                                });
+                            }
+                            else {
+                                attacher(self, data, lazyScope, component, wrapper, $elementTrigger, selected.eventFunc, selected);
+                            }
+                        }
+                    }
+                });
+            },
+            trigger: function (target, eventName) {
+                const customEvent = new Event(eventName, {
+                    // Dispatch a custom event on the target element
+                    bubbles: true,
+                    cancelable: true
+                });
+                target.dispatchEvent(customEvent);
+            },
+            attacher: function (self, // Type properly if possible
+            data, lazyScope, component, wrapper, $elementTrigger, eventFunc, eventData) {
+                const trigger = self.trigger;
+                const $childTarget = firstElementChild(wrapper);
+                const $targetElement = childElementCount(wrapper) == 1 ? $childTarget : null;
+                // Attach event listeners based on the type of eventFunc
+                if (!eventFunc) {
+                    return;
+                }
+                const eventFuncParams = [
+                    $elementTrigger,
+                    null,
+                    {
+                        "data": data,
+                        "customData": eventData.customData,
+                        "element": $elementTrigger,
+                        "componentElement": $targetElement || $childTarget?.parentElement,
+                        "component": component,
+                        "compomint": compomint,
+                    },
+                ];
+                if (typeof eventFunc === 'function') {
+                    // Attach a click event listener for a single function
+                    $elementTrigger.addEventListener("click", function (event) {
+                        event.stopPropagation();
+                        eventFuncParams[1] = event;
+                        try {
+                            eventFunc.call(...eventFuncParams);
+                        }
+                        catch (e) {
+                            console.error(`Error in event handler for template ${component.tmplId}:`, e, eventFunc);
+                            if (configs.throwError)
+                                throw e;
+                        }
+                    });
+                    return;
+                }
+                const eventMap = eventFunc;
+                // Handle event map with multiple event types
+                const triggerName = eventMap.triggerName; // Optional key to store trigger functions
+                if (triggerName) {
+                    component.trigger = component.trigger || {};
+                    component.trigger[triggerName] = {};
+                }
+                Object.keys(eventMap).forEach(function (eventType) {
+                    // Handle special event types like "load", "namedElement", and "triggerName"
+                    if (eventType == "load") {
+                        eventFuncParams[1] = $elementTrigger;
+                        try {
+                            eventMap[eventType].call(...eventFuncParams);
+                        }
+                        catch (e) {
+                            console.error(`Error in 'load' event handler for template ${component.tmplId}:`, e, eventMap[eventType]);
+                            if (configs.throwError)
+                                throw e;
+                        }
+                        return;
+                    }
+                    else if (eventType == "namedElement") {
+                        component[eventMap[eventType]] = $elementTrigger;
+                        return;
+                    }
+                    else if (eventType == "triggerName") {
+                        return;
+                        // Attach event listeners for other event types
+                    }
+                    $elementTrigger.addEventListener(eventType, function (event) {
+                        event.stopPropagation();
+                        eventFuncParams[1] = event;
+                        try {
+                            eventMap[eventType].call(...eventFuncParams);
+                        }
+                        catch (e) {
+                            console.error(`Error in '${eventType}' event handler for template ${component.tmplId}:`, e, eventMap[eventType]);
+                            if (configs.throwError)
+                                throw e;
+                        }
+                    });
+                    if (triggerName && trigger) {
+                        component.trigger[triggerName][eventType] = function () {
+                            trigger($elementTrigger, eventType);
+                        };
+                    }
+                });
+            },
+        },
+        element: {
+            pattern: /##%([\s\S]+?)##/g,
+            exec: function (target) {
+                // Store element insertion information in lazy scope
+                const elementSplitArray = target.split("::");
+                const source = `';\n(() => {
+let elementId = (__lazyScope.elementArray.length);
+__p+='<template data-co-tmpl-element-id="'+elementId+'"></template>';
+__lazyScope.elementArray[elementId] = {childTarget: ${elementSplitArray[0]}, nonblocking: ${(elementSplitArray[1] || false)}};})();
+__p+='`;
+                return source;
+            },
+            lazyExec: function (data, lazyScope, component, wrapper) {
+                lazyScope.elementArray.forEach(function (ele, elementId) {
+                    // Retrieve element insertion details from lazy scope
+                    const childTarget = ele.childTarget;
+                    const nonblocking = ele.nonblocking;
+                    // Find the placeholder element
+                    const $tmplElement = wrapper.querySelector(`template[data-co-tmpl-element-id="${elementId}"]`);
+                    // Perform the element insertion
+                    if (!$tmplElement) {
+                        if (configs.debug)
+                            console.warn(`Element insertion placeholder not found for ID ${elementId} in template ${component.tmplId}`);
+                        return;
+                    }
+                    if (!$tmplElement.parentNode) {
+                        if (configs.debug)
+                            console.warn(`Element insertion placeholder for ID ${elementId} in template ${component.tmplId} has no parent.`);
+                        return;
+                    }
+                    const doFunc = function () {
+                        if (!$tmplElement || !$tmplElement.parentNode) {
+                            if (configs.debug)
+                                console.warn(`Placeholder for ID ${elementId} removed before insertion in template ${component.tmplId}.`);
+                            return;
+                        }
+                        // Handle different types of childTarget for insertion
+                        try {
+                            if (childTarget instanceof Array) {
+                                const docFragment = document.createDocumentFragment();
+                                childTarget.forEach(function (child) {
+                                    if (!child)
+                                        return;
+                                    const childElement = child.element || child;
+                                    let nodeToAppend = null;
+                                    // Convert child to a DOM node if necessary
+                                    if (typeof childElement === "string" || typeof childElement === "number") {
+                                        nodeToAppend = stringToElement(childElement);
+                                    }
+                                    else if (typeof childElement === "function") {
+                                        nodeToAppend = stringToElement(childElement());
+                                    }
+                                    else if (childElement instanceof Node) {
+                                        nodeToAppend = childElement;
+                                    }
+                                    else {
+                                        if (configs.debug)
+                                            console.warn(`Invalid item type in element array for ID ${elementId}, template ${component.tmplId}:`, childElement);
+                                        return;
+                                    }
+                                    // Append the node to the document fragment
+                                    if (child.beforeAppendTo) {
+                                        try {
+                                            child.beforeAppendTo();
+                                        }
+                                        catch (e) {
+                                            console.error("Error in beforeAppendTo (array item):", e);
+                                        }
+                                    }
+                                    if (nodeToAppend)
+                                        docFragment.appendChild(nodeToAppend);
+                                });
+                                // Replace the placeholder with the document fragment
+                                $tmplElement.parentNode.replaceChild(docFragment, $tmplElement);
+                                // Call afterAppendTo for each child
+                                childTarget.forEach(function (child) {
+                                    if (child && child.afterAppendTo) {
+                                        setTimeout(() => {
+                                            try {
+                                                child.afterAppendTo();
+                                            }
+                                            catch (e) {
+                                                console.error("Error in afterAppendTo (array item):", e);
+                                            }
+                                        }, 0);
+                                    }
+                                });
+                                // Handle string, number, or function types
+                            }
+                            else if (typeof childTarget === "string" || typeof childTarget === "number") {
+                                $tmplElement.parentNode.replaceChild(stringToElement(childTarget), $tmplElement);
+                                // Handle function type
+                            }
+                            else if (typeof childTarget === "function") {
+                                $tmplElement.parentNode.replaceChild(stringToElement(childTarget()), $tmplElement);
+                                // Handle Node or ComponentScope types
+                            }
+                            else if (childTarget && (childTarget.element || childTarget) instanceof Node) {
+                                const childScope = childTarget; // Assume it might be a scope
+                                const childElement = childScope.element || childScope;
+                                // Replace the placeholder with the child element
+                                if (childScope.beforeAppendTo) {
+                                    try {
+                                        childScope.beforeAppendTo();
+                                    }
+                                    catch (e) {
+                                        console.error("Error in beforeAppendTo:", e);
+                                    }
+                                }
+                                $tmplElement.parentNode.replaceChild(childElement, $tmplElement);
+                                // Call afterAppendTo if available
+                                if (childScope.afterAppendTo) {
+                                    setTimeout(() => {
+                                        try {
+                                            if (childScope.afterAppendTo)
+                                                childScope.afterAppendTo();
+                                        }
+                                        catch (e) {
+                                            console.error("Error in afterAppendTo:", e);
+                                        }
+                                    }, 0);
+                                }
+                                // Set parentComponent if it's a component
+                                if (childScope.tmplId) {
+                                    childScope.parentComponent = component;
+                                }
+                                // Handle invalid target types
+                            }
+                            else {
+                                if (configs.debug)
+                                    console.warn(`Invalid target for element insertion ID ${elementId}, template ${component.tmplId}:`, childTarget);
+                                $tmplElement.parentNode.removeChild($tmplElement);
+                            }
+                        }
+                        catch (e) {
+                            console.error(`Error during element insertion for ID ${elementId}, template ${component.tmplId}:`, e);
+                            if (configs.throwError)
+                                throw e;
+                            if ($tmplElement && $tmplElement.parentNode) {
+                                try {
+                                    $tmplElement.parentNode.removeChild($tmplElement);
+                                }
+                                catch (removeError) { /* Ignore */ }
+                            }
+                        } // end try
+                    }; // end doFunc
+                    (nonblocking == undefined || nonblocking === false)
+                        // Execute immediately or with a delay based on nonblocking
+                        ? doFunc()
+                        : setTimeout(doFunc, typeof nonblocking === 'number' ? nonblocking : 0);
+                }); // end forEach
+            }
+        },
+        lazyEvaluate: {
+            pattern: /###([\s\S]+?)##/g,
+            exec: function (lazyEvaluate) {
+                const source = `';\n__lazyScope.lazyEvaluateArray.push(function(data) {${lazyEvaluate}});\n__p+='`;
+                // Store the lazy evaluation function in lazy scope
+                return source;
+            },
+            lazyExec: function (data, lazyScope, component, wrapper) {
+                // Execute stored lazy evaluation functions
+                const $childTarget = firstElementChild(wrapper);
+                const $targetElement = childElementCount(wrapper) == 1 ? $childTarget : null;
+                lazyScope.lazyEvaluateArray.forEach(function (selectedFunc, idx) {
+                    // Call the function with the appropriate context
+                    try {
+                        selectedFunc.call($targetElement || wrapper, data); // Use wrapper if multiple elements
+                    }
+                    catch (e) {
+                        console.error(`Error in lazyEvaluate block ${idx} for template ${component.tmplId}:`, e, selectedFunc);
+                        if (configs.throwError)
+                            throw e;
+                    }
+                });
+                return;
+            },
+        },
+        evaluate: {
+            pattern: /##([\s\S]+?)##/g,
+            exec: (evaluate) => {
+                // Insert arbitrary JavaScript code into the template function
+                return "';\n" + evaluate + "\n__p+='";
+            },
+        },
+    },
+    keys: {
+        dataKeyName: "data",
+        statusKeyName: "status",
+        componentKeyName: "component",
+        i18nKeyName: "i18n",
+    }
+});
+
+const applyBuiltInTemplates = (addTmpl) => {
+    // co-Ele is a shorthand for co-Element, it will generate a div element with the given props and event
+    addTmpl("co-Ele", `##%compomint.tools.genElement(data[0], data[1])##`);
+    addTmpl("co-Element", `##
+  data.tag = data.tag || 'div';
+  ##
+  &lt;##=data.tag##
+    ##=data.id ? 'id="' + (data.id === true ? component._id : data.id) + '"' : ''##
+    data-co-props="##:data.props##"
+    data-co-event="##:data.event##"&gt;
+    ##if (typeof data.content === "string") {##
+    ##=data.content##
+    ##} else {##
+      ##%data.content##
+    ##}##
+  &lt;/##=data.tag##&gt;`);
+};
+
 /*
  * Copyright (c) 2025-present, Choi Sungho
  * Code released under the MIT license
  */
-// Extend Window interface
 // Polyfill for Object.assign
 if (typeof Object.assign != "function") {
     Object.defineProperty(Object, "assign", {
@@ -59,7 +647,6 @@ const compomint = {};
 const tmpl = {};
 const tools = (compomint.tools = compomint.tools || {});
 const configs = (compomint.configs = Object.assign({ printExecTime: false, debug: false, throwError: true }, compomint.configs));
-const domParser = new DOMParser();
 const cachedTmpl = (compomint.tmplCache = compomint.tmplCache || new Map());
 if (!cachedTmpl.has("anonymous")) {
     cachedTmpl.set("anonymous", { elements: new Set() }); // Cast to TemplateMeta
@@ -79,514 +666,8 @@ const escapes = {
     ">": ">",
 };
 const escaper = /\>( |\n)+\<|\>( |\n)+|( |\n)+\<|\\|'|\r|\n|\t|\u2028|\u2029/g;
-const firstElementChild = function (ele) {
-    if (ele.firstElementChild)
-        return ele.firstElementChild;
-    const children = ele.childNodes;
-    for (let i = 0, size = children.length; i < size; i++) {
-        if (children[i] instanceof Element) {
-            return children[i];
-        }
-    }
-    return null;
-};
-const childElementCount = function (ele) {
-    return (ele.childElementCount ||
-        Array.prototype.filter.call(ele.childNodes, function (child) {
-            return child instanceof Element;
-        }).length);
-};
-const cleanNode = function (node) {
-    for (let n = 0; n < node.childNodes.length; n++) {
-        const child = node.childNodes[n];
-        if (child.nodeType === 8 || // Comment node
-            (child.nodeType === 3 && !/\S/.test(child.nodeValue || '')) // Text node with only whitespace
-        ) {
-            node.removeChild(child);
-            n--; // Adjust index after removal
-        }
-        else if (child.nodeType === 1) {
-            // Element node
-            cleanNode(child); // Recurse
-        }
-    }
-};
-const stringToElement = function (str) {
-    if (typeof str === 'number' || !isNaN(Number(str))) {
-        return document.createTextNode(String(str));
-    }
-    else if (typeof str === 'string') {
-        try {
-            const doc = domParser.parseFromString(str, "text/html");
-            const body = doc.body;
-            if (body.childNodes.length === 1) {
-                return body.firstChild;
-            }
-            else {
-                const fragment = document.createDocumentFragment();
-                while (body.firstChild) {
-                    fragment.appendChild(body.firstChild);
-                }
-                return fragment;
-            }
-        }
-        catch (e) {
-            return document.createTextNode(str);
-        }
-    }
-    else {
-        return document.createTextNode('');
-    }
-};
-compomint.templateConfig = {
-    rules: {
-        style: {
-            pattern: /(\<style id=[\s\S]+?\>[\s\S]+?\<\/style\>)/g,
-            exec: function (style) {
-                const dumy = document.createElement("template");
-                dumy.innerHTML = style;
-                const styleNode = (dumy.content || dumy).querySelector("style");
-                if (!styleNode || !styleNode.id)
-                    return ""; // Skip if no style node or ID
-                const oldStyleNode = document.getElementById(styleNode.id);
-                if (oldStyleNode)
-                    oldStyleNode.parentNode?.removeChild(oldStyleNode);
-                document.head.appendChild(styleNode);
-                return "";
-            },
-        },
-        commentArea: {
-            pattern: /##\*([\s\S]+?)##/g,
-            exec: function (commentArea) {
-                return ``;
-            },
-        },
-        preEvaluate: {
-            pattern: /##!([\s\S]+?)##/g,
-            exec: function (preEvaluate, tmplId) {
-                try {
-                    new Function("tmplId", preEvaluate)(tmplId);
-                }
-                catch (e) {
-                    if (configs.throwError) {
-                        console.error(`Template preEvaluate error in "${tmplId}", ${e.name}: ${e.message}`);
-                        throw e;
-                    }
-                    else {
-                        console.warn(`Template preEvaluate error in "${tmplId}", ${e.name}: ${e.message}`);
-                    }
-                }
-                return ``;
-            },
-        },
-        interpolate: {
-            pattern: /##=([\s\S]+?)##/g,
-            exec: function (interpolate) {
-                const interpolateSyntax = `typeof (interpolate)=='function' ? (interpolate)() : (interpolate)`;
-                return (`';\n(() => {let __t, interpolate=${interpolate};\n__p+=((__t=(${interpolateSyntax}))==null ? '' : String(__t) );})();\n__p+='`); // Ensure string conversion
-            },
-        },
-        escape: {
-            pattern: /##-([\s\S]+?)##/g,
-            exec: function (escape) {
-                const escapeSyntax = `compomint.tools.escapeHtml.escape(typeof (escape)=='function' ? (escape)() : (escape))`;
-                return (`';\n(() => {let __t, escape=${escape};\n__p+=((__t=(${escapeSyntax}))==null ? '' : String(__t) );})();\n__p+='`); // Ensure string conversion before escape
-            },
-        },
-        elementProps: {
-            pattern: /data-co-props="##:([\s\S]+?)##"/g,
-            exec: function (props) {
-                const source = `';\nvar eventId = (__lazyScope.elementPropsArray.length);\n__p+='data-co-props="'+eventId+'"';\n
-__lazyScope.elementPropsArray[eventId] = ${props};\n__p+='`;
-                return source;
-            },
-            lazyExec: function (data, lazyScope, component, wrapper) {
-                lazyScope.elementPropsArray.forEach(function (props, eventId) {
-                    if (!props)
-                        return;
-                    const $elementTrigger = wrapper.querySelector(`[data-co-props="${eventId}"]`);
-                    if (!$elementTrigger)
-                        return;
-                    delete $elementTrigger.dataset.coProps;
-                    Object.keys(props).forEach(function (key) {
-                        $elementTrigger.setAttribute(key, String(props[key])); // Ensure value is string
-                    });
-                });
-            }
-        },
-        namedElement: {
-            pattern: /data-co-named-element="##:([\s\S]+?)##"/g,
-            exec: function (key) {
-                const source = `';\nvar eventId = (__lazyScope.namedElementArray.length);\n__p+='data-co-named-element="'+eventId+'"';\n
-__lazyScope.namedElementArray[eventId] = ${key};\n__p+='`;
-                return source;
-            },
-            lazyExec: function (data, lazyScope, component, wrapper) {
-                lazyScope.namedElementArray.forEach(function (key, eventId) {
-                    const $elementTrigger = wrapper.querySelector(`[data-co-named-element="${eventId}"]`);
-                    if (!$elementTrigger) {
-                        if (configs.debug)
-                            console.warn(`Named element target not found for ID ${eventId} in template ${component.tmplId}`);
-                        return;
-                    }
-                    delete $elementTrigger.dataset.coNamedElement;
-                    component[key] = $elementTrigger;
-                });
-            },
-        },
-        elementRef: {
-            pattern: /data-co-element-ref="##:([\s\S]+?)##"/g,
-            exec: function (key) {
-                const source = `';\nvar eventId = (__lazyScope.elementRefArray.length);\n__p+='data-co-element-ref="'+eventId+'"';
-var ${key} = null;\n__lazyScope.elementRefArray[eventId] = function(target) {${key} = target;};\n__p+='`;
-                return source;
-            },
-            lazyExec: function (data, lazyScope, component, wrapper) {
-                lazyScope.elementRefArray.forEach(function (func, eventId) {
-                    const $elementTrigger = wrapper.querySelector(`[data-co-element-ref="${eventId}"]`);
-                    if (!$elementTrigger) {
-                        if (configs.debug)
-                            console.warn(`Element ref target not found for ID ${eventId} in template ${component.tmplId}`);
-                        return;
-                    }
-                    delete $elementTrigger.dataset.coElementRef;
-                    func.call($elementTrigger, $elementTrigger);
-                });
-            },
-        },
-        elementLoad: {
-            pattern: /data-co-load="##:([\s\S]+?)##"/g,
-            exec: function (elementLoad) {
-                const elementLoadSplitArray = elementLoad.split("::");
-                const source = `';\nlet eventId = (__lazyScope.elementLoadArray.length);\n__p+='data-co-load="'+eventId+'"';
-__lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, customData: ${elementLoadSplitArray[1]}};\n__p+='`;
-                return source;
-            },
-            lazyExec: function (data, lazyScope, component, wrapper) {
-                lazyScope.elementLoadArray.forEach(function (elementLoad, eventId) {
-                    const $elementTrigger = wrapper.querySelector(`[data-co-load="${eventId}"]`);
-                    if (!$elementTrigger) {
-                        if (configs.debug)
-                            console.warn(`Element load target not found for ID ${eventId} in template ${component.tmplId}`);
-                        return;
-                    }
-                    delete $elementTrigger.dataset.coLoad;
-                    try {
-                        elementLoad.loadFunc.call($elementTrigger, $elementTrigger, {
-                            "data": data,
-                            "element": $elementTrigger,
-                            "customData": elementLoad.customData,
-                            "component": component,
-                        });
-                    }
-                    catch (e) {
-                        console.error(`Error executing elementLoad function for ID ${eventId} in template ${component.tmplId}:`, e, elementLoad.loadFunc);
-                        if (configs.throwError)
-                            throw e;
-                    }
-                });
-            },
-        },
-        event: {
-            pattern: /data-co-event="##:([\s\S]+?)##"/g,
-            exec: function (event) {
-                const eventStrArray = event.split(":::");
-                let source = `';\n(() => {let eventId = (__lazyScope.eventArray.length);\n__p+='data-co-event="'+eventId+'"';\n`;
-                const eventArray = [];
-                for (let i = 0, size = eventStrArray.length; i < size; i++) {
-                    const eventSplitArray = eventStrArray[i].split("::");
-                    eventArray.push(`{eventFunc: ${eventSplitArray[0]}, $parent: this, customData: ${eventSplitArray[1]}}`);
-                }
-                source += `__lazyScope.eventArray[eventId] = [${eventArray.join(",")}];})()\n__p+='`;
-                return source;
-            },
-            lazyExec: function (data, lazyScope, component, wrapper) {
-                const self = this; // Cast self to TemplateSettings
-                const attacher = self.attacher;
-                if (!attacher)
-                    return; // Guard against missing attacher
-                lazyScope.eventArray.forEach(function (selectedArray, eventId) {
-                    const $elementTrigger = wrapper.querySelector(`[data-co-event="${eventId}"]`);
-                    if (!$elementTrigger) {
-                        if (configs.debug)
-                            console.warn(`Event target not found for ID ${eventId} in template ${component.tmplId}`);
-                        return;
-                    }
-                    delete $elementTrigger.dataset.coEvent;
-                    for (let i = 0, size = selectedArray.length; i < size; i++) {
-                        const selected = selectedArray[i];
-                        if (selected.eventFunc) {
-                            if (Array.isArray(selected.eventFunc)) {
-                                selected.eventFunc.forEach(function (func) {
-                                    attacher(self, data, lazyScope, component, wrapper, $elementTrigger, func, selected);
-                                });
-                            }
-                            else {
-                                attacher(self, data, lazyScope, component, wrapper, $elementTrigger, selected.eventFunc, selected);
-                            }
-                        }
-                    }
-                });
-            },
-            trigger: function (target, eventName) {
-                const customEvent = new Event(eventName, {
-                    bubbles: true,
-                    cancelable: true
-                });
-                target.dispatchEvent(customEvent);
-            },
-            attacher: function (self, // Type properly if possible
-            data, lazyScope, component, wrapper, $elementTrigger, eventFunc, eventData) {
-                const trigger = self.trigger;
-                const $childTarget = firstElementChild(wrapper);
-                const $targetElement = childElementCount(wrapper) == 1 ? $childTarget : null;
-                if (!eventFunc) {
-                    return;
-                }
-                const eventFuncParams = [
-                    $elementTrigger,
-                    null,
-                    {
-                        "data": data,
-                        "customData": eventData.customData,
-                        "element": $elementTrigger,
-                        "componentElement": $targetElement || $childTarget?.parentElement,
-                        "component": component,
-                    },
-                ];
-                if (typeof eventFunc === 'function') {
-                    $elementTrigger.addEventListener("click", function (event) {
-                        event.stopPropagation();
-                        eventFuncParams[1] = event;
-                        try {
-                            eventFunc.call(...eventFuncParams);
-                        }
-                        catch (e) {
-                            console.error(`Error in event handler for template ${component.tmplId}:`, e, eventFunc);
-                            if (configs.throwError)
-                                throw e;
-                        }
-                    });
-                    return;
-                }
-                const eventMap = eventFunc;
-                const triggerName = eventMap.triggerName; // Optional key to store trigger functions
-                if (triggerName) {
-                    component.trigger = component.trigger || {};
-                    component.trigger[triggerName] = {};
-                }
-                Object.keys(eventMap).forEach(function (eventType) {
-                    if (eventType == "load") {
-                        eventFuncParams[1] = $elementTrigger;
-                        try {
-                            eventMap[eventType].call(...eventFuncParams);
-                        }
-                        catch (e) {
-                            console.error(`Error in 'load' event handler for template ${component.tmplId}:`, e, eventMap[eventType]);
-                            if (configs.throwError)
-                                throw e;
-                        }
-                        return;
-                    }
-                    else if (eventType == "namedElement") {
-                        component[eventMap[eventType]] = $elementTrigger;
-                        return;
-                    }
-                    else if (eventType == "triggerName") {
-                        return;
-                    }
-                    $elementTrigger.addEventListener(eventType, function (event) {
-                        event.stopPropagation();
-                        eventFuncParams[1] = event;
-                        try {
-                            eventMap[eventType].call(...eventFuncParams);
-                        }
-                        catch (e) {
-                            console.error(`Error in '${eventType}' event handler for template ${component.tmplId}:`, e, eventMap[eventType]);
-                            if (configs.throwError)
-                                throw e;
-                        }
-                    });
-                    if (triggerName && trigger) {
-                        component.trigger[triggerName][eventType] = function () {
-                            trigger($elementTrigger, eventType);
-                        };
-                    }
-                });
-            },
-        },
-        element: {
-            pattern: /##%([\s\S]+?)##/g,
-            exec: function (target) {
-                const elementSplitArray = target.split("::");
-                const source = `';\n(() => {
-let elementId = (__lazyScope.elementArray.length);
-__p+='<template data-co-tmpl-element-id="'+elementId+'"></template>';
-__lazyScope.elementArray[elementId] = {childTarget: ${elementSplitArray[0]}, nonblocking: ${(elementSplitArray[1] || false)}};})();
-__p+='`;
-                return source;
-            },
-            lazyExec: function (data, lazyScope, component, wrapper) {
-                lazyScope.elementArray.forEach(function (ele, elementId) {
-                    const childTarget = ele.childTarget;
-                    const nonblocking = ele.nonblocking;
-                    const $tmplElement = wrapper.querySelector(`template[data-co-tmpl-element-id="${elementId}"]`);
-                    if (!$tmplElement) {
-                        if (configs.debug)
-                            console.warn(`Element insertion placeholder not found for ID ${elementId} in template ${component.tmplId}`);
-                        return;
-                    }
-                    if (!$tmplElement.parentNode) {
-                        if (configs.debug)
-                            console.warn(`Element insertion placeholder for ID ${elementId} in template ${component.tmplId} has no parent.`);
-                        return;
-                    }
-                    const doFunc = function () {
-                        if (!$tmplElement || !$tmplElement.parentNode) {
-                            if (configs.debug)
-                                console.warn(`Placeholder for ID ${elementId} removed before insertion in template ${component.tmplId}.`);
-                            return;
-                        }
-                        try {
-                            if (childTarget instanceof Array) {
-                                const docFragment = document.createDocumentFragment();
-                                childTarget.forEach(function (child) {
-                                    if (!child)
-                                        return;
-                                    const childElement = child.element || child;
-                                    let nodeToAppend = null;
-                                    if (typeof childElement === "string" || typeof childElement === "number") {
-                                        nodeToAppend = stringToElement(childElement);
-                                    }
-                                    else if (typeof childElement === "function") {
-                                        nodeToAppend = stringToElement(childElement());
-                                    }
-                                    else if (childElement instanceof Node) {
-                                        nodeToAppend = childElement;
-                                    }
-                                    else {
-                                        if (configs.debug)
-                                            console.warn(`Invalid item type in element array for ID ${elementId}, template ${component.tmplId}:`, childElement);
-                                        return;
-                                    }
-                                    if (child.beforeAppendTo) {
-                                        try {
-                                            child.beforeAppendTo();
-                                        }
-                                        catch (e) {
-                                            console.error("Error in beforeAppendTo (array item):", e);
-                                        }
-                                    }
-                                    if (nodeToAppend)
-                                        docFragment.appendChild(nodeToAppend);
-                                });
-                                $tmplElement.parentNode.replaceChild(docFragment, $tmplElement);
-                                childTarget.forEach(function (child) {
-                                    if (child && child.afterAppendTo) {
-                                        setTimeout(() => {
-                                            try {
-                                                child.afterAppendTo();
-                                            }
-                                            catch (e) {
-                                                console.error("Error in afterAppendTo (array item):", e);
-                                            }
-                                        }, 0);
-                                    }
-                                });
-                            }
-                            else if (typeof childTarget === "string" || typeof childTarget === "number") {
-                                $tmplElement.parentNode.replaceChild(stringToElement(childTarget), $tmplElement);
-                            }
-                            else if (typeof childTarget === "function") {
-                                $tmplElement.parentNode.replaceChild(stringToElement(childTarget()), $tmplElement);
-                            }
-                            else if (childTarget && (childTarget.element || childTarget) instanceof Node) {
-                                const childScope = childTarget; // Assume it might be a scope
-                                const childElement = childScope.element || childScope;
-                                if (childScope.beforeAppendTo) {
-                                    try {
-                                        childScope.beforeAppendTo();
-                                    }
-                                    catch (e) {
-                                        console.error("Error in beforeAppendTo:", e);
-                                    }
-                                }
-                                $tmplElement.parentNode.replaceChild(childElement, $tmplElement);
-                                if (childScope.afterAppendTo) {
-                                    setTimeout(() => {
-                                        try {
-                                            if (childScope.afterAppendTo)
-                                                childScope.afterAppendTo();
-                                        }
-                                        catch (e) {
-                                            console.error("Error in afterAppendTo:", e);
-                                        }
-                                    }, 0);
-                                }
-                                if (childScope.tmplId) {
-                                    childScope.parentComponent = component;
-                                }
-                            }
-                            else {
-                                if (configs.debug)
-                                    console.warn(`Invalid target for element insertion ID ${elementId}, template ${component.tmplId}:`, childTarget);
-                                $tmplElement.parentNode.removeChild($tmplElement);
-                            }
-                        }
-                        catch (e) {
-                            console.error(`Error during element insertion for ID ${elementId}, template ${component.tmplId}:`, e);
-                            if (configs.throwError)
-                                throw e;
-                            if ($tmplElement && $tmplElement.parentNode) {
-                                try {
-                                    $tmplElement.parentNode.removeChild($tmplElement);
-                                }
-                                catch (removeError) { /* Ignore */ }
-                            }
-                        }
-                    }; // end doFunc
-                    (nonblocking == undefined || nonblocking === false)
-                        ? doFunc()
-                        : setTimeout(doFunc, typeof nonblocking === 'number' ? nonblocking : 0);
-                }); // end forEach
-            }
-        },
-        lazyEvaluate: {
-            pattern: /###([\s\S]+?)##/g,
-            exec: function (lazyEvaluate) {
-                const source = `';\n__lazyScope.lazyEvaluateArray.push(function(data) {${lazyEvaluate}});\n__p+='`;
-                return source;
-            },
-            lazyExec: function (data, lazyScope, component, wrapper) {
-                const $childTarget = firstElementChild(wrapper);
-                const $targetElement = childElementCount(wrapper) == 1 ? $childTarget : null;
-                lazyScope.lazyEvaluateArray.forEach(function (selectedFunc, idx) {
-                    try {
-                        selectedFunc.call($targetElement || wrapper, data); // Use wrapper if multiple elements
-                    }
-                    catch (e) {
-                        console.error(`Error in lazyEvaluate block ${idx} for template ${component.tmplId}:`, e, selectedFunc);
-                        if (configs.throwError)
-                            throw e;
-                    }
-                });
-                return;
-            },
-        },
-        evaluate: {
-            pattern: /##([\s\S]+?)##/g,
-            exec: (evaluate) => {
-                return "';\n" + evaluate + "\n__p+='";
-            },
-        },
-    },
-    keys: {
-        dataKeyName: "data",
-        statusKeyName: "status",
-        componentKeyName: "component",
-        i18nKeyName: "i18n",
-    }
-}; // Cast to TemplateSettings
+// set default template config
+compomint.templateConfig = defaultTemplateConfig(configs, compomint);
 const escapeHtml = (function () {
     const escapeMap = {
         "&": "&amp;",
@@ -1516,21 +1597,8 @@ tools.props = function (...propsObjects) {
     });
     return propStrArray.join(" ");
 };
-// Add built-in components
-addTmpl("co-Ele", `##%compomint.tools.genElement(data[0], data[1])##`);
-addTmpl("co-Element", `##
-  data.tag = data.tag || 'div';
-  ##
-  &lt;##=data.tag##
-    ##=data.id ? 'id="' + (data.id === true ? component._id : data.id) + '"' : ''##
-    data-co-props="##:data.props##"
-    data-co-event="##:data.event##"&gt;
-    ##if (typeof data.content === "string") {##
-    ##=data.content##
-    ##} else {##
-      ##%data.content##
-    ##}##
-  &lt;/##=data.tag##&gt;`);
+// Add built-in template
+applyBuiltInTemplates(addTmpl);
 
 export { compomint, tmpl };
 //# sourceMappingURL=compomint.esm.js.map

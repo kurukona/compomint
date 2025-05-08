@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compomint Core Greeting (UMD) Demo</title>
+  <!-- 
+      Adjust the path to compomint.js if your index.html 
+      is not in the same directory as the 'dist' folder.
+      For example, if index.html is in /workspaces/xlsx-template-vscode/compomint-core/
+      and compomint.js is in /workspaces/xlsx-template-vscode/compomint-core/dist/compomint.js
+    -->
+  <script src="../dist/compomint.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+
+    .greeting {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-top: 10px;
+      background-color: #f9f9f9;
+    }
+
+    .user-info {
+      color: blue;
+    }
+
+    .item {
+      list-style-type: square;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Compomint Core Greeting (UMD) Demo</h1>
+
+  <div id="app-container">
+    <!-- Components will be rendered here -->
+  </div>
+
+  <!-- Define Compomint Templates -->
+  <template id="my-greeting-template">
+    <div class="greeting">
+      <h2>##=data.title##</h2>
+      <p>Hello, <strong class="user-info">##=data.user.name##</strong>! You have ##=data.user.messages## messages.</p>
+      ##if(data.items && data.items.length > 0){##
+      <p>Your items:</p>
+      <ul>
+        ##for(let i = 0; i < data.items.length; i++){## <li class="item">##=data.items[i]##</li>
+          ##}##
+      </ul>
+      ##}##
+      <button data-co-event="##:{click: function() { alert('Button clicked for ' + data.user.name); }}##">Click
+        Me</button>
+    </div>
+  </template>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Initialize Compomint by adding templates from the DOM
+      Compomint.compomint.addTmpls(document.documentElement);
+
+      // Get the rendering function for the template
+      const greetingRenderer = Compomint.compomint.tmpl('my-greeting-template');
+
+      // Data for the template
+      const greetingData = {
+        title: "Welcome to Compomint!",
+        user: { name: "Alex", messages: 5 },
+        items: ["Apples", "Bananas", "Cherries"]
+      };
+
+      // Render the component
+      const myGreetingComponent = greetingRenderer(greetingData);
+
+      // Append the rendered element to the container
+      const appContainer = document.getElementById('app-container');
+      if (appContainer && myGreetingComponent && myGreetingComponent.element) {
+        appContainer.appendChild(myGreetingComponent.element);
+      } else {
+        console.error("Could not render or append component.");
+      }
+    });
+  </script>
+</body>

@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeAll, beforeEach, afterEach, jest } from '@jest/globals';
-import { compomint, tmpl, CompomintGlobal } from "./compomint-core";
+import { compomint, tmpl, CompomintGlobal } from "../src/compomint-core";
 
 
 describe('Compomint Template Engine', () => {

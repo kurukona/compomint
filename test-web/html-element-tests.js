@@ -1,5 +1,7 @@
+
+
 // 2. HTML Element Tests
-function runHtmlElementTests() {
+function runHtmlElementTests(compomint) {
   CompomintTest.describe('HTML Element Tests', function () {
     // Basic element creation test
     CompomintTest.it('should create HTML elements', function () {

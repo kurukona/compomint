@@ -312,16 +312,19 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
           delete $elementTrigger.dataset.coLoad;
           let parentElement = $elementTrigger.parentElement;
           try {
-            elementLoad.loadFunc.call(
-              $elementTrigger, // this context
-              $elementTrigger, // first argument
-              { // second argument (options object)
-                "data": data,
-                "element": $elementTrigger,
-                "customData": elementLoad.customData,
-                "component": component,
-              },
-            );
+            if (typeof elementLoad.loadFunc === 'function') {
+              elementLoad.loadFunc.call(
+                $elementTrigger, // this context
+                $elementTrigger, // first argument
+                { // second argument (options object)
+                  "data": data,
+                  "element": $elementTrigger,
+                  "customData": elementLoad.customData,
+                  "component": component,
+                  "compomint": compomint,
+                },
+              );
+            }
           } catch (e) {
             console.error(`Error executing elementLoad function for ID ${eventId} in template ${component.tmplId}:`, e, elementLoad.loadFunc);
             if (configs.throwError) throw e;
@@ -417,6 +420,7 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
             "element": $elementTrigger,
             "componentElement": $targetElement || $childTarget?.parentElement, // The component's root element or its parent
             "component": component,
+            "compomint": compomint,
           },
         ];
 

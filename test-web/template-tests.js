@@ -1,5 +1,5 @@
 // 1. Template Syntax Tests
-function runTemplateTests() {
+function runTemplateTests(compomint) {
   CompomintTest.describe('Template Syntax Tests', function () {
     // Basic text template test
     CompomintTest.it('should render basic text template', function () {

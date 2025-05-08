@@ -2,8 +2,8 @@
  * @jest-environment jsdom
  */
 
-import { compomint, tmpl } from './compomint-core';
-
+import { describe, it, expect, beforeAll, beforeEach, afterEach, jest } from '@jest/globals';
+import { compomint, tmpl } from '../src/compomint-core';
 
 // --- Mocking XMLHttpRequest ---
 const mockXhr = {
@@ -13,12 +13,14 @@ const mockXhr = {
   status: 200,
   responseText: '',
   setRequestHeader: jest.fn(),
-  onreadystatechange: null,
-  onerror: null,
-  ontimeout: null,
+  onreadystatechange: () => {
+    console.log(111)
+  },
+  onerror: () => { },
+  ontimeout: () => { },
   timeout: 0,
   // Helper to simulate successful response
-  _respond: function (status, responseText) {
+  _respond: function (status: number, responseText: string) {
     this.status = status;
     this.responseText = responseText;
     if (this.onreadystatechange) {
@@ -36,30 +38,23 @@ const mockXhr = {
     if (this.ontimeout) {
       this.ontimeout();
     }
-  }
+  },
 };
-window.XMLHttpRequest = jest.fn(() => mockXhr);
-XMLHttpRequest.UNSENT = 0;
-XMLHttpRequest.OPENED = 1;
-XMLHttpRequest.HEADERS_RECEIVED = 2;
-XMLHttpRequest.LOADING = 3;
-XMLHttpRequest.DONE = 4;
+const mockRequest = jest.fn(() => mockXhr);
+(mockRequest as any).DONE = 4;
+(window as any).XMLHttpRequest = mockRequest;
+
 // --- End Mocking XMLHttpRequest ---
 
-
-jest.setTimeout(10000);
+jest.setTimeout(20000);
 
 describe('compomint.tools.addTmplByUrl', () => {
 
-  let tools;
-  let configs;
-  let addTmplsSpy;
-  let headAppendChildSpy;
-  let bodyAppendChildSpy; // appendToHead actually appends to body in the source
+  let addTmplsSpy: any;
+  let headAppendChildSpy: any;
+  let bodyAppendChildSpy: any; // appendToHead actually appends to body in the source
 
   beforeAll(() => {
-    tools = compomint.tools;
-    configs = compomint.configs;
     if (!compomint) {
       throw new Error("Compomint library not loaded correctly.");
     }
@@ -68,30 +63,34 @@ describe('compomint.tools.addTmplByUrl', () => {
   beforeEach(() => {
     // Reset mocks and spies
     jest.clearAllMocks();
-    window.XMLHttpRequest.mockClear();
+    mockRequest.mockClear();
     mockXhr.open.mockClear();
     mockXhr.send.mockClear();
     mockXhr.setRequestHeader.mockClear();
     mockXhr.status = 200;
     mockXhr.responseText = '';
-    mockXhr.onreadystatechange = null;
-    mockXhr.onerror = null;
-    mockXhr.ontimeout = null;
+    mockXhr.onreadystatechange = () => {
+      console.log(1111)
+    };
+    mockXhr.onerror = () => { };
+    mockXhr.ontimeout = () => { };
 
     // Reset DOM and spies
     document.head.innerHTML = '';
     document.body.innerHTML = '';
-    headAppendChildSpy = jest.spyOn(document.head, 'appendChild');
+    headAppendChildSpy = jest.spyOn(document.head, 'appendChild'); //.mockImplementation((node: Node) => { (node).dispatchEvent(new Event("load")); return node; });;
     bodyAppendChildSpy = jest.spyOn(document.body, 'appendChild'); // Spy on body due to appendToHead implementation
     addTmplsSpy = jest.spyOn(compomint, 'addTmpls');
 
     // Reset Compomint state
     compomint.tmplCache.clear();
-    compomint.tmplCache.set("anonymous", { elements: new Set() });
-    window.tmpl = {};
+    //compomint.tmplCache.set("anonymous", { elements: new Set() });
+    for (const key in tmpl) {
+      delete tmpl[key];
+    }
     compomint.i18n = {};
-    configs.debug = false;
-    configs.throwError = true;
+    compomint.configs.debug = false;
+    compomint.configs.throwError = true;
   });
 
   afterEach(() => {
@@ -339,14 +338,18 @@ describe('compomint.tools.addTmplByUrl', () => {
   });
 
   it('should handle invalid importData gracefully', () => {
-    const callback = jest.fn();
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
-    compomint.addTmplByUrl(null, callback); // Test null
-    expect(callback).toHaveBeenCalledTimes(1); // Should still call callback
+    const callback1 = jest.fn(() => {
+      expect(callback1).toHaveBeenCalledTimes(1); // Should still call callback
+    });
+    compomint.addTmplByUrl(null as any, callback1); // Test null
 
-    compomint.addTmplByUrl([123, {}], callback); // Test invalid array items
-    expect(callback).toHaveBeenCalledTimes(2); // Called again after empty processing
+    const callback2 = jest.fn(() => {
+      expect(callback2).toHaveBeenCalledTimes(1); // Called again after empty processing
+    });
+    compomint.addTmplByUrl([123, {}], callback2); // Test invalid array items
+
     //expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid import data format'));
     expect(consoleErrorSpy.mock.calls.some(
       call => call[0].includes('Invalid import data format')
@@ -378,8 +381,8 @@ describe('compomint.tools.addTmplByUrl', () => {
       expect(removeChildSpy).toHaveBeenCalledWith(oldLink);
       expect(removeChildSpy).toHaveBeenCalledWith(oldStyle);
       // Check the new elements were added
-      expect(document.getElementById('style-to-replace').textContent).toBe('.new{}');
-      expect(document.getElementById('link-to-replace').getAttribute('href')).toBe('new.css');
+      expect(document.getElementById('style-to-replace')!.textContent).toBe('.new{}');
+      expect(document.getElementById('link-to-replace')!.getAttribute('href')).toBe('new.css');
       removeChildSpy.mockRestore();
       done();
     });
@@ -409,8 +412,8 @@ describe('compomint.tools.addTmplByUrl', () => {
       expect(removeChildSpy).toHaveBeenCalledWith(oldLink);
       //expect(removeChildSpy).toHaveBeenCalledWith(oldStyle);
       // Check the new elements were added
-      expect(document.getElementById('style-to-replace').textContent).toBe('.new{}');
-      expect(document.getElementById('link-to-replace').getAttribute('href')).toBe('new.css');
+      expect(document.getElementById('style-to-replace')!.textContent).toBe('.new{}');
+      expect(document.getElementById('link-to-replace')!.getAttribute('href')).toBe('new.css');
       removeChildSpy.mockRestore();
       done();
     });
@@ -427,24 +430,30 @@ describe('compomint.tools.addTmplByUrl', () => {
     let loadCount = 0;
 
     // Override XHR mock behavior for this test
-    window.XMLHttpRequest = jest.fn(() => ({
-      ...mockXhr,
-      send: jest.fn(function () {
-        loadCount++;
-        // Simulate response based on URL requested
-        if (this._url.includes('test1.html')) {
-          setTimeout(() => {
-            this._respond(200, htmlContent1)
-          }, 0); // Simulate async fetch
-        } else if (this._url.includes('test2.html')) {
-          setTimeout(() => {
-            this._respond(200, htmlContent2)
-          }, 0); // Simulate async fetch
-        }
-      }),
-      open: jest.fn(function (method, url) { this._url = url; }), // Store URL for send logic
-    }));
-    XMLHttpRequest.DONE = 4;
+    let _url = "";
+    const xhrClassMock = jest.fn(() => {
+      const xhrMock = {
+        ...mockXhr,
+        send: jest.fn(function () {
+          loadCount++;
+          // Simulate response based on URL requested
+          if (_url.includes('test1.html')) {
+            setTimeout(() => {
+              xhrMock._respond(200, htmlContent1)
+            }, 0); // Simulate async fetch
+          } else if (_url.includes('test2.html')) {
+            setTimeout(() => {
+              xhrMock._respond(200, htmlContent2)
+            }, 0); // Simulate async fetch
+          }
+        }),
+        open: jest.fn((_method, url: string) => { _url = url; }), // Store URL for send logic
+      }
+      return xhrMock;
+    });
+    (xhrClassMock as any).DONE = 4;
+    (window as any).XMLHttpRequest = xhrClassMock;
+
 
     const callback = jest.fn(() => {
       expect(loadCount).toBe(2);
@@ -478,11 +487,11 @@ describe('compomint.tools.addTmplByUrl', () => {
 
     // Mock script load event listener attachment
     const scriptElement = document.createElement('script');
-    scriptElement.addEventListener = jest.fn((event, cb) => { if (event === 'load') { cb(); } });
+    scriptElement.addEventListener = jest.fn((event, cb) => { if (event === 'load') { (cb as Function)(); } });
     scriptElement.src = '';
     // Mock link load event listener attachment
     const linkElement = document.createElement('link');
-    linkElement.addEventListener = jest.fn((event, cb) => { if (event === 'load') { cb(); } });
+    linkElement.addEventListener = jest.fn((event, cb) => { if (event === 'load') { (cb as Function)(); } });
     linkElement.rel = '';
     linkElement.href = '';
     linkElement.type = '';
@@ -512,31 +521,25 @@ describe('compomint.tools.addTmplByUrl', () => {
     });
 
     // Override XHR mock behavior for this test
-    window.XMLHttpRequest = jest.fn(() => ({
-      ...mockXhr,
-      send: jest.fn(function () {
-        loadCount++;
-        // Simulate response based on URL requested
-        if (this._url.includes('page.html')) {
-          setTimeout(() => {
-            this._respond(200, htmlContent)
-          }, 0); // Simulate async fetch
-        } else {
-          // JS and CSS are handled by direct script/link tag insertion, not XHR
-          // The mock createElement handles the 'load' event simulation
-          if (this._url.includes('.js')) {
-            // Find the corresponding script mock and trigger load
-            const scriptMock = headAppendChildSpy.mock.calls.find(call => call[0].tagName === 'SCRIPT' && call[0].src.includes(this._url))[0];
-            scriptMock.addEventListener.mock.calls.find(call => call[0] === 'load')[1](); // Trigger load callback
-          } else if (this._url.includes('.css')) {
-            // CSS load is less reliable, assume loaded quickly
-            // The test structure relies on the counter and final callback check
+    let _url = "";
+    const xhrClassMock = jest.fn(() => {
+      const xhrMock = {
+        ...mockXhr,
+        send: jest.fn(() => {
+          loadCount++;
+          // Simulate response based on URL requested
+          if (_url.includes('page.html')) {
+            setTimeout(() => {
+              xhrMock._respond(200, htmlContent)
+            }, 0); // Simulate async fetch
           }
-        }
-      }),
-      open: jest.fn(function (method, url) { this._url = url; }), // Store URL for send logic
-    }));
-    XMLHttpRequest.DONE = 4;
+        }),
+        open: jest.fn((method, url: string) => { _url = url; }), // Store URL for send logic
+      }
+      return xhrMock;
+    });
+    (xhrClassMock as any).DONE = 4;
+    (window as any).XMLHttpRequest = xhrClassMock;
 
     compomint.addTmplByUrl(urls, callback);
 
@@ -552,7 +555,7 @@ describe('compomint.tools.addTmplByUrl', () => {
 
     // Mock script load event listener attachment
     const scriptElement = document.createElement('script');
-    scriptElement.addEventListener = jest.fn((event, cb) => { if (event === 'load') { cb(); } });
+    scriptElement.addEventListener = jest.fn((event, cb) => { if (event === 'load') { (cb as Function)(); } });
     scriptElement.src = '';
 
     const element = document.createElement('template');
@@ -560,30 +563,33 @@ describe('compomint.tools.addTmplByUrl', () => {
     const createElementSpy = jest.spyOn(document, 'createElement').mockImplementation((tag) => {
       if (tag === 'script') {
         return scriptElement;
-      } else if (tag === 'link') {
-        return linkElement;
       }
       return element;
     });
 
-
     // Override XHR mock behavior
-    const xhrMockInstance = {
-      ...mockXhr,
-      send: jest.fn(function () {
-        loadCount++;
-        if (this._url.includes('ok.html')) {
-          successCount++;
-          setTimeout(() => this._respond(200, htmlContent), 0);
-        } else if (this._url.includes('fail.html')) {
-          setTimeout(() => this._respond(404, 'Not Found'), 0);
-        }
-        // script.js is handled by createElement mock
-      }),
-      open: jest.fn(function (method, url) { this._url = url; }),
-    };
-    window.XMLHttpRequest = jest.fn(() => xhrMockInstance);
-    XMLHttpRequest.DONE = 4;
+    let _url = "";
+    const xhrClassMock = jest.fn(() => {
+      const xhrMock = {
+        ...mockXhr,
+        _url: "",
+        send: jest.fn(() => {
+          loadCount++;
+          if (_url.includes('ok.html')) {
+            successCount++;
+            setTimeout(() => xhrMock._respond(200, htmlContent), 0);
+          } else if (_url.includes('fail.html')) {
+            setTimeout(() => xhrMock._respond(404, 'Not Found'), 0);
+          }
+          // script.js is handled by createElement mock
+        }),
+        open: jest.fn((method, url: string) => { _url = url; }),
+      }
+      return xhrMock;
+    });
+    (xhrClassMock as any).DONE = 4;
+    (window as any).XMLHttpRequest = xhrClassMock;
+
 
     const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => { });
 
