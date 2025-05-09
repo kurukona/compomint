@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compomint - Todo List Example</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #333;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+
+    .todo-container {
+      margin: 40px 0;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #f9f9f9;
+    }
+
+    pre {
+      background-color: #f4f4f4;
+      padding: 15px;
+      border-radius: 4px;
+      overflow: auto;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Todo List Example</h1>
+
+  <p>This example demonstrates a simple Todo List application created with Compomint. You can add new tasks, mark them
+    as completed, and delete them.</p>
+
+  <div id="todo-container" class="todo-container"></div>
+
+  <h2>How it Works</h2>
+
+  <h3>Template Definition</h3>
+  <pre><code id="code"></code></pre>
+
+  <script type="module">
+    import { compomint, tmpl } from '../dist/compomint.esm.min.js';
+
+    // Define the TodoList template
+    let template = `
+  <template id="app-TodoList">
+    <style id="style-app-TodoList">
+      .app-TodoList {
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .app-TodoList .app-TodoList-header {
+        display: flex;
+        margin-bottom: 20px;
+      }
+      .app-TodoList .app-TodoList-input {
+        flex-grow: 1;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ddd;
+        border-radius: 4px 0 0 4px;
+      }
+      .app-TodoList .app-TodoList-addButton {
+        background-color: #4CAF50;
+        border: none;
+        color: white;
+        padding: 10px 15px;
+        text-align: center;
+        font-size: 16px;
+        cursor: pointer;
+        border-radius: 0 4px 4px 0;
+      }
+      .app-TodoList .app-TodoList-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+      }
+      .app-TodoList .app-TodoList-item {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+      }
+      .app-TodoList .app-TodoList-checkbox {
+        margin-right: 10px;
+      }
+      .app-TodoList .app-TodoList-text {
+        flex-grow: 1;
+        padding: 5px 0;
+      }
+      .app-TodoList .app-TodoList-text.completed {
+        text-decoration: line-through;
+        color: #888;
+      }
+      .app-TodoList .app-TodoList-deleteButton {
+        background-color: #f44336;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 2px 8px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .app-TodoList .app-TodoList-empty {
+        text-align: center;
+        padding: 20px;
+        color: #888;
+        font-style: italic;
+      }
+    </style>
+    ##
+      // data.initialTodos가 없으면 초기화
+      if (!data.initialTodos) {
+        data.initialTodos = [];
+      }
+      let newTodoText = '';
+      
+      component.updateNewTodoText = function(e) {
+        newTodoText = e.target.value;
+      };
+      
+      component.addTodo = function() {
+        if (newTodoText.trim() === '') return;
+        
+        data.initialTodos.push({
+          id: Date.now(),
+          text: newTodoText,
+          completed: false
+        });
+        
+        newTodoText = '';
+        component.refresh();
+      };
+      
+      component.toggleTodo = function(id) {
+        for (let i = 0; i < data.initialTodos.length; i++) {
+          if (data.initialTodos[i].id === id) {
+            data.initialTodos[i].completed = !data.initialTodos[i].completed;
+            break;
+          }
+        }
+        component.refresh();
+      };
+      
+      component.deleteTodo = function(id) {
+        data.initialTodos = data.initialTodos.filter(function(todo) {
+          return todo.id !== id;
+        });
+        component.refresh();
+      };
+      
+      component.handleKeyPress = function(e) {
+        if (e.key === 'Enter') {
+          component.addTodo();
+        }
+      };
+    ##
+    <div class="app-TodoList">
+      <div class="app-TodoList-header">
+        <input 
+          class="app-TodoList-input" 
+          type="text" 
+          placeholder="Add a new task..." 
+          value="##=newTodoText##" 
+          data-co-event="##:{input: component.updateNewTodoText, keypress: component.handleKeyPress}##"
+        >
+        <button class="app-TodoList-addButton" data-co-event="##:{click: component.addTodo}##">Add</button>
+      </div>
+      
+      <ul class="app-TodoList-list">
+        ##
+          if (data.initialTodos.length === 0) {
+        ##
+          <li class="app-TodoList-empty">No tasks yet. Add some!</li>
+        ##
+          } else {
+            for (let i = 0; i < data.initialTodos.length; i++) {
+              let todo = data.initialTodos[i];
+              let textClass = 'app-TodoList-text' + (todo.completed ? ' completed' : '');
+        ##
+          <li class="app-TodoList-item">
+            <input 
+              class="app-TodoList-checkbox" 
+              type="checkbox" 
+              ##=todo.completed ? 'checked' : ''## 
+              data-co-event="##:{change: function() { component.toggleTodo(todo.id); }}##"
+            >
+            <span class="##=textClass##">##=todo.text##</span>
+            <button 
+              class="app-TodoList-deleteButton" 
+              data-co-event="##:{click: function() { component.deleteTodo(todo.id); }}##"
+            >×</button>
+          </li>
+        ##
+            }
+          }
+        ##
+      </ul>
+    </div>
+  </template>
+    `;
+    compomint.addTmpls(template);
+
+    // Wait for DOM to load then create and add the todo list
+    document.addEventListener('DOMContentLoaded', function () {
+      let todoList = tmpl.app.TodoList({
+        initialTodos: [
+          { id: 1, text: 'Learn Compomint', completed: true },
+          { id: 2, text: 'Create a Todo List app', completed: false },
+          { id: 3, text: 'Share with others', completed: false }
+        ]
+      });
+      document.getElementById('todo-container').appendChild(todoList.element);
+      document.getElementById('code').innerText = `compomint.addTmpls(\`${template}\`);
+
+// Create the todo list component and add it to the DOM
+let todoList = tmpl.app.TodoList({
+  initialTodos: [
+    { id: 1, text: 'Learn Compomint', completed: true },
+    { id: 2, text: 'Create a Todo List app', completed: false },
+    { id: 3, text: 'Share with others', completed: false }
+  ]
+});
+document.getElementById('todo-container').appendChild(todoList.element);`;
+    });
+  </script>
+</body>
+
+</html>
