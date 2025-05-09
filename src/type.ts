@@ -18,7 +18,7 @@ interface LazyScope {
   namedElementArray: string[];
   elementRefArray: ((target: Element) => void)[];
   elementLoadArray: { loadFunc: Function; customData: any }[];
-  eventArray: { eventFunc: Function | Record<string, Function>; $parent: any; customData: any }[][];
+  eventArray: { eventFunc: Function | Record<string, Function>; $parent: any; customData: any, element: Element }[][];
   elementArray: { childTarget: any; nonblocking: boolean | number }[];
   lazyEvaluateArray: ((data: Record<string, any>) => void)[];
 }

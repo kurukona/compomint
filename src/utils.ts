@@ -69,10 +69,15 @@ const stringToElement = function (str: string | number): Node {
   }
 };
 
+const isPlainObject = function (value: unknown) {
+  return Object.prototype.toString.call(value) === '[object Object]';
+}
+
 export {
   firstElementChild,
   childNodeCount,
   childElementCount,
   cleanNode,
   stringToElement,
+  isPlainObject,
 };

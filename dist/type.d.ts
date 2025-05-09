@@ -22,6 +22,7 @@ interface LazyScope {
         eventFunc: Function | Record<string, Function>;
         $parent: any;
         customData: any;
+        element: Element;
     }[][];
     elementArray: {
         childTarget: any;

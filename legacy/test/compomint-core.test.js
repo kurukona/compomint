@@ -1597,14 +1597,7 @@ describe('Compomint Core - Template Syntax', () => {
         expect(typeof compomint.tmpl('t4')).not.toBe('function');
       });
 
-
-
-
     });
-
-
-
-
 
     describe('i18n', () => {
       beforeEach(() => {

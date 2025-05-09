@@ -4,6 +4,7 @@ import {
   firstElementChild,
   childElementCount,
   stringToElement,
+  isPlainObject,
 } from "./utils";
 
 // 
@@ -13,7 +14,7 @@ const defaultTemplateConfig = (configs: CompomintConfigs, compomint: CompomintGl
   rules: {
     style: {
       pattern: /(\<style id=[\s\S]+?\>[\s\S]+?\<\/style\>)/g,
-      exec: function (style: string): string {
+      exec: function (style): string {
         // Create a temporary element to parse the style tag
         const dumy = document.createElement("template");
         dumy.innerHTML = style;
@@ -68,7 +69,7 @@ const defaultTemplateConfig = (configs: CompomintConfigs, compomint: CompomintGl
     elementProps: {
       pattern: /data-co-props="##:([\s\S]+?)##"/g,
       exec: function (props: string): string {
-        const source = `';\nvar eventId = (__lazyScope.elementPropsArray.length);\n__p+='data-co-props="'+eventId+'"';\n
+        const source = `';\nconst eventId = (__lazyScope.elementPropsArray.length);\n__p+='data-co-props="'+eventId+'"';\n
 __lazyScope.elementPropsArray[eventId] = ${props};\n__p+='`; // Store props in lazy scope
         return source;
       },
@@ -92,7 +93,7 @@ __lazyScope.elementPropsArray[eventId] = ${props};\n__p+='`; // Store props in l
     namedElement: {
       pattern: /data-co-named-element="##:([\s\S]+?)##"/g,
       exec: function (key: string): string {
-        const source = `';\nvar eventId = (__lazyScope.namedElementArray.length);\n__p+='data-co-named-element="'+eventId+'"';\n
+        const source = `';\nconst eventId = (__lazyScope.namedElementArray.length);\n__p+='data-co-named-element="'+eventId+'"';\n
 __lazyScope.namedElementArray[eventId] = ${key};\n__p+='`; // Store the key in lazy scope
         return source;
       },
@@ -142,7 +143,7 @@ var ${key} = null;\n__lazyScope.elementRefArray[eventId] = function(target) {${k
       exec: function (elementLoad: string): string {
         const elementLoadSplitArray = elementLoad.split("::");
         // Store the load function and custom data in lazy scope
-        const source = `';\nlet eventId = (__lazyScope.elementLoadArray.length);\n__p+='data-co-load="'+eventId+'"';
+        const source = `';\nconst eventId = (__lazyScope.elementLoadArray.length);\n__p+='data-co-load="'+eventId+'"';
 __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, customData: ${elementLoadSplitArray[1]}};\n__p+='`;
         return source;
       },
@@ -185,8 +186,9 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
       pattern: /data-co-event="##:([\s\S]+?)##"/g,
       exec: function (event: string): string {
         const eventStrArray = event.split(":::");
+        // eventStrArray = ["eventFunc::customData", "eventFunc::customData"]
         // Store event handlers in lazy scope
-        let source = `';\n(() => {let eventId = (__lazyScope.eventArray.length);\n__p+='data-co-event="'+eventId+'"';\n`;
+        let source = `';\n(() => {const eventId = (__lazyScope.eventArray.length);\n__p+='data-co-event="'+eventId+'"';\n`;
         const eventArray: string[] = [];
         for (let i = 0, size = eventStrArray.length; i < size; i++) {
           const eventSplitArray = eventStrArray[i].split("::");
@@ -255,15 +257,15 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
       ): void {
         const trigger = self.trigger;
         const $childTarget = firstElementChild(wrapper);
-        const $targetElement =
-          childElementCount(wrapper) == 1 ? $childTarget : null;
+        const $targetElement = childElementCount(wrapper) === 1 ? $childTarget : null;
+
         // Attach event listeners based on the type of eventFunc
 
         if (!eventFunc) {
           return;
         }
 
-        const eventFuncParams: [Element, Event | Element | null, { data: Record<string, any>; customData: Record<string, any>; element: Element; componentElement: Element | null | undefined; component: ComponentScope, compomint: CompomintGlobal }] = [
+        const eventFuncParams: [Element, Event | Element | null, { data: Record<string, any>; customData: any; element: Element; componentElement: Element | null | undefined; component: ComponentScope, compomint: CompomintGlobal }] = [
           $elementTrigger,
           null,
           {
@@ -276,9 +278,9 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
           },
         ];
 
+        // Basic case: eventFunc is a single function
         if (typeof eventFunc === 'function') {
-          // Attach a click event listener for a single function
-          $elementTrigger.addEventListener("click", function (event: Event) {
+          const eventListener = function (event: Event) {
             event.stopPropagation();
             eventFuncParams[1] = event;
             try {
@@ -287,10 +289,20 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
               console.error(`Error in event handler for template ${component.tmplId}:`, e, eventFunc);
               if (configs.throwError) throw e;
             }
-          });
+          };
+          // Attach a click event listener for a single function
+          $elementTrigger.addEventListener("click", eventListener);
+          eventData.element = $elementTrigger; // For remove eventListener
+          eventData.eventFunc = eventListener; // For remove eventListener
+
           return;
         }
 
+        if (!isPlainObject(eventFunc)) {
+          return;
+        }
+
+        // Advanced case: eventFunc is an object mapping event types to handlers
         const eventMap = eventFunc as Record<string, Function>;
         // Handle event map with multiple event types
         const triggerName = eventMap.triggerName as unknown as string | undefined; // Optional key to store trigger functions
@@ -300,34 +312,41 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
         }
 
         Object.keys(eventMap).forEach(function (eventType: string) {
+          const selectedEventFunc = eventMap[eventType];
+
           // Handle special event types like "load", "namedElement", and "triggerName"
-          if (eventType == "load") {
+          if (eventType === "load") {
             eventFuncParams[1] = $elementTrigger;
             try {
-              eventMap[eventType].call(...eventFuncParams);
+              selectedEventFunc.call(...eventFuncParams);
             } catch (e: any) {
-              console.error(`Error in 'load' event handler for template ${component.tmplId}:`, e, eventMap[eventType]);
+              console.error(`Error in 'load' event handler for template ${component.tmplId}:`, e, selectedEventFunc);
               if (configs.throwError) throw e;
             }
             return;
-          } else if (eventType == "namedElement") {
-            component[eventMap[eventType] as unknown as string] = $elementTrigger;
+          } else if (eventType === "namedElement") {
+            component[selectedEventFunc as unknown as string] = $elementTrigger;
             return;
-          } else if (eventType == "triggerName") {
+          } else if (eventType === "triggerName") {
             return;
             // Attach event listeners for other event types
           }
 
-          $elementTrigger.addEventListener(eventType, function (event: Event) {
+
+          const eventListener = function (event: Event) {
             event.stopPropagation();
             eventFuncParams[1] = event;
             try {
-              eventMap[eventType].call(...eventFuncParams);
+              selectedEventFunc.call(...eventFuncParams);
             } catch (e: any) {
-              console.error(`Error in '${eventType}' event handler for template ${component.tmplId}:`, e, eventMap[eventType]);
+              console.error(`Error in '${eventType}' event handler for template ${component.tmplId}:`, e, selectedEventFunc);
               if (configs.throwError) throw e;
             }
-          });
+          };
+
+          $elementTrigger.addEventListener(eventType, eventListener);
+          eventData.element = $elementTrigger; // For remove eventListener
+          eventFunc[eventType] = eventListener; // For remove eventListener
 
           if (triggerName && trigger) {
             component.trigger![triggerName][eventType] = function () {
@@ -343,7 +362,7 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
         // Store element insertion information in lazy scope
         const elementSplitArray = target.split("::");
         const source = `';\n(() => {
-let elementId = (__lazyScope.elementArray.length);
+const elementId = (__lazyScope.elementArray.length);
 __p+='<template data-co-tmpl-element-id="'+elementId+'"></template>';
 __lazyScope.elementArray[elementId] = {childTarget: ${elementSplitArray[0]}, nonblocking: ${(elementSplitArray[1] || false)}};})();
 __p+='`;
@@ -457,7 +476,7 @@ __p+='`;
             } // end try
           }; // end doFunc
 
-          (nonblocking == undefined || nonblocking === false)
+          (nonblocking === undefined || nonblocking === false)
             // Execute immediately or with a delay based on nonblocking
             ? doFunc()
             : setTimeout(doFunc, typeof nonblocking === 'number' ? nonblocking : 0);
@@ -476,7 +495,7 @@ __p+='`;
         // Execute stored lazy evaluation functions
         const $childTarget = firstElementChild(wrapper);
         const $targetElement =
-          childElementCount(wrapper) == 1 ? $childTarget : null;
+          childElementCount(wrapper) === 1 ? $childTarget : null;
         lazyScope.lazyEvaluateArray.forEach(function (selectedFunc: (data: Record<string, any>) => void, idx: number) {
           // Call the function with the appropriate context
           try {

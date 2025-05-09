@@ -20,9 +20,9 @@ if (typeof Object.assign != "function") {
       if (target == null) {
         throw new TypeError("Cannot convert undefined or null to object");
       }
-      let to = Object(target);
+      const to = Object(target);
       for (let index = 0, length = params.length; index < length; index++) {
-        let nextSource = params[index];
+        const nextSource = params[index];
         if (nextSource != null) {
           for (let nextKey in nextSource) {
             if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
@@ -321,8 +321,29 @@ return __p;`;
         const self = this as ComponentScope;
         if (self.beforeRemove) { try { self.beforeRemove(); } catch (e) { console.error("Error in beforeRemove:", e); } }
 
+        // Remote event event listener 
+        // Iterate through all event handlers stored in lazyScope.eventArray
+        if (lazyScope.eventArray) {
+          lazyScope.eventArray.forEach(function (event) {
+            // For each event entry, iterate through its associated event listeners
+            event.forEach(function (selectedEvent: Record<string, any>) {
+              if (selectedEvent.element) {
+                if (typeof selectedEvent.eventFunc === 'function') {
+                  selectedEvent.element.removeEventListener('click', selectedEvent.eventFunc as EventListenerOrEventListenerObject); // Remove click event listener
+                } else {
+                  Object.keys(selectedEvent.eventFunc).forEach(function (eventType) {
+                    selectedEvent.element.removeEventListener(eventType, (selectedEvent.eventFunc as Record<string, EventListenerOrEventListenerObject>)[eventType]);
+                  });
+                }
+                Object.keys(selectedEvent).forEach(key => delete selectedEvent[key]);
+              }
+              // Clear the selectedEvent object to release references
+            });
+          });
+        }
+
         const parent = (self.element instanceof Node) ? self.element.parentElement : null;
-        let removedElement: Element | TemplateElement | Comment | DocumentFragment = self.element; // Store reference
+        const removedElement: Element | TemplateElement | Comment | DocumentFragment = self.element; // Store reference
 
         if (parent) {
           if (spacer) {
@@ -370,10 +391,10 @@ return __p;`;
 
     const hasParent = wrapperElement instanceof Element;
     const temp = document.createElement("template");
-    let returnTarget: Node | null = null;
 
     if (configs.printExecTime) console.time(`render: ${tmplId}`);
 
+    let returnTarget: Node | null = null;
     let renderedHTML: string | null = null;
     try {
       renderedHTML = !data
