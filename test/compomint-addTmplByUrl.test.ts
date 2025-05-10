@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeAll, beforeEach, afterEach, jest } from '@jest/globals';
-import { compomint, tmpl } from '../src/compomint-core';
+import { compomint, tmpl } from '../src/compomint';
 
 // --- Mocking XMLHttpRequest ---
 const mockXhr = {

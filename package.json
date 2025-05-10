@@ -1,25 +1,27 @@
 {
-  "name": "@compomint/core",
-  "version": "0.1.0",
+  "name": "compomint",
+  "version": "1.0.0",
   "description": "A lightweight JavaScript component engine for building web applications with a focus on component-based architecture and template system.",
-  "main": "dist/compomint.js",
+  "main": "dist/compomint.umd.js",
   "module": "dist/compomint.esm.js",
+  "types": "dist/compomint.d.ts",
+  "jsdelivr": "dist/compomint.umd.min.js",
+  "unpkg": "dist/compomint.umd.min.js",
   "type": "module",
   "files": [
-    "dist/",
-    "README.md",
-    "LICENSE"
+    "dist"
   ],
   "exports": {
     ".": {
-      "types": "./dist/compomint.d.ts",
       "import": "./dist/compomint.esm.js",
-      "require": "./dist/compomint.js"
+      "require": "./dist/compomint.umd.js",
+      "types": "./dist/compomint.d.ts"
     }
   },
   "scripts": {
-    "build": "rollup -c",
-    "build:prod": "cross-env NODE_ENV=production rollup -c",
+    "build:types": "npx tsc",
+    "build:bundle": "rollup -c",
+    "build": "npm run build:types && npm run build:bundle",
     "prepare": "npm run build:prod",
     "test": "jest",
     "test:watch": "jest --watch"
@@ -43,8 +45,11 @@
     "dom",
     "compomint"
   ],
-  "author": "CHOI SUNGHO <wadolsh@gmail.com>",
+  "author": "CHOI SUNGHO",
   "homepage": "https://compomint.dev",
+  "bugs": {
+    "url": "https://github.com/kurukona/compomint/issues"
+  },
   "license": "MIT",
   "devDependencies": {
     "@babel/core": "^7.26.10",

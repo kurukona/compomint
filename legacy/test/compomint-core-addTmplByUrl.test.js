@@ -2,7 +2,7 @@
  * @jest-environment jsdom
  */
 
-import { compomint, tmpl } from '../src/compomint-core';
+import { compomint, tmpl } from '../src/compomint';
 
 
 // --- Mocking XMLHttpRequest ---

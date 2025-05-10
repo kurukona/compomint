@@ -37,7 +37,7 @@ interface TemplateRule {
     attacher?: (self: any, data: Record<string, any>, lazyScope: LazyScope, component: ComponentScope, wrapper: DocumentFragment | Element, elementTrigger: Element, eventFunc: Function | Record<string, Function>, eventData: Record<string, any>) => void;
     trigger?: (target: Element, eventName: string) => void;
 }
-interface TemplateConfig {
+interface TemplateEngine {
     rules: Record<string, TemplateRule>;
     keys: {
         dataKeyName: string;
@@ -84,14 +84,14 @@ interface Tools {
 interface CompomintGlobal {
     configs: CompomintConfigs;
     tmplCache: Map<string, TemplateMeta>;
-    templateConfig: TemplateConfig;
+    templateEngine: TemplateEngine;
     tools: Tools;
     i18n: Record<string, any>;
-    template: (tmplId: string, templateText: string, tmplSettings?: Partial<TemplateConfig>) => RenderingFunction;
+    template: (tmplId: string, templateText: string, tmplSettings?: Partial<TemplateEngine>) => RenderingFunction;
     remapTmpl: (json: Record<string, string>) => void;
     tmpl: (tmplId: string) => RenderingFunction | null;
-    addTmpl: (tmplId: string, element: Element | string, tmplSettings?: Partial<TemplateConfig>) => RenderingFunction;
-    addTmpls: (source: Element | string, removeInnerTemplate?: boolean | Partial<TemplateConfig>, tmplSettings?: Partial<TemplateConfig>) => Element | TemplateElement;
+    addTmpl: (tmplId: string, element: Element | string, tmplSettings?: Partial<TemplateEngine>) => RenderingFunction;
+    addTmpls: (source: Element | string, removeInnerTemplate?: boolean | Partial<TemplateEngine>, tmplSettings?: Partial<TemplateEngine>) => Element | TemplateElement;
     addTmplByUrl: (importData: string | any[] | {
         url: string;
         option?: Record<string, any>;
@@ -101,4 +101,4 @@ interface CompomintGlobal {
 }
 interface TemplateElement extends HTMLTemplateElement {
 }
-export { CompomintConfigs, TemplateMeta, LazyScope, TemplateRule, TemplateConfig, ComponentScope, RenderingFunction, Tools, CompomintGlobal, TemplateElement, };
+export { CompomintConfigs, TemplateMeta, LazyScope, TemplateRule, TemplateEngine, ComponentScope, RenderingFunction, Tools, CompomintGlobal, TemplateElement, };

@@ -41,7 +41,7 @@ interface TemplateRule {
 }
 
 
-interface TemplateConfig {
+interface TemplateEngine {
   rules: Record<string, TemplateRule>;
   keys: {
     dataKeyName: string,
@@ -100,14 +100,14 @@ interface Tools {
 interface CompomintGlobal {
   configs: CompomintConfigs;
   tmplCache: Map<string, TemplateMeta>;
-  templateConfig: TemplateConfig;
+  templateEngine: TemplateEngine;
   tools: Tools;
   i18n: Record<string, any>;
-  template: (tmplId: string, templateText: string, tmplSettings?: Partial<TemplateConfig>) => RenderingFunction;
+  template: (tmplId: string, templateText: string, tmplSettings?: Partial<TemplateEngine>) => RenderingFunction;
   remapTmpl: (json: Record<string, string>) => void;
   tmpl: (tmplId: string) => RenderingFunction | null;
-  addTmpl: (tmplId: string, element: Element | string, tmplSettings?: Partial<TemplateConfig>) => RenderingFunction;
-  addTmpls: (source: Element | string, removeInnerTemplate?: boolean | Partial<TemplateConfig>, tmplSettings?: Partial<TemplateConfig>) => Element | TemplateElement;
+  addTmpl: (tmplId: string, element: Element | string, tmplSettings?: Partial<TemplateEngine>) => RenderingFunction;
+  addTmpls: (source: Element | string, removeInnerTemplate?: boolean | Partial<TemplateEngine>, tmplSettings?: Partial<TemplateEngine>) => Element | TemplateElement;
   addTmplByUrl: (importData: string | any[] | { url: string; option?: Record<string, any> }, option?: Record<string, any> | (() => void), callback?: Function | (() => void)) => void;
   addI18n: (fullKey: string, i18nObj: Record<string, any>) => void;
   addI18ns: (i18nObjs: Record<string, any>) => void;
@@ -121,7 +121,7 @@ export {
   TemplateMeta,
   LazyScope,
   TemplateRule,
-  TemplateConfig,
+  TemplateEngine,
   ComponentScope,
   RenderingFunction,
   Tools,
