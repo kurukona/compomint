@@ -3,7 +3,7 @@ import { compomint, tmpl } from "../../dist/compomint.esm.min.js"
 // Main Application Script
 
 // Wait for DOM to be fully loaded
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   // Initialize the application
   initApp();
 });
@@ -37,7 +37,7 @@ function initApp() {
     title: compomint.i18n.demo.counter.title('Counter Component'),
     initialCount: 0
   });
-  
+
   // Create a todo list component for an example
   const todoList = tmpl.ui.TodoList({
     title: compomint.i18n.demo.todo.title('Todo List'),
@@ -51,7 +51,7 @@ function initApp() {
   // Define the header component
   const header = tmpl.ui.Header({
     menuItems: [
-      { label: compomint.i18n.footer.links.home('Home'), url: '#', active: true },
+      { label: compomint.i18n.footer.links.home('Home'), url: '#home', active: true },
       { label: compomint.i18n.footer.links.features('Features'), url: '#features' },
       { label: compomint.i18n.footer.links.examples('Examples'), url: '#examples' },
       { label: compomint.i18n.footer.links.docs('Documentation'), url: '#documentation' }
@@ -65,7 +65,7 @@ function initApp() {
     primaryButtonText: compomint.i18n.app.getStarted('Get Started'),
     primaryButtonUrl: '#documentation',
     secondaryButtonText: 'GitHub',
-    secondaryButtonUrl: 'https://github.com/kurukona/compomint-core',
+    secondaryButtonUrl: 'https://github.com/kurukona/compomint',
     codeExample: `<template id="hello-world">
   <style id="style-hello-world">
     .hello-world { color: ##=data.color || 'black'## }
@@ -90,35 +90,35 @@ document.body.appendChild(hello.element);`
   const features = tmpl.ui.Features({
     title: compomint.i18n.app.featuresTitle('Why Use Compomint?'),
     features: [
-      { 
-        title: compomint.i18n.features.lightweight.title('Lightweight Size'), 
-        description: compomint.i18n.features.lightweight.description('Fast loading and execution with a small footprint (~14KB gzipped).'), 
-        icon: featureIcons.lightweight 
+      {
+        title: compomint.i18n.features.lightweight.title('Lightweight Size'),
+        description: compomint.i18n.features.lightweight.description('Fast loading and execution with a small footprint (~14KB gzipped).'),
+        icon: featureIcons.lightweight
       },
-      { 
-        title: compomint.i18n.features.template.title('Template-Based'), 
-        description: compomint.i18n.features.template.description('Use a simple yet powerful string-based template syntax with JavaScript evaluation.'), 
-        icon: featureIcons.template 
+      {
+        title: compomint.i18n.features.template.title('Template-Based'),
+        description: compomint.i18n.features.template.description('Use a simple yet powerful string-based template syntax with JavaScript evaluation.'),
+        icon: featureIcons.template
       },
-      { 
-        title: compomint.i18n.features.component.title('Component-Oriented'), 
-        description: compomint.i18n.features.component.description('Build reusable UI components with proper encapsulation.'), 
-        icon: featureIcons.component 
+      {
+        title: compomint.i18n.features.component.title('Component-Oriented'),
+        description: compomint.i18n.features.component.description('Build reusable UI components with proper encapsulation.'),
+        icon: featureIcons.component
       },
-      { 
-        title: compomint.i18n.features.easy.title('Component Composition'), 
-        description: compomint.i18n.features.easy.description('Combine components like building blocks to create complex UIs.'), 
-        icon: featureIcons.easy 
+      {
+        title: compomint.i18n.features.easy.title('Component Composition'),
+        description: compomint.i18n.features.easy.description('Combine components like building blocks to create complex UIs.'),
+        icon: featureIcons.easy
       },
-      { 
-        title: compomint.i18n.features.responsive.title('State Management'), 
-        description: compomint.i18n.features.responsive.description('Manage component state efficiently with automatic updates.'), 
-        icon: featureIcons.responsive 
+      {
+        title: compomint.i18n.features.responsive.title('State Management'),
+        description: compomint.i18n.features.responsive.description('Manage component state efficiently with automatic updates.'),
+        icon: featureIcons.responsive
       },
-      { 
-        title: compomint.i18n.features.i18n.title('Internationalization'), 
-        description: compomint.i18n.features.i18n.description('Built-in support for multiple languages with i18n system.'), 
-        icon: featureIcons.i18n 
+      {
+        title: compomint.i18n.features.i18n.title('Internationalization'),
+        description: compomint.i18n.features.i18n.description('Built-in support for multiple languages with i18n system.'),
+        icon: featureIcons.i18n
       }
     ]
   });
@@ -217,10 +217,10 @@ compomint.addTmpl('ui-TodoList', \`
     title: compomint.i18n.app.docTitle('Learn More'),
     description: compomint.i18n.app.docDescription('Check out detailed documentation and resources for Compomint.'),
     links: [
-      { label: 'Getting Started', url: 'https://github.com/kurukona/compomint-core/blob/master/README.md' },
-      { label: 'API Reference', url: 'https://github.com/kurukona/compomint-core/blob/master/README.md#api-reference' },
-      { label: 'Examples', url: 'https://github.com/kurukona/compomint-core/tree/master/examples' },
-      { label: 'GitHub', url: 'https://github.com/kurukona/compomint-core' }
+      { label: 'Getting Started', url: 'https://github.com/kurukona/compomint/blob/master/README.md' },
+      { label: 'API Reference', url: 'https://github.com/kurukona/compomint/blob/master/README.md#api-reference' },
+      { label: 'Examples', url: 'https://github.com/kurukona/compomint/tree/master/examples' },
+      { label: 'GitHub', url: 'https://github.com/kurukona/compomint' }
     ]
   });
 
@@ -228,14 +228,14 @@ compomint.addTmpl('ui-TodoList', \`
   const footer = tmpl.ui.Footer({
     description: compomint.i18n.footer.description('Compomint is a lightweight JavaScript framework for creating web applications with a component-based architecture.'),
     links: [
-      { label: compomint.i18n.footer.links.home('Home'), url: '#' },
+      { label: compomint.i18n.footer.links.home('Home'), url: '#home' },
       { label: compomint.i18n.footer.links.features('Features'), url: '#features' },
       { label: compomint.i18n.footer.links.examples('Examples'), url: '#examples' },
       { label: compomint.i18n.footer.links.docs('Documentation'), url: '#documentation' },
-      { label: 'GitHub', url: 'https://github.com/kurukona/compomint-core' }
+      { label: 'GitHub', url: 'https://github.com/kurukona/compomint' }
     ],
     email: 'info@example.com',
-    github: 'kurukona/compomint-core',
+    github: 'kurukona/compomint',
     year: new Date().getFullYear(),
     copyright: 'Compomint'
   });
@@ -256,17 +256,20 @@ compomint.addTmpl('ui-TodoList', \`
 
   // Add smooth scrolling for anchor links
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-    anchor.addEventListener('click', function(e) {
+    anchor.addEventListener('click', function (e) {
       e.preventDefault();
       const targetId = this.getAttribute('href');
       if (targetId === '#') return;
-      
+
       const targetElement = document.querySelector(targetId);
+      console.log('Target ID:', targetId, 'Target Element:', targetElement); // Debugging
       if (targetElement) {
         window.scrollTo({
           top: targetElement.offsetTop - 70, // Accounting for fixed header
           behavior: 'smooth'
         });
+      } else {
+        console.warn('Target element not found:', targetId);
       }
     });
   });

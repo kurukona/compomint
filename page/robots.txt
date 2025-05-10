@@ -1,0 +1,9 @@
+# robots.txt for Compomint website
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://compomint.example.com/sitemap.xml
+
+# Disallow specific pages if necessary
+# Disallow: /private/

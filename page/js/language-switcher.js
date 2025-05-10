@@ -1,8 +1,125 @@
-import { compomint, tmpl } from "../../dist/compomint.esm.min.js"
+  // Add utility function to update meta tags in real-time
+  function updateMetaTags() {
+    const currentLang = document.documentElement.lang || 'en';
+    
+    // Helper function to get i18n value
+    function getI18nValue(key) {
+      const parts = key.split('.');
+      if (parts.length !== 2) return null;
+      
+      const section = compomint.i18n[parts[0]];
+      if (!section || !section[parts[1]]) return null;
+      
+      const translationFn = section[parts[1]];
+      return typeof translationFn === 'function' ? translationFn() : null;
+    }
+    
+    // Update document title
+    const titleKey = 'app.page-title';
+    const title = getI18nValue(titleKey);
+    if (title) document.title = title;
+    
+    // Update meta tags with data-i18n-content attributes
+    document.querySelectorAll('[data-i18n-content]').forEach(el => {
+      const i18nKey = el.getAttribute('data-i18n-content');
+      const content = getI18nValue(i18nKey);
+      
+      if (content) {
+        if (el.hasAttribute('content')) {
+          el.setAttribute('content', content);
+        } else {
+          el.textContent = content;
+        }
+      }
+    });
+    
+    // Update schema.org data if it exists
+    try {
+      const schemaScripts = document.querySelectorAll('script[type="application/ld+json"]');
+      schemaScripts.forEach(script => {
+        try {
+          const data = JSON.parse(script.textContent);
+          
+          // Update Software Application schema
+          if (data['@type'] === 'SoftwareApplication') {
+            const description = getI18nValue('app.meta-description');
+            if (description) data.description = description;
+            
+            // Create updated JSON string with proper formatting
+            script.textContent = JSON.stringify(data, null, 2);
+          }
+        } catch (e) {
+          console.warn('Failed to parse schema JSON:', e);
+        }
+      });
+    } catch (e) {
+      console.warn('Error updating schema.org data:', e);
+    }
+  }
+  import { compomint, tmpl } from "../../dist/compomint.esm.min.js"
 
 // Language Switcher Component and I18n Support
 
 document.addEventListener('DOMContentLoaded', function() {
+  // Add utility function to update meta tags in real-time
+  window.updateMetaTags = function() {
+    const currentLang = document.documentElement.lang || 'en';
+    
+    // Helper function to get i18n value
+    function getI18nValue(key) {
+      const parts = key.split('.');
+      if (parts.length !== 2) return null;
+      
+      const section = compomint.i18n[parts[0]];
+      if (!section || !section[parts[1]]) return null;
+      
+      const translationFn = section[parts[1]];
+      return typeof translationFn === 'function' ? translationFn() : null;
+    }
+    
+    // Update document title
+    const titleKey = 'app.page-title';
+    const title = getI18nValue(titleKey);
+    if (title) document.title = title;
+    
+    // Update meta tags with data-i18n-content attributes
+    document.querySelectorAll('[data-i18n-content]').forEach(el => {
+      const i18nKey = el.getAttribute('data-i18n-content');
+      const content = getI18nValue(i18nKey);
+      
+      if (content) {
+        if (el.hasAttribute('content')) {
+          el.setAttribute('content', content);
+        } else {
+          el.textContent = content;
+        }
+      }
+    });
+    
+    // Update schema.org data if it exists
+    try {
+      const schemaScripts = document.querySelectorAll('script[type="application/ld+json"]');
+      schemaScripts.forEach(script => {
+        try {
+          const data = JSON.parse(script.textContent);
+          
+          // Update Software Application schema
+          if (data['@type'] === 'SoftwareApplication') {
+            const description = getI18nValue('app.meta-description');
+            if (description) data.description = description;
+            
+            // Create updated JSON string with proper formatting
+            script.textContent = JSON.stringify(data, null, 2);
+          }
+        } catch (e) {
+          console.warn('Failed to parse schema JSON:', e);
+        }
+      });
+    } catch (e) {
+      console.warn('Error updating schema.org data:', e);
+    }
+  };
+
   // Add translations for all components
   compomint.addI18ns({
     'app': {
@@ -17,6 +134,24 @@ document.addEventListener('DOMContentLoaded', function() {
         'ko': 'Compomint는 템플릿 기반 컴포넌트 시스템을 제공하는 경량 JavaScript 프레임워크입니다.',
         'ja': 'Compomintは、テンプレートベースのコンポーネントシステムを提供する軽量JavaScriptフレームワークです。',
         'zh': 'Compomint是一个轻量级JavaScript框架，提供基于模板的组件系统。'
+      },
+      'page-title': {
+        'en': 'Compomint - Lightweight Component Engine',
+        'ko': 'Compomint - 경량 컴포넌트 엔진',
+        'ja': 'Compomint - 軽量コンポーネントエンジン',
+        'zh': 'Compomint - 轻量级组件引擎'
+      },
+      'meta-description': {
+        'en': 'Compomint is a lightweight JavaScript template-based component engine for web applications',
+        'ko': 'Compomint는 웹 애플리케이션을 위한 경량 JavaScript 템플릿 기반 컴포넌트 엔진입니다',
+        'ja': 'Compomintは、Webアプリケーション向けの軽量JavaScriptテンプレートベースコンポーネントエンジンです',
+        'zh': 'Compomint是一个用于Web应用程序的轻量级JavaScript模板组件引擎'
+      },
+      'og-image-alt': {
+        'en': 'Compomint logo and code example screen',
+        'ko': 'Compomint 로고 및 코드 예제 화면',
+        'ja': 'Compomintロゴとコード例の画面',
+        'zh': 'Compomint标志和代码示例屏幕'
       },
       'getStarted': {
         'en': 'Get Started',
@@ -337,10 +472,37 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Function to refresh all components on the page
         function refreshAllComponents() {
+          // Update meta tags with i18n content
+          if (typeof window.updateMetaTags === 'function') {
+            window.updateMetaTags();
+          }
+          
           // This is a simple way to refresh the page
           // For a more sophisticated approach, you would track all compomint
           // components and refresh them individually
           window.location.reload();
+        }
+        
+        // Function to update meta tags based on the selected language
+        function updateMetaTags() {
+          // Update document title
+          if (compomint.i18n.app && compomint.i18n.app['page-title']) {
+            document.title = compomint.i18n.app['page-title']();
+          }
+          
+          // Update meta tags with data-i18n-content attributes
+          document.querySelectorAll('[data-i18n-content]').forEach(el => {
+            const i18nKey = el.getAttribute('data-i18n-content');
+            const parts = i18nKey.split('.');
+            
+            if (parts.length === 2 && compomint.i18n[parts[0]] && compomint.i18n[parts[0]][parts[1]]) {
+              if (el.hasAttribute('content')) {
+                el.setAttribute('content', compomint.i18n[parts[0]][parts[1]]());
+              } else {
+                el.textContent = compomint.i18n[parts[0]][parts[1]]();
+              }
+            }
+          });
         }
       ##
       <div class="relative inline-block text-left ui-LanguageSwitcher">
@@ -427,6 +589,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set language
     document.documentElement.lang = lang;
+    
+    // Initial update of meta tags
+    setTimeout(function() {
+      try {
+        if (typeof window.updateMetaTags === 'function') {
+          window.updateMetaTags();
+        }
+      } catch (e) {
+        console.warn('Failed to update meta tags:', e);
+      }
+    }, 100);
   }
   
   // Initialize language

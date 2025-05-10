@@ -4,8 +4,62 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Compomint - 경량 컴포넌트 엔진</title>
-  <meta name="description" content="Compomint는 웹 애플리케이션을 위한 경량 JavaScript 템플릿 기반 컴포넌트 엔진입니다">
+  <title data-i18n="app.page-title">Compomint - Lightweight Component Engine</title>
+  <meta name="description"
+    content="Compomint is a lightweight JavaScript template-based component engine for web applications"
+    data-i18n-content="app.meta-description">
+
+  <!-- SEO Meta Tags -->
+  <meta name="keywords"
+    content="Compomint, JavaScript, component, framework, web development, template engine, UI components, lightweight">
+  <meta name="author" content="Compomint Team">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://compomint.example.com">
+
+  <!-- Alternate language versions -->
+  <link rel="alternate" hreflang="en" href="https://compomint.example.com/en/">
+  <link rel="alternate" hreflang="ko" href="https://compomint.example.com/ko/">
+  <link rel="alternate" hreflang="ja" href="https://compomint.example.com/ja/">
+  <link rel="alternate" hreflang="zh" href="https://compomint.example.com/zh/">
+  <link rel="alternate" hreflang="x-default" href="https://compomint.example.com">
+
+  <!-- Favicon and App Icons -->
+  <link rel="icon" href="img/favicon.ico" sizes="any">
+  <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://compomint.example.com">
+  <meta property="og:title" content="Compomint - Lightweight Component Engine" data-i18n-content="app.page-title">
+  <meta property="og:description"
+    content="Compomint is a lightweight JavaScript template-based component engine for web applications"
+    data-i18n-content="app.meta-description">
+  <meta property="og:image" content="https://compomint.example.com/img/og-image.jpg">
+  <meta property="og:image:alt" content="Compomint logo and code example screen" data-i18n-content="app.og-image-alt">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="ko_KR">
+  <meta property="og:locale:alternate" content="ja_JP">
+  <meta property="og:locale:alternate" content="zh_CN">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://compomint.example.com">
+  <meta name="twitter:title" content="Compomint - Lightweight Component Engine" data-i18n-content="app.page-title">
+  <meta name="twitter:description"
+    content="Compomint is a lightweight JavaScript template-based component engine for web applications"
+    data-i18n-content="app.meta-description">
+  <meta name="twitter:image" content="https://compomint.example.com/img/twitter-image.jpg">
+  <meta name="twitter:image:alt" content="Compomint logo and code example screen" data-i18n-content="app.og-image-alt">
+
+  <!-- Color Theme -->
+  <meta name="theme-color" content="#4F46E5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111827" media="(prefers-color-scheme: dark)">
+
+  <!-- Accessibility -->
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+    as="style">
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -34,7 +88,7 @@
   </script>
 
   <!-- Compomint -->
-  <script src="https://cdn.jsdelivr.net/gh/kurukona/compomint-core@latest/dist/compomint.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.js"></script>
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -76,10 +130,88 @@
 
   <!-- Main script -->
   <script src="js/main.js" type="module" defer></script>
+
+  <!-- SEO & i18n initialization -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Update meta tags when page loads
+      setTimeout(function () {
+        if (typeof window.updateMetaTags === 'function') {
+          window.updateMetaTags();
+        }
+      }, 500);
+    });
+  </script>
 </head>
 
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
   <div id="app-container"></div>
+
+  <!-- Structured Data (Schema.org) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Compomint",
+    "description": "Compomint is a lightweight JavaScript template-based component engine for web applications",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Cross-platform",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "Compomint Team",
+      "url": "https://compomint.example.com"
+    },
+    "softwareVersion": "1.0.0",
+    "fileSize": "14KB",
+    "url": "https://compomint.example.com",
+    "downloadUrl": "https://github.com/kurukona/compomint",
+    "softwareHelp": "https://github.com/kurukona/compomint/blob/master/README.md",
+    "programmingLanguage": "JavaScript",
+    "inLanguage": ["en", "ko", "ja", "zh"],
+    "potentialAction": {
+      "@type": "DownloadAction",
+      "target": "https://github.com/kurukona/compomint"
+    }
+  }
+  </script>
+
+  <!-- Organization Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Compomint",
+    "url": "https://compomint.example.com",
+    "logo": "https://compomint.example.com/img/logo.svg",
+    "sameAs": [
+      "https://github.com/kurukona/compomint"
+    ]
+  }
+  </script>
+
+  <!-- Breadcrumb Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [{
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://compomint.example.com"
+    },{
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Documentation",
+      "item": "https://compomint.example.com/#documentation"
+    }]
+  }
+  </script>
 </body>
 
 </html>
