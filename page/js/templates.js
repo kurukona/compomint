@@ -21,28 +21,28 @@ compomint.addTmpls(`
 
   <!-- Header Component -->
   <template id="ui-Header">
-    <header class="bg-white shadow-sm sticky top-0 z-50">
+    <header class="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-50">
       <div class="container mx-auto px-4 py-4 flex justify-between items-center">
         <div class="flex items-center space-x-2">
-          <svg class="w-8 h-8 text-indigo-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg class="w-8 h-8 text-indigo-600 dark:text-indigo-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2"/>
             <path d="M7 12L10 15L17 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span class="text-xl font-bold text-indigo-600">Compomint</span>
+          <span class="text-xl font-bold text-indigo-600 dark:text-indigo-400">Compomint</span>
         </div>
         
         <nav>
-          <ul class="flex space-x-6 text-gray-600">
+          <ul class="flex space-x-6 text-gray-600 dark:text-gray-300">
             ##data.menuItems.forEach(item => {##
               <li>
-                <a href="##=item.url##" class="hover:text-indigo-600 transition-colors duration-200 ##=item.active ? 'font-medium text-indigo-600' : ''##">
+                <a href="##=item.url##" class="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 ##=item.active ? 'font-medium text-indigo-600 dark:text-indigo-400' : ''##">
                   ##=item.label##
                 </a>
               </li>
             ##})##
             <li>
               <a href="https://github.com/kurukona/compomint-core" target="_blank" rel="noopener" 
-                 class="flex items-center space-x-1 hover:text-indigo-600 transition-colors duration-200">
+                 class="flex items-center space-x-1 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path>
                 </svg>
@@ -97,18 +97,18 @@ compomint.addTmpls(`
 
   <!-- Features Section -->
   <template id="ui-Features">
-    <section class="py-16 bg-white">
+    <section class="py-16 bg-white dark:bg-gray-800">
       <div class="container mx-auto px-4">
-        <h2 class="text-3xl font-bold text-center mb-12 text-gray-900">##=data.title##</h2>
+        <h2 class="text-3xl font-bold text-center mb-12 text-gray-900 dark:text-gray-100">##=data.title##</h2>
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           ##data.features.forEach(feature => {##
-            <div class="bg-gray-50 p-6 rounded-lg hover:shadow-md transition-shadow duration-200">
-              <div class="text-indigo-600 mb-4 w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center">
+            <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg hover:shadow-md transition-shadow duration-200">
+              <div class="text-indigo-600 dark:text-indigo-400 mb-4 w-12 h-12 rounded-lg bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
                 ##%feature.icon##
               </div>
-              <h3 class="text-xl font-semibold mb-3 text-gray-900">##=feature.title##</h3>
-              <p class="text-gray-600">##=feature.description##</p>
+              <h3 class="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">##=feature.title##</h3>
+              <p class="text-gray-600 dark:text-gray-300">##=feature.description##</p>
             </div>
           ##})##
         </div>
@@ -118,24 +118,24 @@ compomint.addTmpls(`
 
   <!-- Code Examples Section -->
   <template id="ui-Examples">
-    <section class="py-16 bg-gray-50">
+    <section class="py-16 bg-gray-50 dark:bg-gray-900">
       <div class="container mx-auto px-4">
-        <h2 class="text-3xl font-bold text-center mb-12 text-gray-900">##=data.title##</h2>
+        <h2 class="text-3xl font-bold text-center mb-12 text-gray-900 dark:text-gray-100">##=data.title##</h2>
         
         <div class="max-w-4xl mx-auto">
           ##data.examples.forEach((example, index) => {##
-            <div class="mb-10 bg-white shadow rounded-lg overflow-hidden">
-              <div class="p-6 border-b">
-                <h3 class="text-xl font-semibold text-gray-900 mb-2">##=example.title##</h3>
-                <p class="text-gray-600">##=example.description##</p>
+            <div class="mb-10 bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+              <div class="p-6 border-b dark:border-gray-700">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">##=example.title##</h3>
+                <p class="text-gray-600 dark:text-gray-300">##=example.description##</p>
               </div>
-              <div class="bg-gray-800 text-white p-4 font-mono text-sm overflow-x-auto">
+              <div class="bg-gray-800 dark:bg-gray-900 text-white p-4 font-mono text-sm overflow-x-auto">
                 <pre><code>##=example.code##</code></pre>
               </div>
               ##if (example.result) {##
-                <div class="p-6 bg-gray-50 border-t">
-                  <h4 class="text-sm uppercase tracking-wider text-gray-500 mb-3">결과:</h4>
-                  <div class="p-4 border border-gray-200 rounded">
+                <div class="p-6 bg-gray-50 dark:bg-gray-700 border-t dark:border-gray-600">
+                  <h4 class="text-sm uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">결과:</h4>
+                  <div class="p-4 border border-gray-200 dark:border-gray-600 rounded">
                     ##%example.result##
                   </div>
                 </div>
@@ -149,13 +149,13 @@ compomint.addTmpls(`
 
   <!-- Documentation Section -->
   <template id="ui-Documentation">
-    <section class="py-16 bg-white">
+    <section class="py-16 bg-white dark:bg-gray-800">
       <div class="container mx-auto px-4 text-center">
-        <h2 class="text-3xl font-bold mb-6 text-gray-900">##=data.title##</h2>
-        <p class="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">##=data.description##</p>
+        <h2 class="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">##=data.title##</h2>
+        <p class="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">##=data.description##</p>
         <div class="flex flex-wrap justify-center gap-4">
           ##data.links.forEach(link => {##
-            <a href="##=link.url##" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-6 py-3 rounded-lg font-medium transition-colors duration-200">
+            <a href="##=link.url##" class="bg-indigo-50 dark:bg-indigo-900 hover:bg-indigo-100 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-200 px-6 py-3 rounded-lg font-medium transition-colors duration-200">
               ##=link.label##
             </a>
           ##})##
