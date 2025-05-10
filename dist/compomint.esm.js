@@ -65,11 +65,12 @@ const isPlainObject = function (value) {
 // 
 // Default template settings
 //
-const defaultTemplateConfig = (configs, compomint) => ({
+const defaultTemplateEngine = (configs, compomint) => ({
     rules: {
         style: {
             pattern: /(\<style id=[\s\S]+?\>[\s\S]+?\<\/style\>)/g,
             exec: function (style) {
+                var _a;
                 // Create a temporary element to parse the style tag
                 const dumy = document.createElement("template");
                 dumy.innerHTML = style;
@@ -78,7 +79,7 @@ const defaultTemplateConfig = (configs, compomint) => ({
                     return ""; // Skip if no style node or ID
                 const oldStyleNode = document.getElementById(styleNode.id);
                 if (oldStyleNode)
-                    oldStyleNode.parentNode?.removeChild(oldStyleNode);
+                    (_a = oldStyleNode.parentNode) === null || _a === void 0 ? void 0 : _a.removeChild(oldStyleNode);
                 document.head.appendChild(styleNode);
                 return "";
             },
@@ -309,7 +310,7 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
                         "data": data,
                         "customData": eventData.customData,
                         "element": $elementTrigger,
-                        "componentElement": $targetElement || $childTarget?.parentElement,
+                        "componentElement": $targetElement || ($childTarget === null || $childTarget === void 0 ? void 0 : $childTarget.parentElement),
                         "component": component,
                         "compomint": compomint,
                     },
@@ -683,7 +684,7 @@ const escapes = {
 };
 const escaper = /\>( |\n)+\<|\>( |\n)+|( |\n)+\<|\\|'|\r|\n|\t|\u2028|\u2029/g;
 // set default template config
-compomint.templateConfig = defaultTemplateConfig(configs, compomint);
+compomint.templateEngine = defaultTemplateEngine(configs, compomint);
 const escapeHtml = (function () {
     const escapeMap = {
         "&": "&amp;",
@@ -694,7 +695,10 @@ const escapeHtml = (function () {
         "`": "&#x60;", // Use HTML entity for backtick
         //"\n": "&#10;", // Keep newline escaping if needed, otherwise remove
     };
-    const unescapeMap = Object.fromEntries(Object.entries(escapeMap).map(([key, value]) => [value, key]));
+    const unescapeMap = Object.keys(escapeMap).reduce((acc, key) => {
+        acc[escapeMap[key]] = key;
+        return acc;
+    }, {});
     const createEscaper = function (map) {
         const escaper = function (match) {
             return map[match];
@@ -744,7 +748,7 @@ const matcherFunc = function (templateRules) {
 const escapeFunc = function (match) {
     return escapes[match] || escapes[match.replace(/[ \n]/g, "")] || "";
 };
-const defaultMatcher = matcherFunc(compomint.templateConfig.rules);
+const defaultMatcher = matcherFunc(compomint.templateEngine.rules);
 const templateParser = function (tmplId, text, matcher) {
     if (configs.printExecTime)
         console.time(`tmpl: ${tmplId}`);
@@ -786,12 +790,12 @@ const templateParser = function (tmplId, text, matcher) {
         console.timeEnd(`tmpl: ${tmplId}`);
     return source;
 };
-const templateBuilder = (compomint.template = function compomint_templateBuilder(tmplId, templateText, customTemplateConfig) {
-    let templateConfig = compomint.templateConfig;
+const templateBuilder = (compomint.template = function compomint_templateBuilder(tmplId, templateText, customTemplateEngine) {
+    let templateEngine = compomint.templateEngine;
     let matcher = defaultMatcher;
-    if (customTemplateConfig) {
-        templateConfig = Object.assign({}, compomint.templateConfig, customTemplateConfig);
-        matcher = matcherFunc(templateConfig.rules);
+    if (customTemplateEngine) {
+        templateEngine = Object.assign({}, compomint.templateEngine, customTemplateEngine);
+        matcher = matcherFunc(templateEngine.rules);
     }
     const source = `
 /* tmplId: ${tmplId} */
@@ -804,15 +808,15 @@ __p+='${templateParser(tmplId, templateText, matcher)}';
 return __p;`;
     let sourceGenFunc = null;
     try {
-        sourceGenFunc = new Function(templateConfig.keys.dataKeyName, templateConfig.keys.statusKeyName, templateConfig.keys.componentKeyName, templateConfig.keys.i18nKeyName, "compomint", "tmpl", "__lazyScope", "__debugger", source);
+        sourceGenFunc = new Function(templateEngine.keys.dataKeyName, templateEngine.keys.statusKeyName, templateEngine.keys.componentKeyName, templateEngine.keys.i18nKeyName, "compomint", "tmpl", "__lazyScope", "__debugger", source);
     }
     catch (e) {
         if (configs.throwError) {
             console.error(`Template compilation error in "${tmplId}", ${e.name}: ${e.message}`);
             try { // Attempt re-run for potential browser debugging
-                new Function(templateConfig.keys.dataKeyName, templateConfig.keys.statusKeyName, templateConfig.keys.componentKeyName, templateConfig.keys.i18nKeyName, "compomint", "tmpl", "__lazyScope", "__debugger", source);
+                new Function(templateEngine.keys.dataKeyName, templateEngine.keys.statusKeyName, templateEngine.keys.componentKeyName, templateEngine.keys.i18nKeyName, "compomint", "tmpl", "__lazyScope", "__debugger", source);
             }
-            catch { /* Ignore re-run error */ }
+            catch ( /* Ignore re-run error */_a) { /* Ignore re-run error */ }
             throw e;
         }
         else {
@@ -827,7 +831,7 @@ return __p;`;
         // Argument parsing logic
         const firstArg = params[0];
         if (firstArg && typeof firstArg === 'object' && (firstArg.$wrapperElement || firstArg.$callback || firstArg.$baseComponent)) {
-            data = { ...firstArg }; // Clone data object
+            data = Object.assign({}, firstArg); // Clone data object
             wrapperElement = data.$wrapperElement;
             delete data.$wrapperElement;
             callback = data.$callback;
@@ -848,8 +852,8 @@ return __p;`;
                 baseComponent = params[3];
             }
         }
-        const dataKeyName = templateConfig.keys.dataKeyName;
-        const statusKeyName = templateConfig.keys.statusKeyName;
+        const dataKeyName = templateEngine.keys.dataKeyName;
+        const statusKeyName = templateEngine.keys.statusKeyName;
         const lazyScope = JSON.parse(matcher.lazyScopeSeed);
         const component = Object.assign(baseComponent || {}, {
             tmplId: tmplId,
@@ -978,7 +982,7 @@ return __p;`;
                 try { // Attempt re-run with debugger
                     sourceGenFunc.call(wrapperElement || null, data, component[statusKeyName], component, compomint.i18n[tmplId], lazyScope, true);
                 }
-                catch { /* Ignore */ }
+                catch ( /* Ignore */_a) { /* Ignore */ }
                 throw e;
             }
             else {
@@ -1001,7 +1005,7 @@ return __p;`;
             matcher.lazyExecKeys.forEach(function (key) {
                 if (lazyScope[key] && lazyScope[key].length > 0) {
                     try {
-                        lazyExec[key].call(templateConfig.rules[key.slice(0, -5)], data, lazyScope, component, docFragment); // Cast needed
+                        lazyExec[key].call(templateEngine.rules[key.slice(0, -5)], data, lazyScope, component, docFragment); // Cast needed
                     }
                     catch (e) {
                         if (configs.throwError) {
@@ -1238,7 +1242,7 @@ return __p;`;
     if (tmplId) {
         const tmplMeta = configs.debug ? {
             renderingFunc: renderingFunc,
-            source: escapeHtml.escape(`function ${tmplId}_source (${templateConfig.keys.dataKeyName}, ${templateConfig.keys.statusKeyName}, ${templateConfig.keys.componentKeyName}, ${templateConfig.keys.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`),
+            source: escapeHtml.escape(`function ${tmplId}_source (${templateEngine.keys.dataKeyName}, ${templateEngine.keys.statusKeyName}, ${templateEngine.keys.componentKeyName}, ${templateEngine.keys.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`),
             templateText: escapeHtml.escape(templateText),
         } : {
             renderingFunc: renderingFunc,
@@ -1304,14 +1308,14 @@ const safeTemplate = function (source) {
     }
     return template;
 };
-const addTmpl = (compomint.addTmpl = function (tmplId, element, templateConfig) {
+const addTmpl = (compomint.addTmpl = function (tmplId, element, templateEngine) {
     let templateText = element instanceof Element ? element.innerHTML : String(element);
     templateText = escapeHtml.unescape(templateText.replace(/<!---|--->/gi, ""));
-    return templateBuilder(tmplId, templateText, templateConfig);
+    return templateBuilder(tmplId, templateText, templateEngine);
 });
-const addTmpls = (compomint.addTmpls = function (source, removeInnerTemplate, templateConfig) {
-    if (typeof removeInnerTemplate !== "boolean" && templateConfig == undefined) {
-        templateConfig = removeInnerTemplate;
+const addTmpls = (compomint.addTmpls = function (source, removeInnerTemplate, templateEngine) {
+    if (typeof removeInnerTemplate !== "boolean" && templateEngine == undefined) {
+        templateEngine = removeInnerTemplate;
         removeInnerTemplate = false;
     }
     else {
@@ -1325,10 +1329,10 @@ const addTmpls = (compomint.addTmpls = function (source, removeInnerTemplate, te
         if (!tmplId)
             return;
         if (node.dataset.coLoadScript !== undefined) {
-            addTmpl(tmplId, node, templateConfig)({}); // Execute immediately if data-co-load-script
+            addTmpl(tmplId, node, templateEngine)({}); // Execute immediately if data-co-load-script
         }
         else {
-            addTmpl(tmplId, node, templateConfig);
+            addTmpl(tmplId, node, templateEngine);
         }
         if (removeInnerTemplate && node.parentNode) {
             node.parentNode.removeChild(node);
@@ -1342,7 +1346,7 @@ const addTmpls = (compomint.addTmpls = function (source, removeInnerTemplate, te
         option = {};
     }
     const defaultOptions = {
-        loadScript: true, loadStyle: true, loadLink: true, templateConfig: undefined
+        loadScript: true, loadStyle: true, loadLink: true, templateEngine: undefined
     };
     const mergedOptions = Object.assign({}, defaultOptions, option); // Ensure option is object
     const importDataParser = (obj) => {
@@ -1359,12 +1363,13 @@ const addTmpls = (compomint.addTmpls = function (source, removeInnerTemplate, te
     };
     const appendElements = (elements) => {
         elements.forEach(element => {
+            var _a;
             if (!element)
                 return;
             if (element.id) {
                 const oldElement = document.getElementById(element.id);
                 if (oldElement)
-                    oldElement.parentNode?.removeChild(oldElement);
+                    (_a = oldElement.parentNode) === null || _a === void 0 ? void 0 : _a.removeChild(oldElement);
             }
             if (element.tagName === 'SCRIPT' || element.tagName === 'LINK' || element.tagName === 'STYLE') {
                 document.head.appendChild(element);
@@ -1501,9 +1506,10 @@ const requestFunc = function (url, option, callback) {
         if (option) {
             if (option.timeout)
                 xmlhttp.timeout = option.timeout;
-            if (option.headers) {
-                Object.entries(option.headers).forEach(([key, value]) => {
-                    xmlhttp.setRequestHeader(key, value);
+            const headers = option.headers;
+            if (headers) {
+                Object.keys(headers).forEach((key) => {
+                    xmlhttp.setRequestHeader(key, headers[key]);
                 });
             }
             xmlhttp.send(option.body || null);

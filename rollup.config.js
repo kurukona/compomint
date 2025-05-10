@@ -7,22 +7,24 @@ import babel from '@rollup/plugin-babel';
 const isProduction = process.env.NODE_ENV === 'production';
 
 export default {
-  input: 'src/compomint-core.ts',
+  input: 'src/compomint.ts',
   context: 'window',
   output: [
+    // UMD (for CDN/global)
     {
-      file: 'dist/compomint.js',
+      file: 'dist/compomint.umd.js',
       format: 'umd',
       name: 'Compomint',
       sourcemap: true,
     },
     {
-      file: 'dist/compomint.min.js',
+      file: 'dist/compomint.umd.min.js',
       format: 'umd',
       name: 'Compomint',
       sourcemap: true,
       plugins: [terser()],
     },
+    // ESM (for modern bundlers)
     {
       file: 'dist/compomint.esm.js',
       format: 'esm',

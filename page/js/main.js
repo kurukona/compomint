@@ -32,6 +32,15 @@ function initApp() {
     </svg>`
   };
 
+  // Create a button component for an example
+  const button = tmpl.ui.Button({
+    label: 'Click here',
+    variant: 'primary',
+    onClick: function () {
+      alert('The button has been clicked!');
+    }
+  });
+
   // Create a counter component for an example
   const counter = tmpl.ui.Counter({
     title: compomint.i18n.demo.counter.title('Counter Component'),
@@ -42,9 +51,9 @@ function initApp() {
   const todoList = tmpl.ui.TodoList({
     title: compomint.i18n.demo.todo.title('Todo List'),
     initialTodos: [
-      { text: 'Compomint 문서 읽기', completed: true },
-      { text: '첫 번째 컴포넌트 만들기', completed: false },
-      { text: '웹사이트에 적용하기', completed: false }
+      { text: 'Read Compomint documentation', completed: true },
+      { text: 'Create your first component', completed: false },
+      { text: 'Apply to website', completed: false }
     ]
   });
 
@@ -76,10 +85,10 @@ function initApp() {
   </div>
 </template>
 
-// 컴포넌트 생성 및 사용
+// Create and use component
 const hello = compomint.tmpl('hello-world')({
   title: 'Hello Compomint!',
-  message: '쉽고 간단한 컴포넌트',
+  message: 'Easy and simple component',
   color: '#4F46E5'
 });
 
@@ -130,31 +139,32 @@ document.body.appendChild(hello.element);`
       {
         title: compomint.i18n.examples.basicComponent.title('Basic Component'),
         description: compomint.i18n.examples.basicComponent.description('Simple template definition and usage'),
-        code: `// 템플릿 정의
-compomint.addTmpl('ui-Button', \`
+        code: `// Template definition
+compomint.addTmpl('ui-Button', \` // Template definition
   <button class="ui-Button ##=data.variant ? 'ui-Button--' + data.variant : ''##"
     data-co-event="##:data.onClick##">
     ##=data.label##
   </button>
 \`);
 
-// 컴포넌트 사용
+// Create and use component
 const button = tmpl.ui.Button({
-  label: '클릭하세요',
+  label: 'Click here',
   variant: 'primary',
   onClick: function() {
-    alert('버튼이 클릭되었습니다!');
+    alert('The button has been clicked!');
   }
 });
 
-document.body.appendChild(button.element);`
+document.body.appendChild(button.element);`,
+        result: button
       },
       {
         title: compomint.i18n.examples.stateManagement.title('State Management'),
         description: compomint.i18n.examples.stateManagement.description('How to manage internal component state and respond to events'),
         code: `compomint.addTmpl('ui-Counter', \`
   ##
-    // 상태 초기화
+    // Initialize state
     status.count = status.count || data.initialCount || 0;
     
     function increment() {
@@ -168,8 +178,8 @@ document.body.appendChild(button.element);`
     }
   ##
   <div class="ui-Counter">
-    <h3>##=data.title || '카운터'##</h3>
-    <p>현재 값: <span>##=status.count##</span></p>
+    <h3>##=data.title || 'Counter'##</h3>
+    <p>Current value: <span>##=status.count##</span></p>
     <div>
       <button data-co-event="##:{click: decrement}##">-</button>
       <button data-co-event="##:{click: increment}##">+</button>
@@ -181,10 +191,10 @@ document.body.appendChild(button.element);`
       {
         title: compomint.i18n.examples.complexComponent.title('Complex Component'),
         description: compomint.i18n.examples.complexComponent.description('A more complex component example: Todo List'),
-        code: `// Todo 리스트 컴포넌트 - 코드 예시 (전체 코드는 GitHub에서 확인 가능)
+        code: `Todo List Component - Code Example (Full code available on GitHub)
 compomint.addTmpl('ui-TodoList', \`
   ##
-    // 상태 초기화
+    // Initialize state
     status.todos = status.todos || data.initialTodos || [];
     
     function addTodo(text) {
@@ -203,8 +213,8 @@ compomint.addTmpl('ui-TodoList', \`
     }
   ##
   <div class="ui-TodoList">
-    <h3>##=data.title || '할 일 목록'##</h3>
-    <!-- 입력 폼, 할 일 목록 등의 UI 요소 -->
+    <h3>##=data.title || 'Todo List'##</h3>
+    <!-- UI elements such as input form, todo list, etc. -->
   </div>
 \`);`,
         result: todoList

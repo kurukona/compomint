@@ -3,8 +3,8 @@
  * Code released under the MIT license
  */
 
-import { CompomintGlobal, ComponentScope, LazyScope, RenderingFunction, TemplateConfig, TemplateMeta, TemplateRule, Tools, TemplateElement } from "./type";
-import { defaultTemplateConfig } from "./default-template-config";
+import { CompomintGlobal, ComponentScope, LazyScope, RenderingFunction, TemplateEngine, TemplateMeta, TemplateRule, Tools, TemplateElement, CompomintConfigs } from "./type";
+import { defaultTemplateEngine } from "./default-template-engine"
 import { applyBuiltInTemplates } from "./built-in-templates"
 import {
   firstElementChild,
@@ -94,7 +94,7 @@ const escapes: Record<string, string> = {
 const escaper = /\>( |\n)+\<|\>( |\n)+|( |\n)+\<|\\|'|\r|\n|\t|\u2028|\u2029/g;
 
 // set default template config
-compomint.templateConfig = defaultTemplateConfig(configs, compomint);
+compomint.templateEngine = defaultTemplateEngine(configs, compomint);
 
 const escapeHtml = (function () {
   const escapeMap: Record<string, string> = {
@@ -107,7 +107,10 @@ const escapeHtml = (function () {
     //"\n": "&#10;", // Keep newline escaping if needed, otherwise remove
   };
 
-  const unescapeMap: Record<string, string> = Object.fromEntries(Object.entries(escapeMap).map(([key, value]) => [value, key]));
+  const unescapeMap: Record<string, string> = Object.keys(escapeMap).reduce((acc: Record<string, string>, key: string) => {
+    acc[escapeMap[key]] = key;
+    return acc;
+  }, {} as Record<string, string>);
 
   const createEscaper = function (map: Record<string, string>): (str: string) => string {
     const escaper = function (match: string): string {
@@ -170,7 +173,7 @@ const escapeFunc = function (match: string): string {
   return escapes[match] || escapes[match.replace(/[ \n]/g, "")] || "";
 };
 
-const defaultMatcher = matcherFunc(compomint.templateConfig.rules);
+const defaultMatcher = matcherFunc(compomint.templateEngine.rules);
 
 const templateParser = function (tmplId: string, text: string, matcher: ReturnType<typeof matcherFunc>): string {
   if (configs.printExecTime) console.time(`tmpl: ${tmplId}`);
@@ -222,14 +225,14 @@ const templateParser = function (tmplId: string, text: string, matcher: ReturnTy
 const templateBuilder = (compomint.template = function compomint_templateBuilder(
   tmplId: string,
   templateText: string,
-  customTemplateConfig?: Partial<TemplateConfig>
+  customTemplateEngine?: Partial<TemplateEngine>
 ): RenderingFunction {
-  let templateConfig = compomint.templateConfig;
+  let templateEngine = compomint.templateEngine;
   let matcher = defaultMatcher;
 
-  if (customTemplateConfig) {
-    templateConfig = Object.assign({}, compomint.templateConfig, customTemplateConfig);
-    matcher = matcherFunc(templateConfig.rules);
+  if (customTemplateEngine) {
+    templateEngine = Object.assign({}, compomint.templateEngine, customTemplateEngine);
+    matcher = matcherFunc(templateEngine.rules);
   }
 
   const source = `
@@ -246,10 +249,10 @@ return __p;`;
 
   try {
     sourceGenFunc = new Function(
-      templateConfig.keys.dataKeyName as string,
-      templateConfig.keys.statusKeyName as string,
-      templateConfig.keys.componentKeyName as string,
-      templateConfig.keys.i18nKeyName as string,
+      templateEngine.keys.dataKeyName as string,
+      templateEngine.keys.statusKeyName as string,
+      templateEngine.keys.componentKeyName as string,
+      templateEngine.keys.i18nKeyName as string,
       "compomint",
       "tmpl",
       "__lazyScope",
@@ -261,8 +264,8 @@ return __p;`;
       console.error(`Template compilation error in "${tmplId}", ${e.name}: ${e.message}`);
       try { // Attempt re-run for potential browser debugging
         new Function(
-          templateConfig.keys.dataKeyName as string, templateConfig.keys.statusKeyName as string, templateConfig.keys.componentKeyName as string,
-          templateConfig.keys.i18nKeyName as string, "compomint", "tmpl", "__lazyScope", "__debugger", source
+          templateEngine.keys.dataKeyName as string, templateEngine.keys.statusKeyName as string, templateEngine.keys.componentKeyName as string,
+          templateEngine.keys.i18nKeyName as string, "compomint", "tmpl", "__lazyScope", "__debugger", source
         );
       } catch { /* Ignore re-run error */ }
       throw e;
@@ -298,8 +301,8 @@ return __p;`;
     }
 
 
-    const dataKeyName = templateConfig.keys.dataKeyName as string;
-    const statusKeyName = templateConfig.keys.statusKeyName as string;
+    const dataKeyName = templateEngine.keys.dataKeyName as string;
+    const statusKeyName = templateEngine.keys.statusKeyName as string;
     const lazyScope: LazyScope = JSON.parse(matcher.lazyScopeSeed);
 
     const component: ComponentScope = Object.assign(baseComponent || {}, {
@@ -441,7 +444,7 @@ return __p;`;
 
         if (lazyScope[key] && lazyScope[key].length > 0) {
           try {
-            lazyExec[key].call(templateConfig.rules[key.slice(0, -5)], data, lazyScope, component, docFragment as DocumentFragment | Element); // Cast needed
+            lazyExec[key].call(templateEngine.rules[key.slice(0, -5)], data, lazyScope, component, docFragment as DocumentFragment | Element); // Cast needed
           } catch (e: any) {
             if (configs.throwError) {
               console.error(`Error during lazy execution of "${key}" for template "${tmplId}":`, e);
@@ -611,7 +614,7 @@ return __p;`;
   if (tmplId) {
     const tmplMeta: TemplateMeta = configs.debug ? {
       renderingFunc: renderingFunc,
-      source: escapeHtml.escape(`function ${tmplId}_source (${templateConfig.keys.dataKeyName}, ${templateConfig.keys.statusKeyName}, ${templateConfig.keys.componentKeyName}, ${templateConfig.keys.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`),
+      source: escapeHtml.escape(`function ${tmplId}_source (${templateEngine.keys.dataKeyName}, ${templateEngine.keys.statusKeyName}, ${templateEngine.keys.componentKeyName}, ${templateEngine.keys.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`),
       templateText: escapeHtml.escape(templateText),
     } : {
       renderingFunc: renderingFunc,
@@ -683,15 +686,15 @@ const safeTemplate = function (source: Element | string): Element | TemplateElem
   return template;
 };
 
-const addTmpl: CompomintGlobal["addTmpl"] = (compomint.addTmpl = function (tmplId, element, templateConfig) {
+const addTmpl: CompomintGlobal["addTmpl"] = (compomint.addTmpl = function (tmplId, element, templateEngine) {
   let templateText = element instanceof Element ? element.innerHTML : String(element);
   templateText = escapeHtml.unescape(templateText.replace(/<!---|--->/gi, ""));
-  return templateBuilder(tmplId, templateText, templateConfig);
+  return templateBuilder(tmplId, templateText, templateEngine);
 });
 
-const addTmpls: CompomintGlobal["addTmpls"] = (compomint.addTmpls = function (source, removeInnerTemplate, templateConfig) {
-  if (typeof removeInnerTemplate !== "boolean" && templateConfig == undefined) {
-    templateConfig = removeInnerTemplate as Partial<TemplateConfig> | undefined;
+const addTmpls: CompomintGlobal["addTmpls"] = (compomint.addTmpls = function (source, removeInnerTemplate, templateEngine) {
+  if (typeof removeInnerTemplate !== "boolean" && templateEngine == undefined) {
+    templateEngine = removeInnerTemplate as Partial<TemplateEngine> | undefined;
     removeInnerTemplate = false;
   } else {
     removeInnerTemplate = !!removeInnerTemplate;
@@ -708,9 +711,9 @@ const addTmpls: CompomintGlobal["addTmpls"] = (compomint.addTmpls = function (so
     if (!tmplId) return;
 
     if ((node as HTMLElement).dataset.coLoadScript !== undefined) {
-      addTmpl(tmplId, node, templateConfig)({}); // Execute immediately if data-co-load-script
+      addTmpl(tmplId, node, templateEngine)({}); // Execute immediately if data-co-load-script
     } else {
-      addTmpl(tmplId, node, templateConfig);
+      addTmpl(tmplId, node, templateEngine);
     }
 
     if (removeInnerTemplate && node.parentNode) {
@@ -727,7 +730,7 @@ const addTmplByUrl: CompomintGlobal["addTmplByUrl"] = (compomint.addTmplByUrl = 
   }
 
   const defaultOptions = {
-    loadScript: true, loadStyle: true, loadLink: true, templateConfig: undefined
+    loadScript: true, loadStyle: true, loadLink: true, templateEngine: undefined
   };
   const mergedOptions = Object.assign({}, defaultOptions, option as Record<string, any>); // Ensure option is object
 
@@ -879,14 +882,15 @@ const requestFunc = function (url: string, option: RequestInit | null, callback:
   };
 
   try {
-    const method = (option && (option as any).method) || "GET";
+    const method = (option && option.method) || "GET";
     xmlhttp.open(method, url, true);
 
     if (option) {
       if ((option as any).timeout) xmlhttp.timeout = (option as any).timeout;
-      if (option.headers) {
-        Object.entries(option.headers).forEach(([key, value]) => {
-          xmlhttp.setRequestHeader(key, value);
+      const headers = option.headers as Record<string, string>;
+      if (headers) {
+        Object.keys(headers).forEach((key) => {
+          xmlhttp.setRequestHeader(key, headers[key]);
         });
       }
       xmlhttp.send(option.body as any || null);

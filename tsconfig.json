@@ -1,10 +1,11 @@
 {
   "compilerOptions": {
     "types": ["jest"],
-    "target": "ESNext",
-    "module": "esnext",
+    "target": "ES2016",
+    "module": "ESNext",
     "allowJs": true,
     "declaration": true,
+    "declarationDir": "dist",
     "emitDeclarationOnly": true,
     "outDir": "dist",
     "rootDir": "src",
@@ -15,11 +16,12 @@
     "skipLibCheck": true
   },
   "include": [
-    "src/compomint-core.ts"
+    "src/compomint.ts"
   ],
   "exclude": [
     "node_modules",
     "dist",
+    "lib",
     "**/*.test.ts"
   ]
 }

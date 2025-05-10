@@ -223,6 +223,13 @@ compomint.addTmpls(`
     </footer>
   </template>
 
+  <template id="ui-Button">
+    <button class="ui-Button ##=data.variant ? 'ui-Button--' + data.variant : ''##"
+      data-co-event="##:data.onClick##">
+      ##=data.label##
+    </button>
+  </template>
+
   <!-- Demo Components Section -->
   <template id="ui-Counter">
     <div class="border border-gray-200 dark:border-gray-700 rounded p-4 max-w-xs mx-auto text-center">

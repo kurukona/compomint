@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeAll, beforeEach, afterEach, jest } from '@jest/globals';
-import { compomint, tmpl, CompomintGlobal } from "../src/compomint-core";
+import { compomint, tmpl, CompomintGlobal } from "../src/compomint";
 
 
 // --- Built-in Component Tests ---

@@ -4,6 +4,9 @@
 
 The Compomint Component Engine is a lightweight JavaScript framework for creating web applications with a focus on component-based architecture. It provides a powerful template-based system that allows you to create, combine, and reuse UI components efficiently.
 
+[Compomint Website](https://compomint.dev/)
+[Github Repository](https://github.com/kurukona/compomint)
+
 ## Table of Contents
 
 1. [Introduction](#introduction)
@@ -49,12 +52,12 @@ The framework is particularly suitable for:
 ## Example Applications
 
 You can find example applications demonstrating Compomint in action:
-- **Compomint Core Greeting (ESM) Demo**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/greeting.esm.html) | [Demo](https://compomint.dev/examples/greeting.esm.html)
-- **Compomint Core Greeting (UMD) Demo**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/greeting.html) | [Demo](https://compomint.dev/examples/greeting.html)
-- **Component Examples**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/component_examples.html) | [Demo](https://compomint.dev/examples/component_examples.html)
-- **Simple Counter**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/counter.html) | [Demo](https://compomint.dev/examples/counter.html)
-- **Todo List**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/todo.html) | [Demo](https://compomint.dev/examples/todo.html)
-- **Calculator**: [Code](https://github.com/kurukona/compomint-core/blob/master/examples/calculator.html) | [Demo](https://compomint.dev/examples/calculator.html)
+- **Compomint Core Greeting (ESM) Demo**: [Code](https://github.com/kurukona/compomint/blob/master/examples/greeting.esm.html) | [Demo](https://compomint.dev/examples/greeting.esm.html)
+- **Compomint Core Greeting (UMD) Demo**: [Code](https://github.com/kurukona/compomint/blob/master/examples/greeting.html) | [Demo](https://compomint.dev/examples/greeting.html)
+- **Component Examples**: [Code](https://github.com/kurukona/compomint/blob/master/examples/component_examples.html) | [Demo](https://compomint.dev/examples/component_examples.html)
+- **Simple Counter**: [Code](https://github.com/kurukona/compomint/blob/master/examples/counter.html) | [Demo](https://compomint.dev/examples/counter.html)
+- **Todo List**: [Code](https://github.com/kurukona/compomint/blob/master/examples/todo.html) | [Demo](https://compomint.dev/examples/todo.html)
+- **Calculator**: [Code](https://github.com/kurukona/compomint/blob/master/examples/calculator.html) | [Demo](https://compomint.dev/examples/calculator.html)
 
 ## Installation
 
@@ -1837,7 +1840,8 @@ document.body.appendChild(themeSwitcher.element);
 
 For more detailed information and up-to-date examples, check out the official documentation:
 
-[Compomint Documentation](https://kurukona.github.io/compomint/)
+[Compomint Website](https://compomint.dev/)
+[Github Repository](https://github.com/kurukona/compomint)
 
 ## License
 

@@ -1,4 +1,4 @@
-import { ComponentScope, LazyScope, TemplateConfig, TemplateRule, TemplateElement, CompomintConfigs, CompomintGlobal } from "./type";
+import { ComponentScope, LazyScope, TemplateEngine, TemplateRule, TemplateElement, CompomintConfigs, CompomintGlobal } from "./type";
 
 import {
   firstElementChild,
@@ -10,7 +10,7 @@ import {
 // 
 // Default template settings
 //
-const defaultTemplateConfig = (configs: CompomintConfigs, compomint: CompomintGlobal): TemplateConfig => ({
+const defaultTemplateEngine = (configs: CompomintConfigs, compomint: CompomintGlobal): TemplateEngine => ({
   rules: {
     style: {
       pattern: /(\<style id=[\s\S]+?\>[\s\S]+?\<\/style\>)/g,
@@ -525,4 +525,4 @@ __p+='`;
 
 });
 
-export { defaultTemplateConfig }
+export { defaultTemplateEngine }

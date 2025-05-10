@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeAll, beforeEach, afterEach, jest } from '@jest/globals';
-import { compomint, tmpl, CompomintGlobal } from "../src/compomint-core";
+import { compomint, tmpl, CompomintGlobal } from "../src/compomint";
 
 
 describe('Compomint Template Engine', () => {
@@ -645,7 +645,7 @@ describe('Compomint Template Engine', () => {
 
         // Manually simulate lazy execution with a placeholder ID that won't be found
         const lazyScope = { elementArray: [{ childTarget: 'Content', nonblocking: false }] };
-        const templateConfig = compomint.templateConfig;
+        const templateConfig = compomint.templateEngine
         const docFragment = component.element; // Use the actual rendered element fragment
 
         // Temporarily disable throwError to check console warning
@@ -771,7 +771,7 @@ describe('Compomint Template Engine', () => {
         const component = renderingFunc({});
         // Manually simulate the state where the element is gone before lazyExec runs
         const lazyScope = { namedElementArray: ['missingElement'] };
-        const templateConfig = compomint.templateConfig;
+        const templateConfig = compomint.templateEngine
         const docFragment = document.createDocumentFragment(); // Empty fragment
 
         expect(() => {
@@ -815,7 +815,7 @@ describe('Compomint Template Engine', () => {
 
         // Simulate lazy execution manually to inspect the function
         const lazyScope = { elementRefArray: [refFunc] };
-        const templateConfig = compomint.templateConfig;
+        const templateConfig = compomint.templateEngine
         const docFragment = document.createDocumentFragment();
         const div = document.createElement('div');
         div.setAttribute('data-co-element-ref', '0'); // Match the index
@@ -835,7 +835,7 @@ describe('Compomint Template Engine', () => {
 
         // Simulate lazy execution manually
         const lazyScope = { elementRefArray: [refFunc] };
-        const templateConfig = compomint.templateConfig;
+        const templateConfig = compomint.templateEngine
         const docFragment = document.createDocumentFragment(); // Empty
 
         expect(() => {
@@ -900,7 +900,7 @@ describe('Compomint Template Engine', () => {
 
         // Simulate lazy execution manually
         const lazyScope = { elementLoadArray: [{ loadFunc: loadHandler, customData: null }] };
-        const templateConfig = compomint.templateConfig;
+        const templateConfig = compomint.templateEngine
         const docFragment = document.createDocumentFragment(); // Empty
 
         expect(() => {

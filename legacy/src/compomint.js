@@ -79,7 +79,7 @@ const isSupportTemplateTag = "content" in document.createElement("template");
 
 
 
-// When customizing `templateConfigs`, if you don't want to define an
+// When customizing `templateEngines`, if you don't want to define an
 // interpolation, evaluation or escaping regex, we need one that is
 // guaranteed not to match.
 const noMatch = /(.)^/;
@@ -172,7 +172,7 @@ const cleanNode = function (node) {
   }
 };
 
-compomint.templateConfig = {
+compomint.templateEngine = {
   rules: {
     style: {
       pattern: /(\<style id=[\s\S]+?\>[\s\S]+?\<\/style\>)/g,
@@ -754,7 +754,7 @@ const escapeFunc = function (match) {
   return escapes[match] || escapes[match.replace(/[ \n]/g, "")] || "";
 };
 
-const defaultMatcher = matcherFunc(compomint.templateConfig.rules);
+const defaultMatcher = matcherFunc(compomint.templateEngine.rules);
 
 const templateParser = function (tmplId, text, matcher) {
   if (configs.printExecTime) console.time(`tmpl: ${tmplId}`);
@@ -816,16 +816,16 @@ const templateParser = function (tmplId, text, matcher) {
 let templateBuilder = (compomint.template = function compomint_templateBuilder(
   tmplId,
   templateText,
-  customTemplateConfig
+  customTemplateEngine
 ) {
   // JavaScript micro-templating, similar to John Resig's implementation.
-  const templateConfig = compomint.templateConfig;
+  const templateEngine = compomint.templateEngine;
   const matcher = defaultMatcher;
 
   // Use custom config if provided
-  if (customTemplateConfig) {
-    templateConfig = Object.assign({}, compomint.templateConfig, customTemplateConfig);
-    matcher = matcherFunc(templateConfig.rules); // Create a matcher specific to these config
+  if (customTemplateEngine) {
+    templateEngine = Object.assign({}, compomint.templateEngine, customTemplateEngine);
+    matcher = matcherFunc(templateEngine.rules); // Create a matcher specific to these config
   }
   // 1. Parse the template text into JavaScript source code
   const source = `
@@ -843,10 +843,10 @@ return __p;`;
   // 2. Compile the generated JavaScript source into a function
   try {
     sourceGenFunc = new Function(
-      templateConfig.keys.dataKeyName,      // e.g., "data"
-      templateConfig.keys.statusKeyName,    // e.g., "status"
-      templateConfig.keys.componentKeyName, // e.g., "component"
-      templateConfig.keys.i18nKeyName,      // e.g., "i18n"
+      templateEngine.keys.dataKeyName,      // e.g., "data"
+      templateEngine.keys.statusKeyName,    // e.g., "status"
+      templateEngine.keys.componentKeyName, // e.g., "component"
+      templateEngine.keys.i18nKeyName,      // e.g., "i18n"
       "compomint",
       "tmpl",
       "__lazyScope",             // Internal object for lazy execution data
@@ -858,10 +858,10 @@ return __p;`;
       console.error(`Template compilation error in "${tmplId}", ${e.name}: ${e.message}`);
       // Re-run compilation in a way that might provide more detailed browser errors
       new Function(
-        templateConfig.keys.dataKeyName,
-        templateConfig.keys.statusKeyName,
-        templateConfig.keys.componentKeyName,
-        templateConfig.keys.i18nKeyName,
+        templateEngine.keys.dataKeyName,
+        templateEngine.keys.statusKeyName,
+        templateEngine.keys.componentKeyName,
+        templateEngine.keys.i18nKeyName,
         "compomint",
         "tmpl",
         "__lazyScope",
@@ -901,8 +901,8 @@ return __p;`;
       }
     }
 
-    const dataKeyName = templateConfig.keys.dataKeyName;
-    const statusKeyName = templateConfig.keys.statusKeyName;
+    const dataKeyName = templateEngine.keys.dataKeyName;
+    const statusKeyName = templateEngine.keys.statusKeyName;
     const lazyScope = JSON.parse(matcher.lazyScopeSeed);
 
     // 3. Prepare the Component Scope object
@@ -1022,7 +1022,7 @@ return __p;`;
         try {
           sourceGenFunc.call(
             wrapperElement || null, data, component[statusKeyName], component,
-            component[templateConfig.keys.i18nKeyName], compomint, tmpl, lazyScope,
+            component[templateEngine.keys.i18nKeyName], compomint, tmpl, lazyScope,
             configs.debug // __debugger: true
           );
         } catch (debugE) { /* Ignore */ }
@@ -1056,7 +1056,7 @@ return __p;`;
       matcher.lazyExecKeys.forEach(function (key) {
         if (lazyScope[key] && lazyScope[key].length > 0) { // Check if the array exists and has items
           try {
-            lazyExec[key].call(templateConfig.rules[key.slice(0, -5)], data, lazyScope, component, docFragment);
+            lazyExec[key].call(templateEngine.rules[key.slice(0, -5)], data, lazyScope, component, docFragment);
           } catch (e) {
             if (configs.throwError) {
               console.error(`Error during lazy execution of "${key}" for template "${tmplId}":`, e);
@@ -1259,7 +1259,7 @@ return __p;`;
   if (tmplId) {
     const tmplMeta = configs.debug ? {
       renderingFunc: renderingFunc,
-      source: escapeHtml.escape(`function ${tmplId}_source (${templateConfig.keys.dataKeyName}, ${templateConfig.keys.statusKeyName}, ${templateConfig.keys.componentKeyName}, ${templateConfig.keys.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`),
+      source: escapeHtml.escape(`function ${tmplId}_source (${templateEngine.keys.dataKeyName}, ${templateEngine.keys.statusKeyName}, ${templateEngine.keys.componentKeyName}, ${templateEngine.keys.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`),
       templateText: escapeHtml.escape(templateText),
     } : {
       renderingFunc: renderingFunc
@@ -1345,23 +1345,23 @@ const safeTemplate = function (source) {
   return template;
 };
 
-const addTmpl = (compomint.addTmpl = function (tmplId, element, templateConfig) {
+const addTmpl = (compomint.addTmpl = function (tmplId, element, templateEngine) {
   let templateText = element instanceof Element ? element.innerHTML : String(element); // Ensure string
   // Unescape HTML entities and remove comment markers before compilation
   templateText = escapeHtml.unescape(
     templateText.replace(/<!---|--->/gi, "") // Remove custom comment markers if used
   );
-  return templateBuilder(tmplId, templateText, templateConfig);
+  return templateBuilder(tmplId, templateText, templateEngine);
 });
 
 const addTmpls = (compomint.addTmpls = function (
   source,
   removeInnerTemplate,
-  templateConfig
+  templateEngine
 ) {
-  // Handle argument shifting: (source, templateConfig)
-  if (typeof removeInnerTemplate !== "boolean" && templateConfig == undefined) {
-    templateConfig = removeInnerTemplate;
+  // Handle argument shifting: (source, templateEngine)
+  if (typeof removeInnerTemplate !== "boolean" && templateEngine == undefined) {
+    templateEngine = removeInnerTemplate;
     removeInnerTemplate = false; // Default removeInnerTemplate to false
   } else {
     removeInnerTemplate = !!removeInnerTemplate; // Ensure boolean
@@ -1381,9 +1381,9 @@ const addTmpls = (compomint.addTmpls = function (
     if (!tmplId) continue; // Skip if no ID
 
     node.dataset.coLoadScript
-      ? addTmpl(node.id, node, templateConfig)({})
-      : addTmpl(node.id, node, templateConfig);
-    //addTmpl(tmplId, node, templateConfig);
+      ? addTmpl(node.id, node, templateEngine)({})
+      : addTmpl(node.id, node, templateEngine);
+    //addTmpl(tmplId, node, templateEngine);
     // Remove the original <template> or <script> tag if requested
     if (removeInnerTemplate && node.parentNode) {
       node.parentNode.removeChild(node);
@@ -1408,7 +1408,7 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
     loadScript: true,
     loadStyle: true,
     loadLink: true,
-    templateConfig: undefined // No custom template config by default
+    templateEngine: undefined // No custom template config by default
   };
   option = Object.assign({}, defaultOptions, option); // Merge user options with defaults
 
@@ -1447,7 +1447,7 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
   const importFunc = function (source, currentOption) {
     const templateContainer = safeTemplate(source); // Parse the source safely
     // Add templates defined within the fetched HTML
-    addTmpls(templateContainer, false, currentOption.templateConfig); // Don't remove templates from the fragment yet
+    addTmpls(templateContainer, false, currentOption.templateEngine); // Don't remove templates from the fragment yet
 
     const content = templateContainer.content || templateContainer;
 
