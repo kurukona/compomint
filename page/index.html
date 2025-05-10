@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compomint - 경량 컴포넌트 엔진</title>
+  <meta name="description" content="Compomint는 웹 애플리케이션을 위한 경량 JavaScript 템플릿 기반 컴포넌트 엔진입니다">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              200: '#c7d2fe',
+              300: '#a5b4fc',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              800: '#3730a3',
+              900: '#312e81'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Compomint -->
+  <script src="https://cdn.jsdelivr.net/gh/kurukona/compomint-core@latest/dist/compomint.js"></script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <style>
+    :root {
+      --primary-color: #4F46E5;
+      --secondary-color: #6366F1;
+      --accent-color: #818CF8;
+      --text-primary: #1F2937;
+      --text-secondary: #4B5563;
+    }
+
+    .dark {
+      --primary-color: #6366F1;
+      --secondary-color: #818CF8;
+      --accent-color: #A5B4FC;
+      --text-primary: #F9FAFB;
+      --text-secondary: #E5E7EB;
+    }
+  </style>
+
+  <!-- Site templates -->
+  <script src="js/templates.js" type="module" defer></script>
+
+  <!-- Theme switcher -->
+  <script src="js/theme-switcher.js" type="module" defer></script>
+
+  <!-- Syntax highlighter -->
+  <script src="js/syntax-highlighter.js" type="module" defer></script>
+
+  <!-- Language switcher -->
+  <script src="js/language-switcher.js" type="module" defer></script>
+
+  <!-- Main script -->
+  <script src="js/main.js" type="module" defer></script>
+</head>
+
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  <div id="app-container"></div>
+</body>
+
+</html>
