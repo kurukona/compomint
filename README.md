@@ -92,15 +92,15 @@ Include the library directly from a Content Delivery Network (CDN). This is the 
 For the UMD build (`compomint.js`):
 
 ```html
-<script src="https://kurukona.github.io/compomint/dist/compomint.umd.js"></script>
-<script src="https://kurukona.github.io/compomint/dist/compomint.umd.min.js"></script> // Minified version for production
+<script src="https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.umd.min.js"></script> // Minified version for production
 ```
 
 For the ESM build (`compomint.esm.js`), use `type="module"`:
 
 ```html
-<script type="module" src="https://kurukona.github.io/compomint/dist/compomint.esm.js"></script>
-<script type="module" src="https://kurukona.github.io/compomint/dist/compomint.esm.min.js"></script> // Minified version for production
+<script type="module" src="https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.esm.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.esm.min.js"></script> // Minified version for production
 ```
 
 Using `@latest` will load the most recent version. You can replace `@latest` with a specific version number (e.g., `@1.0.0`) for better stability in production.
