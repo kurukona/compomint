@@ -61,27 +61,64 @@ You can find example applications demonstrating Compomint in action:
 
 ## Installation
 
-### Option 1: Include via Script Tag
+You can add Compomint to your project using several methods:
 
-Add the compomint.js script to your HTML file:
+### Option 1: Include via Script Tag (Manual Download)
+
+1. Download the latest `compomint.umd.js` (UMD build) or `compomint.esm.js` (ESM build) file from the [Compomint GitHub releases page](https://github.com/kurukona/compomint/dist).
+2. Place the downloaded file in your project directory.
+3. Add a script tag to your HTML file, pointing to the downloaded file.
+
+For the UMD build (`compomint.umd.js`):
 
 ```html
-<script src="compomint.js"></script>
+<script src="path/to/your/compomint.umd.js"></script>
+<script src="path/to/your/compomint.umd.min.js"></script> // Minified version for production
 ```
+
+For the ESM build (`compomint.esm.js`), use `type="module"`:
+
+```html
+<script type="module" src="path/to/your/compomint.esm.js"></script>
+<script type="module" src="path/to/your/compomint.esm.min.js"></script> // Minified version for production
+```
+
+Replace `path/to/your/` with the actual path to the file in your project.
 
 ### Option 2: Use CDN
 
-Include the library directly from CDN:
+Include the library directly from a Content Delivery Network (CDN). This is the quickest way to get started.
+
+For the UMD build (`compomint.js`):
 
 ```html
-<script src="https://kurukona.github.io/compomint/dist/compomint.js"></script>
+<script src="https://kurukona.github.io/compomint/dist/compomint.umd.js"></script>
+<script src="https://kurukona.github.io/compomint/dist/compomint.umd.min.js"></script> // Minified version for production
 ```
 
+For the ESM build (`compomint.esm.js`), use `type="module"`:
+
+```html
+<script type="module" src="https://kurukona.github.io/compomint/dist/compomint.esm.js"></script>
+<script type="module" src="https://kurukona.github.io/compomint/dist/compomint.esm.min.js"></script> // Minified version for production
+```
+
+Using `@latest` will load the most recent version. You can replace `@latest` with a specific version number (e.g., `@1.0.0`) for better stability in production.
+
 ### Option 3: NPM (Coming Soon)
+
+The official Compomint NPM package is coming soon. Once available, you will be able to install it using:
 
 ```bash
 npm install compomint
 ```
+
+In the meantime, you can clone the repository and build the library locally if needed.
+
+**UMD vs. ESM Builds:**
+
+- **UMD (Universal Module Definition):** This build works in various environments, including browsers (via script tags) and Node.js. It's suitable for direct inclusion in HTML files.
+- **ESM (ECMAScript Modules):** This build uses the standard JavaScript module system (`import`/`export`). It's ideal for modern JavaScript development workflows using bundlers like Webpack, Rollup, or Parcel.
 
 ## Basic Usage
 
