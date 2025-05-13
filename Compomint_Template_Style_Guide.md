@@ -428,18 +428,18 @@ const button = tmpl.plin.Button({
 
 ```html
 ##!
-  compomint.addI18ns({
-    'plin-Button': {
-      'main': {
-        'label': {
-          'en': 'Button',
-          'ko': '버튼',
-          'ja': 'ボタン',
-          'zh': '按钮'
-        },
-      }
+compomint.addI18ns({
+  'plin-Button': {
+    'main': {
+      'label': {
+        'en': 'Button',
+        'ko': '버튼',
+        'ja': 'ボタン',
+        'zh': '按钮'
+      },
     }
-  });
+  }
+});
 ##
 ```
 
