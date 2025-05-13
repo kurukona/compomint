@@ -73,14 +73,14 @@ For the UMD build (`compomint.umd.js`):
 
 ```html
 <script src="path/to/your/compomint.umd.js"></script>
-<script src="path/to/your/compomint.umd.min.js"></script> // Minified version for production
+<script src="path/to/your/compomint.umd.min.js"></script> <!-- Minified version for production -->
 ```
 
 For the ESM build (`compomint.esm.js`), use `type="module"`:
 
 ```html
 <script type="module" src="path/to/your/compomint.esm.js"></script>
-<script type="module" src="path/to/your/compomint.esm.min.js"></script> // Minified version for production
+<script type="module" src="path/to/your/compomint.esm.min.js"></script> <!-- Minified version for production -->
 ```
 
 Replace `path/to/your/` with the actual path to the file in your project.
@@ -93,14 +93,14 @@ For the UMD build (`compomint.js`):
 
 ```html
 <script src="https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.umd.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.umd.min.js"></script> // Minified version for production
+<script src="https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.umd.min.js"></script> <!-- Minified version for production -->
 ```
 
 For the ESM build (`compomint.esm.js`), use `type="module"`:
 
 ```html
 <script type="module" src="https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.esm.js"></script>
-<script type="module" src="https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.esm.min.js"></script> // Minified version for production
+<script type="module" src="https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.esm.min.js"></script> <!-- Minified version for production -->
 ```
 
 Using `@latest` will load the most recent version. You can replace `@latest` with a specific version number (e.g., `@1.0.0`) for better stability in production.
@@ -426,6 +426,13 @@ When included in a template, style elements with IDs are automatically extracted
 ### Built-in Variables
 
 These variables are available within templates:
+- data
+- status
+- component
+- i18n
+- tmpl
+- compomint
+
 
 #### `data`
 Contains the data passed when creating the component.
@@ -438,8 +445,8 @@ tmpl.user.Profile({userName: 'John Doe'});
 #### `status`
 Object for storing component state information that persists across refreshes.
 
-```javascript
-// In template
+```html
+<!-- In template -->
 ##
 status.count = status.count || 0;
 ##
@@ -462,8 +469,8 @@ Reference to the template scope, providing access to:
 - `component.refresh(data)` - Updates with partial data
 - And more (see API Reference section)
 
-```javascript
-// In template
+```html
+<!-- In template -->
 <button data-co-event="##:{
   click: function(event, {data, component}) {
     component.refresh({message: 'Updated!'});
@@ -486,16 +493,21 @@ compomint.addI18n('user-profile.greeting', {
 });
 ```
 
+#### `tmpl`
+Reference to the template registry, providing access to:
+  // Create a component instance like
+- `tmpl.ui.Button({label: 'Click Me'});`
+
+
 #### `compomint`
 Reference to the global compomint object, providing access to:
-  // Access utility functions
 - `compomint.tools.genElement('div', {class: 'message'}, 'Hello');` - Creates a DOM element
 - `compomint.tools.props({class: 'button', disabled: true});` - Creates HTML attribute string
 - `compomint.tools.genId('my-component');` - Generates a unique ID
 - `compomint.tools.escapeHtml.escape('Hello World');` - Escapes HTML characters
 - And other global functions and configurations
 
-```javascript
+```html
 <textarea>
   ##=compomint.tools.escapeHtml.escape(data.userInput)##
 </textarea>
@@ -509,13 +521,13 @@ Compomint uses special delimiters for different types of expressions:
 
 Outputs string content. HTML tags will be interpreted as HTML.
 
-```javascript
+```html
 <span>##=data.userName##</span>
 
-// With a default value
+<!-- With a default value -->
 <span>##=data.userName || 'Guest'##</span>
 
-// With conditional formatting
+<!--  conditional formatting -->
 <span class="##=data.isActive ? 'active' : 'inactive'##">
   ##=data.status##
 </span>
@@ -523,11 +535,11 @@ Outputs string content. HTML tags will be interpreted as HTML.
 
 If the property is a function, it will be called automatically:
 
-```javascript
-// In template
+```html
+<!-- In template -->
 <span>##=data.getFormattedName##</span>
 
-// When creating the component
+<!-- When creating the component -->
 tmpl.user.NameTag({
   getFormattedName: function() {
     return 'Dr. John Smith, PhD';
@@ -539,30 +551,32 @@ tmpl.user.NameTag({
 
 Outputs the escaped value, preventing HTML injection:
 
-```javascript
-// Unsafe content will be escaped
+```html
+<!-- Unsafe content will be escaped -->
 <div>##-data.userComment##</div>
 
-// If data.userComment = '<script>alert("XSS")</script>'
-// Output: &lt;script&gt;alert("XSS")&lt;/script&gt;
+<!--
+If data.userComment = '<script>alert("XSS")</script>'
+Output: &lt;script&gt;alert("XSS")&lt;/script&gt;
+ -->
 ```
 
 #### `##% ##` - Element Insertion
 
 Used to include other components, HTML elements, or strings:
 
-```javascript
-// Insert a single component
+```html
+<!-- Insert a single component -->
 <div class="container">
   ##%childComponent##
 </div>
 
-// Insert an array of components
+<!-- Insert an array of components -->
 <div class="container">
   ##%data.items.map(item => tmpl.ui.ListItem({text: item}))##
 </div>
 
-// With optional non-blocking (async) insertion
+<!-- With optional non-blocking (async) insertion -->
 <div class="heavy-content">
   ##%heavyComponent::true##
 </div>
@@ -574,7 +588,7 @@ The second parameter after `::` indicates that insertion should be non-blocking.
 
 Code that runs when the template is first loaded (not on each render):
 
-```javascript
+```html
 <template id="user-profile">
   ##!
     // This code runs once when the template is loaded
@@ -596,7 +610,7 @@ Code that runs when the template is first loaded (not on each render):
 
 Allows you to write JavaScript code that runs during rendering:
 
-```javascript
+```html
 <template id="product-list">
   ##
     // Process data before rendering
@@ -628,10 +642,10 @@ Allows you to write JavaScript code that runs during rendering:
 
 Code that runs after the template is rendered:
 
-```javascript
+```html
 <template id="chart-component">
   <div class="chart-container" id="chart-##=data.id##"></div>
-  
+
   ###
     // This code runs after the element is in the DOM
     const chartElement = document.getElementById('chart-' + data.id);
@@ -648,7 +662,7 @@ Code that runs after the template is rendered:
 
 #### `##* ##` - Comment Areas
 
-```javascript
+```html
 ##*
   This is a comment area that won't be rendered.
   Use it for documenting your template code.
@@ -663,18 +677,18 @@ Compomint provides special HTML attributes for handling events, references, and 
 
 Attaches event handlers to HTML elements:
 
-```javascript
-// Simple click handler
+```html
+<!-- Simple click handler -->
 <button data-co-event="##:handleClick##">Click Me</button>
 
-// Multiple event types
+<!-- Multiple event types -->
 <input data-co-event="##:{
   focus: handleFocus,
   blur: handleBlur,
   input: handleInput
 }##" />
 
-// With inline function
+<!-- With inline function -->
 <button data-co-event="##:{
   click: function(event, {data, customData, element, componentElement, component, compomint}) {
     console.log('Clicked:', componentElement.textContent);
@@ -684,7 +698,7 @@ Attaches event handlers to HTML elements:
   Greet
 </button>
 
-// With custom data parameter
+<!-- With custom data parameter -->
 <button data-co-event="##:handleItemClick::data.item##">
   View ##=data.item.name##
 </button>
@@ -704,10 +718,10 @@ Event handlers receive these parameters:
 
 Creates a named reference to an element in the template scope:
 
-```javascript
+```html
 <input type="text" data-co-named-element="##:'nameInput'##">
 
-// Later in the template or another handler
+<!-- Later in the template or another handler -->
 <button data-co-event="##:{
   click: function(event, {component}) {
     console.log('Input value:', component.nameInput.value);
@@ -721,7 +735,7 @@ Creates a named reference to an element in the template scope:
 
 Binds a DOM element to a variable in the template code:
 
-```javascript
+```html
 <template id="form-component">
   ##
     let formData = {};
@@ -747,10 +761,12 @@ Binds a DOM element to a variable in the template code:
 
 Executes a function when an element is loaded into the DOM:
 
-```javascript
+```html
 <div class="chart-container" data-co-load="##:initializeChart::data.chartData##"></div>
 
-// Where initializeChart is defined as:
+<!--
+Where initializeChart is defined as:
+
 function initializeChart(element, {data, customData, element, component, compomint}) {
   // Initialize a chart in the element using the data
   new Chart(element, {
@@ -758,6 +774,7 @@ function initializeChart(element, {data, customData, element, component, compomi
     data: customData
   });
 }
+-->
 ```
 
 Load handlers receive these parameters:
@@ -812,9 +829,11 @@ compomint.addI18ns({
     }
   }
 });
+```
 
-// Use in templates
-<span>##=compomint.i18n.greeting('Hello!')##</span> // when language is 'ja' then output is 'Hello!' (default text)
+Use in templates
+```html
+<span>##=compomint.i18n.greeting('Hello!')##</span> <!-- when language is 'ja' then output is 'Hello!' (default text) -->
 <p>##=compomint.i18n.messages.welcome('Welcome to our site')##</p>
 <button>##=compomint.i18n.buttons.submit('Submit')##</button>
 ```
@@ -823,7 +842,7 @@ The current language is determined by `document.documentElement.lang`. The param
 
 **Use in template i18n object**
 
-```javascript
+```html
 <template id="my-component">
   ##!
   // Define translations in template preloading
@@ -1317,7 +1336,7 @@ The template scope (`tmplScope`) is an object that:
    ```
 
 3. **Event Delegation**: Use event delegation for dynamic content
-   ```javascript
+   ```html
    <ul class="item-list" data-co-event="##:{
      click: function(event) {
        // Check if a list item was clicked
@@ -1392,7 +1411,7 @@ The template scope (`tmplScope`) is an object that:
    ```
 
 2. **Provide Fallbacks**: Use default values for missing data
-   ```javascript
+   ```html
    <div class="user-card">
      <img src="##=data.avatar || 'images/default-avatar.png'##" alt="User">
      <h3>##=data.name || 'Unknown User'##</h3>
@@ -1401,7 +1420,7 @@ The template scope (`tmplScope`) is an object that:
    ```
 
 3. **Error Recovery**: Use try/catch for data processing
-   ```javascript
+   ```html
    <div class="data-chart">
      ##
      try {
