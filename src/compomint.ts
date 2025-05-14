@@ -1028,4 +1028,4 @@ tools.props = function (...propsObjects: Record<string, any>[]): string {
 applyBuiltInTemplates(addTmpl);
 
 
-export { compomint, tmpl, CompomintGlobal };
+export { compomint, tmpl };
