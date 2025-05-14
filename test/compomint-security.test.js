@@ -1,6 +1,7 @@
 /**
  * @jest-environment jsdom
  */
+import { describe, it, expect, beforeAll, beforeEach, afterEach, jest } from '@jest/globals';
 import { compomint, tmpl } from '../src/compomint';
 
 describe('Compomint Core - Security Tests', () => {

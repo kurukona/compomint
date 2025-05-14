@@ -831,9 +831,9 @@ let templateBuilder = (compomint.template = function compomint_templateBuilder(
   const source = `
 /* tmplId: ${tmplId} */
 //# sourceURL=http://tmpl//${tmplId.split("-").join("//")}.js
-if (__debugger) {
-debugger;
-}
+// if (__debugger) {
+// debugger;
+// }
 let __p='';
 __p+='${templateParser(tmplId, templateText, matcher)}';
 return __p;`;

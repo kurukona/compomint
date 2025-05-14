@@ -1,7 +1,6 @@
 /**
  * @jest-environment jsdom
  */
-
 import { describe, it, expect, beforeAll, beforeEach, afterEach, jest } from '@jest/globals';
 import { compomint, tmpl, CompomintGlobal } from "../src/compomint";
 
