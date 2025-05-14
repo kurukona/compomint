@@ -1,8 +1,8 @@
-# Compomint Component Engine
+# Compomint: A Template-Based Component Engine
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-The Compomint Component Engine is a lightweight JavaScript framework for creating web applications with a focus on component-based architecture. It provides a powerful template-based system that allows you to create, combine, and reuse UI components efficiently.
+The Compomint template-based component engine is a lightweight JavaScript framework for creating web applications with a focus on component-based architecture. It provides a powerful template-based system that allows you to create, combine, and reuse UI components efficiently.
 
 [Compomint Website](https://compomint.dev/)
 [Github Repository](https://github.com/kurukona/compomint)
@@ -52,12 +52,12 @@ The framework is particularly suitable for:
 ## Example Applications
 
 You can find example applications demonstrating Compomint in action:
-- **Compomint Core Greeting (ESM) Demo**: [Code](https://github.com/kurukona/compomint/blob/master/examples/greeting.esm.html) | [Demo](https://compomint.dev/examples/greeting.esm.html)
-- **Compomint Core Greeting (UMD) Demo**: [Code](https://github.com/kurukona/compomint/blob/master/examples/greeting.html) | [Demo](https://compomint.dev/examples/greeting.html)
-- **Component Examples**: [Code](https://github.com/kurukona/compomint/blob/master/examples/component_examples.html) | [Demo](https://compomint.dev/examples/component_examples.html)
-- **Simple Counter**: [Code](https://github.com/kurukona/compomint/blob/master/examples/counter.html) | [Demo](https://compomint.dev/examples/counter.html)
-- **Todo List**: [Code](https://github.com/kurukona/compomint/blob/master/examples/todo.html) | [Demo](https://compomint.dev/examples/todo.html)
-- **Calculator**: [Code](https://github.com/kurukona/compomint/blob/master/examples/calculator.html) | [Demo](https://compomint.dev/examples/calculator.html)
+- **Compomint Core Greeting (ESM) Demo**: [Code](https://github.com/kurukona/compomint/blob/master/examples/greeting.esm.html) | [Demo](https://kurukona.github.io/compomint/examples/greeting.esm.html)
+- **Compomint Core Greeting (UMD) Demo**: [Code](https://github.com/kurukona/compomint/blob/master/examples/greeting.html) | [Demo](https://kurukona.github.io/compomint/examples/greeting.html)
+- **Component Examples**: [Code](https://github.com/kurukona/compomint/blob/master/examples/component_examples.html) | [Demo](https://kurukona.github.io/compomint/examples/component_examples.html)
+- **Simple Counter**: [Code](https://github.com/kurukona/compomint/blob/master/examples/counter.html) | [Demo](https://kurukona.github.io/compomint/examples/counter.html)
+- **Todo List**: [Code](https://github.com/kurukona/compomint/blob/master/examples/todo.html) | [Demo](https://kurukona.github.io/compomint/examples/todo.html)
+- **Calculator**: [Code](https://github.com/kurukona/compomint/blob/master/examples/calculator.html) | [Demo](https://kurukona.github.io/compomint/examples/calculator.html)
 
 ## Installation
 
@@ -72,15 +72,28 @@ You can add Compomint to your project using several methods:
 For the UMD build (`compomint.umd.js`):
 
 ```html
+<!-- index.html -->
 <script src="path/to/your/compomint.umd.js"></script>
+<!-- OR -->
 <script src="path/to/your/compomint.umd.min.js"></script> <!-- Minified version for production -->
+
+<script>
+Compomint.compomint.addTmpl('greeting-npm', '<span>##=data.message##</span>');
+const greeting = Compomint.tmpl.greeting.npm({ message: 'Hello from Compomint via NPM!' });
+document.body.appendChild(greeting.element);
+</script>
 ```
 
 For the ESM build (`compomint.esm.js`), use `type="module"`:
 
-```html
-<script type="module" src="path/to/your/compomint.esm.js"></script>
-<script type="module" src="path/to/your/compomint.esm.min.js"></script> <!-- Minified version for production -->
+```javascript
+import { compomint, tmpl } from 'path/to/your/compomint.esm.js'
+// OR
+import { compomint, tmpl } from 'path/to/your/compomint.esm.min.js' // Minified version for production 
+
+compomint.addTmpl('greeting-npm', '<span>##=data.message##</span>');
+const greeting = tmpl.greeting.npm({ message: 'Hello from Compomint via NPM!' });
+document.body.appendChild(greeting.element);
 ```
 
 Replace `path/to/your/` with the actual path to the file in your project.
@@ -98,22 +111,70 @@ For the UMD build (`compomint.js`):
 
 For the ESM build (`compomint.esm.js`), use `type="module"`:
 
+```javascript
+import { compomint, tmpl } from 'https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.esm.js';
+import { compomint, tmpl } from 'https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.esm.min.js'; // Minified version for production
+```
+
+Using importmap: 
+
 ```html
-<script type="module" src="https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.esm.js"></script>
-<script type="module" src="https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.esm.min.js"></script> <!-- Minified version for production -->
+<!-- index.html -->
+<script type="importmap">
+  {
+    "imports": {
+      "compomint": "https://unpkg.com/compomint@1.0.0/dist/compomint.esm.min.js"
+    }
+  }
+</script>
+```
+
+```javascript
+// main.js
+import { compomint, tmpl } from 'compomint';
+const greeting = tmpl.greeting.npm({ message: 'Hello from Compomint via NPM!' });
+document.body.appendChild(greeting.element);
 ```
 
 Using `@latest` will load the most recent version. You can replace `@latest` with a specific version number (e.g., `@1.0.0`) for better stability in production.
 
-### Option 3: NPM (Coming Soon)
 
-The official Compomint NPM package is coming soon. Once available, you will be able to install it using:
+### Option 3: NPM
+
+Compomint is available on NPM, making it easy to integrate into your projects using a module bundler or Node.js.
 
 ```bash
 npm install compomint
 ```
+or
+```bash
+yarn add compomint
+```
 
-In the meantime, you can clone the repository and build the library locally if needed.
+**Usage**:
+Once installed, you can import Compomint into your JavaScript files.
+
+If you are using ESM (ECMAScript Modules) (common in modern frontend projects with bundlers like Webpack, Rollup, or Parcel):
+
+```javascript
+import { compomint, tmpl } from 'compomint';
+
+// Start using Compomint:
+compomint.addTmpl('greeting-npm', '<span>##=data.message##</span>');
+const greeting = tmpl.greeting.npm({ message: 'Hello from Compomint via NPM!' });
+document.body.appendChild(greeting.element);
+```
+
+```javascript
+const { compomint, tmpl } = require('compomint');
+
+// Start using Compomint:
+compomint.addTmpl('greeting-npm', '<span>##=data.message##</span>');
+onst greeting = tmpl.greeting.npm({ message: 'Hello from Compomint via NPM!' });
+document.body.appendChild(greeting.element);
+```
+
+The NPM package includes builds suitable for various environments, and your build tool will typically select the appropriate one.
 
 **UMD vs. ESM Builds:**
 
