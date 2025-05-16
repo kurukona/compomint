@@ -3,7 +3,6 @@
  * Code released under the MIT license
  */
 
-
 "use strict";
 
 // Polyfill for Object.assign
@@ -67,7 +66,10 @@ if (typeof Object.assign != "function") {
 const compomint = {};
 const tmpl = {};
 const tools = (compomint.tools = compomint.tools || {});
-const configs = (compomint.configs = Object.assign({ printExecTime: false, debug: false, throwError: true }, compomint.configs));
+const configs = (compomint.configs = Object.assign(
+  { printExecTime: false, debug: false, throwError: true },
+  compomint.configs
+));
 const domParser = new DOMParser();
 
 //let requestCacheControl = tools.requestCacheControl || true;
@@ -76,8 +78,6 @@ if (!cachedTmpl.has("anonymous")) {
   cachedTmpl.set("anonymous", { elements: new Set() });
 }
 const isSupportTemplateTag = "content" in document.createElement("template");
-
-
 
 // When customizing `templateEngines`, if you don't want to define an
 // interpolation, evaluation or escaping regex, we need one that is
@@ -126,9 +126,10 @@ const childElementCount = function (ele) {
   );
 };
 const stringToElement = function (str) {
-  if (typeof str === 'number' || !isNaN(str)) { // Check if it's a number or a numeric string
+  if (typeof str === "number" || !isNaN(str)) {
+    // Check if it's a number or a numeric string
     return document.createTextNode(String(str));
-  } else if (typeof str === 'string') {
+  } else if (typeof str === "string") {
     try {
       // Handle string is Html
       const body = domParser.parseFromString(str, "text/html").body;
@@ -145,17 +146,16 @@ const stringToElement = function (str) {
       // Treat other strings as text
       return document.createTextNode(str);
     }
-  } else if (typeof str === 'string') {
-
+  } else if (typeof str === "string") {
     return document.createTextNode(str);
   } else {
     // Handle null/undefined or other types gracefully
-    return document.createTextNode('');
+    return document.createTextNode("");
   }
 };
 const isPlainObject = function (value) {
-  return Object.prototype.toString.call(value) === '[object Object]';
-}
+  return Object.prototype.toString.call(value) === "[object Object]";
+};
 const cleanNode = function (node) {
   for (let n = 0; n < node.childNodes.length; n++) {
     const child = node.childNodes[n];
@@ -198,13 +198,17 @@ compomint.templateEngine = {
       exec: function (preEvaluate, tmplId) {
         // Executes the code immediately during template compilation (once per template definition).
         try {
-          new Function("tmplId", preEvaluate)(tmplId);
+          new Function("compomint", "tmplId", preEvaluate)(compomint, tmplId);
         } catch (e) {
           if (configs.throwError) {
-            console.error(`Template preEvaluate error in "${tmplId}", ${e.name}: ${e.message}`);
+            console.error(
+              `Template preEvaluate error in "${tmplId}", ${e.name}: ${e.message}`
+            );
             throw e;
           } else {
-            console.warn(`Template preEvaluate error in "${tmplId}", ${e.name}: ${e.message}`);
+            console.warn(
+              `Template preEvaluate error in "${tmplId}", ${e.name}: ${e.message}`
+            );
           }
         }
         return ``; // Remove from template output
@@ -215,7 +219,7 @@ compomint.templateEngine = {
       exec: function (interpolate) {
         // Generates code to evaluate the expression and append the result (or the function call result) to the output string (__p).
         const interpolateSyntax = `typeof (interpolate)=='function' ? (interpolate)() : (interpolate)`;
-        return (`';\n(() => {let __t, interpolate=${interpolate};\n__p+=((__t=(${interpolateSyntax}))==null ? '' : __t );})();\n__p+='`);
+        return `';\n(() => {let __t, interpolate=${interpolate};\n__p+=((__t=(${interpolateSyntax}))==null ? '' : __t );})();\n__p+='`;
       },
     },
     escape: {
@@ -223,7 +227,7 @@ compomint.templateEngine = {
       exec: function (escape) {
         // Generates code to evaluate the expression and append the HTML-escaped result to the output string.
         const escapeSyntax = `compomint.tools.escapeHtml.escape(typeof (escape)=='function' ? (escape)() : (escape))`;
-        return (`';\n(() => {let __t, escape=${escape};\n__p+=((__t=(${escapeSyntax}))==null ? '' : __t );})();\n__p+='`);
+        return `';\n(() => {let __t, escape=${escape};\n__p+=((__t=(${escapeSyntax}))==null ? '' : __t );})();\n__p+='`;
       },
     },
     elementProps: {
@@ -245,7 +249,7 @@ __lazyScope.elementPropsArray[eventId] = ${props};\n__p+='`;
             $elementTrigger.setAttribute(key, props[key]);
           });
         });
-      }
+      },
     },
     namedElement: {
       pattern: /data-co-named-element="##:([\s\S]+?)##"/g, // Matches data-co-named-element="##:key##"
@@ -262,7 +266,10 @@ __lazyScope.namedElementArray[eventId] = ${key};\n__p+='`;
             '[data-co-named-element="' + eventId + '"]'
           );
           if (!$elementTrigger) {
-            if (configs.debug) console.warn(`Named element target not found for ID ${eventId} in template ${component.tmplId}`);
+            if (configs.debug)
+              console.warn(
+                `Named element target not found for ID ${eventId} in template ${component.tmplId}`
+              );
             return;
           }
           delete $elementTrigger.dataset.coNamedElement;
@@ -285,7 +292,10 @@ var ${key} = null;\n__lazyScope.elementRefArray[eventId] = function(target) {${k
             '[data-co-element-ref="' + eventId + '"]'
           );
           if (!$elementTrigger) {
-            if (configs.debug) console.warn(`Element ref target not found for ID ${eventId} in template ${component.tmplId}`);
+            if (configs.debug)
+              console.warn(
+                `Element ref target not found for ID ${eventId} in template ${component.tmplId}`
+              );
             return;
           }
           delete $elementTrigger.dataset.coElementRef; // Should likely be coElementRef
@@ -309,27 +319,35 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
             '[data-co-load="' + eventId + '"]'
           );
           if (!$elementTrigger) {
-            if (configs.debug) console.warn(`Element load target not found for ID ${eventId} in template ${component.tmplId}`);
+            if (configs.debug)
+              console.warn(
+                `Element load target not found for ID ${eventId} in template ${component.tmplId}`
+              );
             return;
           }
           delete $elementTrigger.dataset.coLoad;
           const parentElement = $elementTrigger.parentElement;
           try {
-            if (typeof elementLoad.loadFunc === 'function') {
+            if (typeof elementLoad.loadFunc === "function") {
               elementLoad.loadFunc.call(
                 $elementTrigger, // this context
                 $elementTrigger, // first argument
-                { // second argument (options object)
-                  "data": data,
-                  "element": $elementTrigger,
-                  "customData": elementLoad.customData,
-                  "component": component,
-                  "compomint": compomint,
-                },
+                {
+                  // second argument (options object)
+                  data: data,
+                  element: $elementTrigger,
+                  customData: elementLoad.customData,
+                  component: component,
+                  compomint: compomint,
+                }
               );
             }
           } catch (e) {
-            console.error(`Error executing elementLoad function for ID ${eventId} in template ${component.tmplId}:`, e, elementLoad.loadFunc);
+            console.error(
+              `Error executing elementLoad function for ID ${eventId} in template ${component.tmplId}:`,
+              e,
+              elementLoad.loadFunc
+            );
             if (configs.throwError) throw e;
           }
         });
@@ -345,10 +363,12 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
         for (let i = 0, size = eventStrArray.length; i < size; i++) {
           let eventSplitArray = eventStrArray[i].split("::"); // Split handler and custom data
           eventArray.push(
-            `{eventFunc: ${eventSplitArray[0]}, $parent: this, customData: ${eventSplitArray[1]}}`
+            `{eventFunc: ${eventSplitArray[0]}, $parent: this, customData: ${eventSplitArray[1]}}` // 'customData' is determined when compiled, so it does not change even if refreshed.
           );
         }
-        source += `__lazyScope.eventArray[eventId] = [${eventArray.join(",")}];})()\n__p+='`;
+        source += `__lazyScope.eventArray[eventId] = [${eventArray.join(
+          ","
+        )}];})()\n__p+='`;
         return source;
       },
       lazyExec: function (data, lazyScope, component, wrapper) {
@@ -360,7 +380,10 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
             `[data-co-event="${eventId}"]`
           );
           if (!$elementTrigger) {
-            if (configs.debug) console.warn(`Event target not found for ID ${eventId} in template ${component.tmplId}`);
+            if (configs.debug)
+              console.warn(
+                `Event target not found for ID ${eventId} in template ${component.tmplId}`
+              );
             return;
           }
           delete $elementTrigger.dataset.coEvent;
@@ -371,7 +394,12 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
                 // Handle array of functions (though seems unused/unlikely based on attacher logic)
                 selected.eventFunc.forEach(function (func) {
                   attacher(
-                    self, data, lazyScope, component, wrapper, $elementTrigger,
+                    self,
+                    data,
+                    lazyScope,
+                    component,
+                    wrapper,
+                    $elementTrigger,
                     func,
                     selected
                   );
@@ -379,7 +407,12 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
               } else {
                 // Handle single function or event map object
                 attacher(
-                  self, data, lazyScope, component, wrapper, $elementTrigger,
+                  self,
+                  data,
+                  lazyScope,
+                  component,
+                  wrapper,
+                  $elementTrigger,
                   selected.eventFunc,
                   selected
                 );
@@ -391,7 +424,7 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
       trigger: function (target, eventName) {
         const customEvent = new Event(eventName, {
           bubbles: true, // Allow event bubbling
-          cancelable: true // Allow event to be cancelled
+          cancelable: true, // Allow event to be cancelled
         });
         target.dispatchEvent(customEvent);
       },
@@ -407,7 +440,8 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
       ) {
         const trigger = self.trigger;
         const $childTarget = firstElementChild(wrapper);
-        const $targetElement = childElementCount(wrapper) == 1 ? $childTarget : null; // Reference to the single root element, if it exists
+        const $targetElement =
+          childElementCount(wrapper) == 1 ? $childTarget : null; // Reference to the single root element, if it exists
 
         if (!eventFunc) {
           return;
@@ -416,27 +450,31 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
         // Prepare parameters for the event handler function
         const eventFuncParams = [
           $elementTrigger, // 1. element: The element the listener is attached to
-          null,            // 2. event: The DOM event object (filled in later)
-          {                // 3. context: An object with useful references
-            "data": data,
-            "customData": eventData.customData,
-            "element": $elementTrigger,
-            "componentElement": $targetElement || $childTarget?.parentElement, // The component's root element or its parent
-            "component": component,
-            "compomint": compomint,
+          null, // 2. event: The DOM event object (filled in later)
+          {
+            // 3. context: An object with useful references
+            data: data,
+            customData: eventData.customData,
+            element: $elementTrigger,
+            componentElement: $targetElement || $childTarget?.parentElement, // The component's root element or its parent
+            component: component,
+            compomint: compomint,
           },
         ];
 
-
         // Basic case: eventFunc is a single function
-        if (typeof eventFunc === 'function') {
+        if (typeof eventFunc === "function") {
           const eventListener = function (event) {
             event.stopPropagation(); // Prevent event from bubbling up
             eventFuncParams[1] = event; // Add the event object
             try {
               eventFunc.call(...eventFuncParams); // Execute the handler
             } catch (e) {
-              console.error(`Error in event handler for template ${component.tmplId}:`, e, eventFunc);
+              console.error(
+                `Error in event handler for template ${component.tmplId}:`,
+                e,
+                eventFunc
+              );
               if (configs.throwError) throw e;
             }
           };
@@ -468,7 +506,11 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
             try {
               selectedEventFunc.call(...eventFuncParams);
             } catch (e) {
-              console.error(`Error in 'load' event handler for template ${component.tmplId}:`, e, selectedEventFunc);
+              console.error(
+                `Error in 'load' event handler for template ${component.tmplId}:`,
+                e,
+                selectedEventFunc
+              );
               if (configs.throwError) throw e;
             }
             return;
@@ -487,7 +529,11 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
             try {
               selectedEventFunc.call(...eventFuncParams);
             } catch (e) {
-              console.error(`Error in '${eventType}' event handler for template ${component.tmplId}:`, e, selectedEventFunc);
+              console.error(
+                `Error in '${eventType}' event handler for template ${component.tmplId}:`,
+                e,
+                selectedEventFunc
+              );
               if (configs.throwError) throw e;
             }
           };
@@ -514,7 +560,9 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
         const source = `';\n(() => {
 let elementId = (__lazyScope.elementArray.length);
 __p+='<template data-co-tmpl-element-id=\"'+elementId+'\"></template>';
-__lazyScope.elementArray[elementId] = {childTarget: ${elementSplitArray[0]}, nonblocking: ${(elementSplitArray[1] || false)}};})();
+__lazyScope.elementArray[elementId] = {childTarget: ${
+          elementSplitArray[0]
+        }, nonblocking: ${elementSplitArray[1] || false}};})();
 __p+='`;
         return source;
       },
@@ -529,18 +577,27 @@ __p+='`;
           );
 
           if (!$tmplElement) {
-            if (configs.debug) console.warn(`Element insertion placeholder not found for ID ${elementId} in template ${component.tmplId}`);
+            if (configs.debug)
+              console.warn(
+                `Element insertion placeholder not found for ID ${elementId} in template ${component.tmplId}`
+              );
             return;
           }
           if (!$tmplElement.parentNode) {
-            if (configs.debug) console.warn(`Element insertion placeholder for ID ${elementId} in template ${component.tmplId} has no parent.`);
+            if (configs.debug)
+              console.warn(
+                `Element insertion placeholder for ID ${elementId} in template ${component.tmplId} has no parent.`
+              );
             return; // Already removed or invalid state
           }
 
           // Function to perform the actual replacement
           const doFunc = function () {
             if (!$tmplElement || !$tmplElement.parentNode) {
-              if (configs.debug) console.warn(`Placeholder for ID ${elementId} removed before insertion in template ${component.tmplId}.`);
+              if (configs.debug)
+                console.warn(
+                  `Placeholder for ID ${elementId} removed before insertion in template ${component.tmplId}.`
+                );
               return; // Check again in case it was removed during delay
             }
 
@@ -553,14 +610,21 @@ __p+='`;
                   const childElement = child.element || child; // Support scope objects or direct elements/strings
                   let nodeToAppend = null;
 
-                  if (typeof childElement === "string" || typeof childElement === "number") {
+                  if (
+                    typeof childElement === "string" ||
+                    typeof childElement === "number"
+                  ) {
                     nodeToAppend = stringToElement(childElement);
                   } else if (typeof childElement === "function") {
                     nodeToAppend = stringToElement(childElement());
                   } else if (childElement instanceof Node) {
                     nodeToAppend = childElement;
                   } else {
-                    if (configs.debug) console.warn(`Invalid item type in element array for ID ${elementId}, template ${component.tmplId}:`, childElement);
+                    if (configs.debug)
+                      console.warn(
+                        `Invalid item type in element array for ID ${elementId}, template ${component.tmplId}:`,
+                        childElement
+                      );
                     return; // Skip invalid items
                   }
 
@@ -575,12 +639,18 @@ __p+='`;
                   if (child && child.afterAppendTo) {
                     // Use setTimeout to ensure it runs after the current execution context
                     setTimeout(() => {
-                      try { child.afterAppendTo(); } catch (e) { console.error("Error in afterAppendTo:", e); }
+                      try {
+                        child.afterAppendTo();
+                      } catch (e) {
+                        console.error("Error in afterAppendTo:", e);
+                      }
                     }, 0);
                   }
                 });
-
-              } else if (typeof childTarget === "string" || typeof childTarget === "number") {
+              } else if (
+                typeof childTarget === "string" ||
+                typeof childTarget === "number"
+              ) {
                 // Handle simple string or number insertion
                 $tmplElement.parentNode.replaceChild(
                   stringToElement(childTarget),
@@ -592,43 +662,65 @@ __p+='`;
                   stringToElement(childTarget()),
                   $tmplElement
                 );
-              } else if (childTarget && (childTarget.element || childTarget) instanceof Node) {
+              } else if (
+                childTarget &&
+                (childTarget.element || childTarget) instanceof Node
+              ) {
                 // Handle component scope object or direct Node insertion
                 const childScope = childTarget; // Assume it might be a scope
                 const childElement = childScope.element || childScope; // Get the actual element
 
                 if (childScope.beforeAppendTo) childScope.beforeAppendTo();
-                $tmplElement.parentNode.replaceChild(childElement, $tmplElement);
+                $tmplElement.parentNode.replaceChild(
+                  childElement,
+                  $tmplElement
+                );
                 if (childScope.afterAppendTo) {
                   setTimeout(() => {
-                    try { childScope.afterAppendTo(); } catch (e) { console.error("Error in afterAppendTo:", e); }
+                    try {
+                      childScope.afterAppendTo();
+                    } catch (e) {
+                      console.error("Error in afterAppendTo:", e);
+                    }
                   }, 0);
                 }
                 // Link parent scope if inserting another component
                 if (childScope.tmplId) {
                   childScope.parentComponent = component;
                 }
-
               } else {
                 // Invalid target, remove the placeholder
-                if (configs.debug) console.warn(`Invalid target for element insertion ID ${elementId}, template ${component.tmplId}:`, childTarget);
+                if (configs.debug)
+                  console.warn(
+                    `Invalid target for element insertion ID ${elementId}, template ${component.tmplId}:`,
+                    childTarget
+                  );
                 $tmplElement.parentNode.removeChild($tmplElement);
               }
             } catch (e) {
-              console.error(`Error during element insertion for ID ${elementId}, template ${component.tmplId}:`, e);
+              console.error(
+                `Error during element insertion for ID ${elementId}, template ${component.tmplId}:`,
+                e
+              );
               if (configs.throwError) throw e;
               // Attempt to remove placeholder on error to avoid leaving it in the DOM
               if ($tmplElement && $tmplElement.parentNode) {
-                try { $tmplElement.parentNode.removeChild($tmplElement); } catch (removeError) { /* Ignore */ }
+                try {
+                  $tmplElement.parentNode.removeChild($tmplElement);
+                } catch (removeError) {
+                  /* Ignore */
+                }
               }
             }
           }; // end doFunc
 
           // Execute insertion immediately or with a delay
-          (nonblocking == undefined || nonblocking === false)
+          nonblocking == undefined || nonblocking === false
             ? doFunc()
-            : setTimeout(doFunc, typeof nonblocking === 'number' ? nonblocking : 0); // Use 0ms delay if nonblocking is just 'true'
-
+            : setTimeout(
+                doFunc,
+                typeof nonblocking === "number" ? nonblocking : 0
+              ); // Use 0ms delay if nonblocking is just 'true'
         }); // end forEach
       },
     },
@@ -642,13 +734,21 @@ __p+='`;
       lazyExec: function (data, lazyScope, component, wrapper) {
         // After rendering, executes all the stored lazy functions.
         const $childTarget = firstElementChild(wrapper);
-        const $targetElement = childElementCount(wrapper) == 1 ? $childTarget : null; // Component's root element if single, otherwise null
+        const $targetElement =
+          childElementCount(wrapper) == 1 ? $childTarget : null; // Component's root element if single, otherwise null
         lazyScope.lazyEvaluateArray.forEach(function (selectedFunc, idx) {
           try {
             // Call the function with the component's root element (or its parent if multiple roots) as 'this' context
-            selectedFunc.call($targetElement || $childTarget.parentElement, data); // Pass component data as argument
+            selectedFunc.call(
+              $targetElement || $childTarget.parentElement,
+              data
+            ); // Pass component data as argument
           } catch (e) {
-            console.error(`Error in lazyEvaluate block ${idx} for template ${component.tmplId}:`, e, selectedFunc);
+            console.error(
+              `Error in lazyEvaluate block ${idx} for template ${component.tmplId}:`,
+              e,
+              selectedFunc
+            );
             if (configs.throwError) throw e;
           }
         });
@@ -677,7 +777,7 @@ __p+='`;
     statusKeyName: "status",
     componentKeyName: "component",
     i18nKeyName: "i18n",
-  }
+  },
 };
 
 let escapeHtml = (function () {
@@ -692,7 +792,9 @@ let escapeHtml = (function () {
   };
 
   // Create the inverse map for unescaping
-  const unescapeMap = Object.fromEntries(Object.entries(escapeMap).map(([key, value]) => [value, key]));
+  const unescapeMap = Object.fromEntries(
+    Object.entries(escapeMap).map(([key, value]) => [value, key])
+  );
 
   // Factory function from underscore.js to create efficient escaper/unescaper functions
   const createEscaper = function (map) {
@@ -700,7 +802,7 @@ let escapeHtml = (function () {
       return map[match];
     };
     // Build regex source string like '(?:&|<|>|")'
-    const source = `(?:${Object.keys(map).join("|").replace(/\\/g, '\\\\')})`; // Escape backslashes if any keys have them
+    const source = `(?:${Object.keys(map).join("|").replace(/\\/g, "\\\\")})`; // Escape backslashes if any keys have them
     const testRegexp = RegExp(source);
     const replaceRegexp = RegExp(source, "g");
     return function (string) {
@@ -728,12 +830,21 @@ let matcherFunc = function (templateRules) {
   Object.keys(templateRules).forEach(function (key) {
     templateRule = templateRules[key];
     // Collect patterns and corresponding exec functions
-    if (templateRule && typeof templateRule === 'object' && templateRule.pattern instanceof RegExp && typeof templateRule.exec === 'function') {
+    if (
+      templateRule &&
+      typeof templateRule === "object" &&
+      templateRule.pattern instanceof RegExp &&
+      typeof templateRule.exec === "function"
+    ) {
       patternArray.push((templateRule.pattern || noMatch).source);
       execArray.push(templateRule.exec);
     }
     // Collect lazy execution functions and initialize seed for lazy scope
-    if (templateRule && typeof templateRule === 'object' && typeof templateRule.lazyExec === 'function') {
+    if (
+      templateRule &&
+      typeof templateRule === "object" &&
+      typeof templateRule.lazyExec === "function"
+    ) {
       const arrayKey = `${key}Array`;
       lazyExecMap[arrayKey] = templateRule.lazyExec;
       lazyScopeSeed[arrayKey] = []; // Initialize as empty array
@@ -775,7 +886,8 @@ const templateParser = function (tmplId, text, matcher) {
 
     // Find which capturing group actually matched
     params.slice(1, -2).some(function (value, idx) {
-      if (value !== undefined) { // Check for undefined, as empty string is a valid capture
+      if (value !== undefined) {
+        // Check for undefined, as empty string is a valid capture
         selectedMatchContent = value;
         matchIndex = idx;
         return true; // Stop searching
@@ -786,18 +898,24 @@ const templateParser = function (tmplId, text, matcher) {
     // If a specific group matched, call its corresponding exec function
     if (selectedMatchContent !== undefined && matchIndex !== null) {
       try {
-        source += matcher.exec[matchIndex].call(matcher.templateRules, selectedMatchContent, tmplId);
+        source += matcher.exec[matchIndex].call(
+          matcher.templateRules,
+          selectedMatchContent,
+          tmplId
+        );
       } catch (e) {
-        console.error(`Error executing template rule index ${matchIndex} for match "${selectedMatchContent}" in template "${tmplId}":`, e);
+        console.error(
+          `Error executing template rule index ${matchIndex} for match "${selectedMatchContent}" in template "${tmplId}":`,
+          e
+        );
         if (configs.throwError) throw e;
-        source += ''; // Append nothing on error if not throwing
+        source += ""; // Append nothing on error if not throwing
       }
     } else {
       // This case should ideally not happen if the regex is well-formed,
       // but handle it by just appending the matched text literally (escaped).
       source += match.replace(escaper, escapeFunc);
     }
-
 
     // Update the index to the end of the current match
     index = offset + match.length;
@@ -812,7 +930,6 @@ const templateParser = function (tmplId, text, matcher) {
   return source;
 };
 
-
 let templateBuilder = (compomint.template = function compomint_templateBuilder(
   tmplId,
   templateText,
@@ -824,7 +941,11 @@ let templateBuilder = (compomint.template = function compomint_templateBuilder(
 
   // Use custom config if provided
   if (customTemplateEngine) {
-    templateEngine = Object.assign({}, compomint.templateEngine, customTemplateEngine);
+    templateEngine = Object.assign(
+      {},
+      compomint.templateEngine,
+      customTemplateEngine
+    );
     matcher = matcherFunc(templateEngine.rules); // Create a matcher specific to these config
   }
   // 1. Parse the template text into JavaScript source code
@@ -843,19 +964,21 @@ return __p;`;
   // 2. Compile the generated JavaScript source into a function
   try {
     sourceGenFunc = new Function(
-      templateEngine.keys.dataKeyName,      // e.g., "data"
-      templateEngine.keys.statusKeyName,    // e.g., "status"
+      templateEngine.keys.dataKeyName, // e.g., "data"
+      templateEngine.keys.statusKeyName, // e.g., "status"
       templateEngine.keys.componentKeyName, // e.g., "component"
-      templateEngine.keys.i18nKeyName,      // e.g., "i18n"
+      templateEngine.keys.i18nKeyName, // e.g., "i18n"
       "compomint",
       "tmpl",
-      "__lazyScope",             // Internal object for lazy execution data
-      "__debugger",              // Internal object for debugging
-      source                     // The generated JS code
+      "__lazyScope", // Internal object for lazy execution data
+      "__debugger", // Internal object for debugging
+      source // The generated JS code
     );
   } catch (e) {
     if (configs.throwError) {
-      console.error(`Template compilation error in "${tmplId}", ${e.name}: ${e.message}`);
+      console.error(
+        `Template compilation error in "${tmplId}", ${e.name}: ${e.message}`
+      );
       // Re-run compilation in a way that might provide more detailed browser errors
       new Function(
         templateEngine.keys.dataKeyName,
@@ -879,7 +1002,10 @@ return __p;`;
 
   let renderingFunc = function compomint_renderingFuncBuilder(...params) {
     let [data, wrapperElement, callback, baseComponent] = params;
-    if (data && (data.$wrapperElement || data.$callback || data.$baseComponent)) {
+    if (
+      data &&
+      (data.$wrapperElement || data.$callback || data.$baseComponent)
+    ) {
       // Handle argument object: ({$wrapperElement, $callback, $baseComponent})
       if (data.$wrapperElement) {
         wrapperElement = data.$wrapperElement;
@@ -911,33 +1037,50 @@ return __p;`;
       // Define methods available on the component
       replace: function (newComponent) {
         if (!component.element || !component.element.parentElement) {
-          if (configs.debug) console.warn(`Cannot replace template "${tmplId}": element not in DOM.`);
+          if (configs.debug)
+            console.warn(
+              `Cannot replace template "${tmplId}": element not in DOM.`
+            );
           return;
         }
         component.element.parentElement.replaceChild(
           // Allow replacing with another component or a raw element
-          newComponent.element || newComponent, // new 
+          newComponent.element || newComponent, // new
           component.element // oldC
         );
       },
       remove: function (spacer = false) {
         if (component.beforeRemove) {
-          try { component.beforeRemove(); } catch (e) { console.error("Error in beforeRemove:", e); }
+          try {
+            component.beforeRemove();
+          } catch (e) {
+            console.error("Error in beforeRemove:", e);
+          }
         }
 
-        // Remote event event listener 
+        // Remote event event listener
         if (lazyScope.eventArray) {
           lazyScope.eventArray.forEach(function (event) {
             event.forEach(function (selectedEvent) {
               if (selectedEvent.element) {
-                if (typeof selectedEvent.eventFunc === 'function') {
-                  selectedEvent.element.removeEventListener('click', selectedEvent.eventFunc);
+                if (typeof selectedEvent.eventFunc === "function") {
+                  selectedEvent.element.removeEventListener(
+                    "click",
+                    selectedEvent.eventFunc
+                  );
                 } else {
-                  Object.keys(selectedEvent.eventFunc).forEach(function (eventType) {
-                    selectedEvent.element.removeEventListener(eventType, selectedEvent.eventFunc[eventType]);
+                  Object.keys(selectedEvent.eventFunc).forEach(function (
+                    eventType
+                  ) {
+                    selectedEvent.element.removeEventListener(
+                      eventType,
+                      selectedEvent.eventFunc[eventType]
+                    );
                   });
                 }
-                Object.keys(selectedEvent).forEach(key => delete selectedEvent[key]);
+                Object.keys(selectedEvent).forEach(
+                  (key) => delete selectedEvent[key]
+                );
               }
             });
           });
@@ -955,26 +1098,42 @@ return __p;`;
             // Note: component.element still holds the removed element reference
           }
         } else if (configs.debug) {
-          console.warn(`Cannot remove template "${tmplId}": element not in DOM.`);
+          console.warn(
+            `Cannot remove template "${tmplId}": element not in DOM.`
+          );
         }
         if (component.afterRemove) {
-          try { component.afterRemove(); } catch (e) { console.error("Error in afterRemove:", e); }
+          try {
+            component.afterRemove();
+          } catch (e) {
+            console.error("Error in afterRemove:", e);
+          }
         }
         return component.element; // Return the (potentially removed) element
       },
       appendTo: function (parentElement) {
         if (component.beforeAppendTo) {
-          try { component.beforeAppendTo(); } catch (e) { console.error("Error in beforeAppendTo:", e); }
+          try {
+            component.beforeAppendTo();
+          } catch (e) {
+            console.error("Error in beforeAppendTo:", e);
+          }
         }
         if (parentElement && component.element) {
           parentElement.appendChild(component.element);
         } else if (configs.debug) {
-          console.warn(`Cannot append template "${tmplId}": parentElement or scope.element is missing.`);
+          console.warn(
+            `Cannot append template "${tmplId}": parentElement or scope.element is missing.`
+          );
         }
         if (component.afterAppendTo) {
           // Use setTimeout to ensure it runs after the current execution context
           setTimeout(() => {
-            try { component.afterAppendTo(); } catch (e) { console.error("Error in afterAppendTo:", e); }
+            try {
+              component.afterAppendTo();
+            } catch (e) {
+              console.error("Error in afterAppendTo:", e);
+            }
           }, 0);
         }
         return component;
@@ -1002,16 +1161,16 @@ return __p;`;
       renderedHTML = !data // Handle null/undefined data gracefully
         ? `<template data-co-empty-template="${tmplId}"></template>` // Render empty placeholder if no data
         : sourceGenFunc.call(
-          wrapperElement || null, // `this` context inside renderFunc
-          data,
-          component[statusKeyName],
-          component, // Pass scope as 'component' (or custom name)
-          compomint.i18n[tmplId], // Pass i18n object
-          compomint,
-          tmpl,
-          lazyScope, // Pass internal lazy scope
-          false
-        );
+            wrapperElement || null, // `this` context inside renderFunc
+            data,
+            component[statusKeyName],
+            component, // Pass scope as 'component' (or custom name)
+            compomint.i18n[tmplId], // Pass i18n object
+            compomint,
+            tmpl,
+            lazyScope, // Pass internal lazy scope
+            false
+          );
     } catch (e) {
       if (configs.throwError) {
         console.error(`Runtime error during render of "${tmplId}":`, e.message);
@@ -1021,15 +1180,25 @@ return __p;`;
         // Attempt to re-run with debugger potentially attached
         try {
           sourceGenFunc.call(
-            wrapperElement || null, data, component[statusKeyName], component,
-            component[templateEngine.keys.i18nKeyName], compomint, tmpl, lazyScope,
+            wrapperElement || null,
+            data,
+            component[statusKeyName],
+            component,
+            component[templateEngine.keys.i18nKeyName],
+            compomint,
+            tmpl,
+            lazyScope,
             configs.debug // __debugger: true
           );
-        } catch (debugE) { /* Ignore */ }
+        } catch (debugE) {
+          /* Ignore */
+        }
 
         throw e;
       } else {
-        console.warn(`Render failed for "${tmplId}". Returning scope with no element.`);
+        console.warn(
+          `Render failed for "${tmplId}". Returning scope with no element.`
+        );
         // Return a minimal scope object even on error
         component.element = document.createComment(`Render Error: ${tmplId}`);
         return component;
@@ -1052,14 +1221,25 @@ return __p;`;
 
     // 6. Execute Lazy Functions (attaching events, refs, etc.)
     const lazyExec = matcher.lazyExec;
-    if (data) { // Only run lazy exec if data was provided (avoids errors on empty render)
+    if (data) {
+      // Only run lazy exec if data was provided (avoids errors on empty render)
       matcher.lazyExecKeys.forEach(function (key) {
-        if (lazyScope[key] && lazyScope[key].length > 0) { // Check if the array exists and has items
+        if (lazyScope[key] && lazyScope[key].length > 0) {
+          // Check if the array exists and has items
           try {
-            lazyExec[key].call(templateEngine.rules[key.slice(0, -5)], data, lazyScope, component, docFragment);
+            lazyExec[key].call(
+              templateEngine.rules[key.slice(0, -5)],
+              data,
+              lazyScope,
+              component,
+              docFragment
+            );
           } catch (e) {
             if (configs.throwError) {
-              console.error(`Error during lazy execution of "${key}" for template "${tmplId}":`, e);
+              console.error(
+                `Error during lazy execution of "${key}" for template "${tmplId}":`,
+                e
+              );
               throw e;
             }
           }
@@ -1077,7 +1257,9 @@ return __p;`;
     }
 
     // style to shadow
-    const shadowStyle = docFragment.querySelector ? docFragment.querySelector("style") : null;
+    const shadowStyle = docFragment.querySelector
+      ? docFragment.querySelector("style")
+      : null;
     if (shadowStyle && docFragment.querySelector) {
       const host = document.createElement(tmplId);
       const shadow = host.attachShadow({ mode: "open" });
@@ -1096,17 +1278,45 @@ return __p;`;
       returnTarget = firstElementChild(docFragment);
       if (hasParent) {
         // Append the single element to the container
-        if (component.beforeAppendTo) { try { component.beforeAppendTo(); } catch (e) { console.error("Error in beforeAppendTo:", e); } }
+        if (component.beforeAppendTo) {
+          try {
+            component.beforeAppendTo();
+          } catch (e) {
+            console.error("Error in beforeAppendTo:", e);
+          }
+        }
         wrapperElement.appendChild(returnTarget);
-        if (component.afterAppendTo) { setTimeout(() => { try { component.afterAppendTo(); } catch (e) { console.error("Error in afterAppendTo:", e); } }, 0); }
+        if (component.afterAppendTo) {
+          setTimeout(() => {
+            try {
+              component.afterAppendTo();
+            } catch (e) {
+              console.error("Error in afterAppendTo:", e);
+            }
+          }, 0);
+        }
       }
     } else {
       // Multiple root nodes or only text nodes - use the fragment
       if (hasParent) {
         // Append the whole fragment to the container
-        if (component.beforeAppendTo) { try { component.beforeAppendTo(); } catch (e) { console.error("Error in beforeAppendTo:", e); } }
+        if (component.beforeAppendTo) {
+          try {
+            component.beforeAppendTo();
+          } catch (e) {
+            console.error("Error in beforeAppendTo:", e);
+          }
+        }
         wrapperElement.appendChild(docFragment); // Appends all nodes in the fragment
-        if (component.afterAppendTo) { setTimeout(() => { try { component.afterAppendTo(); } catch (e) { console.error("Error in afterAppendTo:", e); } }, 0); }
+        if (component.afterAppendTo) {
+          setTimeout(() => {
+            try {
+              component.afterAppendTo();
+            } catch (e) {
+              console.error("Error in afterAppendTo:", e);
+            }
+          }, 0);
+        }
         returnTarget = wrapperElement; // Conventionally return the container when rendering into it? Or should it be the fragment? Let's stick to container for now.
       } else {
         // Not rendering into a container, return the fragment itself
@@ -1118,14 +1328,19 @@ return __p;`;
     if (data && data.$props && returnTarget instanceof Element) {
       for (let prop in data.$props) {
         try {
-          if (prop.indexOf('data-') === 0) {
-            const camelCased = prop.substring(5).replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+          if (prop.indexOf("data-") === 0) {
+            const camelCased = prop
+              .substring(5)
+              .replace(/-([a-z])/g, (g) => g[1].toUpperCase());
             returnTarget.dataset[camelCased] = data.$props[prop];
           } else {
             returnTarget[prop] = data.$props[prop];
           }
         } catch (e) {
-          console.error(`Error applying prop "${prop}" to element in template "${tmplId}":`, e);
+          console.error(
+            `Error applying prop "${prop}" to element in template "${tmplId}":`,
+            e
+          );
         }
       }
     }
@@ -1134,14 +1349,19 @@ return __p;`;
     if (returnTarget.normalize) {
       returnTarget.normalize(); // Merge adjacent text nodes
     }
-    if (returnTarget instanceof Node) { // Check if it's a Node before cleaning
+    if (returnTarget instanceof Node) {
+      // Check if it's a Node before cleaning
       cleanNode(returnTarget); // Remove empty text/comment nodes
     }
     component.element = returnTarget; // Assign the final element/fragment to the scope
 
     // Optional: Support for live reloading (if defined elsewhere)
     if (tools.liveReloadSupport) {
-      try { tools.liveReloadSupport(component); } catch (e) { console.error("Error in liveReloadSupport:", e); }
+      try {
+        tools.liveReloadSupport(component);
+      } catch (e) {
+        console.error("Error in liveReloadSupport:", e);
+      }
     }
 
     // 9. Execute Callback
@@ -1160,11 +1380,14 @@ return __p;`;
     component.release = function () {
       const props = Object.getOwnPropertyNames(component);
       // Keep essential properties, remove others
-      const keepProps = [statusKeyName, '_id']; //, 'tmplId', 'element', 'wrapperElement', 'parentScope'];
+      const keepProps = [statusKeyName, "_id"]; //, 'tmplId', 'element', 'wrapperElement', 'parentScope'];
       for (let i = 0; i < props.length; i++) {
         const prop = props[i];
         // Avoid deleting methods or essential properties
-        if (typeof component[prop] !== 'function' && !keepProps.includes(prop)) {
+        if (
+          typeof component[prop] !== "function" &&
+          !keepProps.includes(prop)
+        ) {
           //console.log('deleting', prop);
           delete component[prop];
         }
@@ -1183,7 +1406,9 @@ return __p;`;
       const tmplFunc = compomint.tmpl(currentComponent.tmplId); // Get the render function again
 
       if (!tmplFunc) {
-        console.error(`Cannot re-render: Template function for "${currentComponent.tmplId}" not found.`);
+        console.error(
+          `Cannot re-render: Template function for "${currentComponent.tmplId}" not found.`
+        );
         return currentComponent; // Return current scope on error
       }
 
@@ -1194,11 +1419,17 @@ return __p;`;
         beforeRemove: currentComponent.beforeRemove,
         afterRemove: currentComponent.afterRemove,
         beforeRefresh: currentComponent.beforeRefresh,
-        afterRefresh: currentComponent.afterRefresh
+        afterRefresh: currentComponent.afterRefresh,
       };
 
       // Call beforeRemove hook
-      if (currentComponent.beforeRemove) { try { currentComponent.beforeRemove(); } catch (e) { console.error("Error in beforeRemove during render:", e); } }
+      if (currentComponent.beforeRemove) {
+        try {
+          currentComponent.beforeRemove();
+        } catch (e) {
+          console.error("Error in beforeRemove during render:", e);
+        }
+      }
 
       let newComponent;
       if (wrapper) {
@@ -1212,12 +1443,28 @@ return __p;`;
         newComponent = tmplFunc(newData, null, null, currentComponent); // Reuse scope object
         if (newComponent.element && targetElement) {
           // Call beforeAppendTo hook for the new element
-          if (newComponent.beforeAppendTo) { try { newComponent.beforeAppendTo(); } catch (e) { console.error("Error in beforeAppendTo during render:", e); } }
+          if (newComponent.beforeAppendTo) {
+            try {
+              newComponent.beforeAppendTo();
+            } catch (e) {
+              console.error("Error in beforeAppendTo during render:", e);
+            }
+          }
           parent.replaceChild(newComponent.element, targetElement);
           // Call afterAppendTo hook for the new element
-          if (newComponent.afterAppendTo) { setTimeout(() => { try { newComponent.afterAppendTo(); } catch (e) { console.error("Error in afterAppendTo during render:", e); } }, 0); }
+          if (newComponent.afterAppendTo) {
+            setTimeout(() => {
+              try {
+                newComponent.afterAppendTo();
+              } catch (e) {
+                console.error("Error in afterAppendTo during render:", e);
+              }
+            }, 0);
+          }
         } else if (configs.debug) {
-          console.warn(`Re-render of "${currentComponent.tmplId}" resulted in no element or target was missing.`);
+          console.warn(
+            `Re-render of "${currentComponent.tmplId}" resulted in no element or target was missing.`
+          );
         }
       } else {
         currentComponent.release();
@@ -1226,7 +1473,13 @@ return __p;`;
       }
 
       // Call afterRemove hook for the old element/scope state
-      if (currentComponent.afterRemove) { try { currentComponent.afterRemove(); } catch (e) { console.error("Error in afterRemove during render:", e); } }
+      if (currentComponent.afterRemove) {
+        try {
+          currentComponent.afterRemove();
+        } catch (e) {
+          console.error("Error in afterRemove during render:", e);
+        }
+      }
 
       // Restore hooks onto the potentially new scope object reference (though we reuse it now)
       Object.assign(newComponent, hooks);
@@ -1238,12 +1491,24 @@ return __p;`;
     component.refresh = function (reflashData) {
       const currentComponent = this.component || this; // `this` refers to the component object
       const currentData = currentComponent[dataKeyName];
-      if (currentComponent.beforeRefresh) { try { currentComponent.beforeRefresh(); } catch (e) { console.error("Error in beforeRefresh:", e); } }
+      if (currentComponent.beforeRefresh) {
+        try {
+          currentComponent.beforeRefresh();
+        } catch (e) {
+          console.error("Error in beforeRefresh:", e);
+        }
+      }
       // Merge new data with existing data
       const newData = Object.assign({}, currentData || {}, reflashData);
       // Call render with the merged data
       const newComponent = currentComponent.render(newData);
-      if (currentComponent.afterRefresh) { try { currentComponent.afterRefresh(); } catch (e) { console.error("Error in afterRefresh:", e); } }
+      if (currentComponent.afterRefresh) {
+        try {
+          currentComponent.afterRefresh();
+        } catch (e) {
+          console.error("Error in afterRefresh:", e);
+        }
+      }
       return newComponent;
     };
 
@@ -1253,17 +1518,24 @@ return __p;`;
   }; // End of tmpl function definition
 
   // Set the 'name' property of the render function for debugging
-  Object.defineProperty(renderingFunc, "name", { value: `render_${tmplId}`, writable: false });
+  Object.defineProperty(renderingFunc, "name", {
+    value: `render_${tmplId}`,
+    writable: false,
+  });
 
   // Store metadata in the cache
   if (tmplId) {
-    const tmplMeta = configs.debug ? {
-      renderingFunc: renderingFunc,
-      source: escapeHtml.escape(`function ${tmplId}_source (${templateEngine.keys.dataKeyName}, ${templateEngine.keys.statusKeyName}, ${templateEngine.keys.componentKeyName}, ${templateEngine.keys.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`),
-      templateText: escapeHtml.escape(templateText),
-    } : {
-      renderingFunc: renderingFunc
-    }
+    const tmplMeta = configs.debug
+      ? {
+          renderingFunc: renderingFunc,
+          source: escapeHtml.escape(
+            `function ${tmplId}_source (${templateEngine.keys.dataKeyName}, ${templateEngine.keys.statusKeyName}, ${templateEngine.keys.componentKeyName}, ${templateEngine.keys.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`
+          ),
+          templateText: escapeHtml.escape(templateText),
+        }
+      : {
+          renderingFunc: renderingFunc,
+        };
     cachedTmpl.set(tmplId, tmplMeta);
 
     // Add to global tmpl namespace (e.g., tmpl.ui.Button)
@@ -1277,8 +1549,10 @@ return __p;`;
       // Convert sub-parts to camelCase (e.g., "my-component-name-grouped" -> "my-componentNameGrouped", )
       const tmplIdSub = tmplIdNames
         .slice(1)
-        .map((part, index) => index === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1))
-        .join('');
+        .map((part, index) =>
+          index === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1)
+        )
+        .join("");
       groupObj[tmplIdSub] = tmplMeta.renderingFunc;
     }
   }
@@ -1293,9 +1567,12 @@ compomint.remapTmpl = function (json) {
       cachedTmpl.set(newKey, meta);
       // Optionally update the global tmpl namespace as well?
       // This could be complex if the group/sub names change.
-      if (configs.debug) console.log(`Remapped template "${oldKey}" to "${newKey}"`);
+      if (configs.debug)
+        console.log(`Remapped template "${oldKey}" to "${newKey}"`);
     } else if (configs.debug) {
-      console.warn(`Cannot remap template: Old key "${oldKey}" not found in cache.`);
+      console.warn(
+        `Cannot remap template: Old key "${oldKey}" not found in cache.`
+      );
     }
   });
 };
@@ -1308,18 +1585,23 @@ compomint.tmpl = function (tmplId) {
 const safeTemplate = function (source) {
   // Safely creates a <template> element from a source string or element, handling potential HTML injection in older browsers.
   let template;
-  if (source instanceof Element) { // Check if source is already a DOM element
+  if (source instanceof Element) {
+    // Check if source is already a DOM element
     // If it's already an element (like document.body), clone it to avoid modifying the original
     // However, the primary use case seems to be parsing strings or template tags within an element.
     // If source *is* the container (e.g., document.body), we probably don't want to clone it here.
     // Let's assume addTmpls handles querying within the source element directly.
     // If source is a template element itself, just return it.
-    if (source.tagName === 'TEMPLATE') return source;
+    if (source.tagName === "TEMPLATE") return source;
     // If it's another element, we'll query inside it later. Return as is.
     return source;
-  } else if (typeof source !== 'string') {
-    if (configs.debug) console.warn("safeTemplate received non-string/non-element source:", source);
-    source = ''; // Default to empty string if invalid input
+  } else if (typeof source !== "string") {
+    if (configs.debug)
+      console.warn(
+        "safeTemplate received non-string/non-element source:",
+        source
+      );
+    source = ""; // Default to empty string if invalid input
   }
 
   // Create a template element for parsing
@@ -1340,13 +1622,18 @@ const safeTemplate = function (source) {
       )
       .replace(/<template/g, '<script type="template"')
       .replace(/<\/template>/g, "</script>");
-    template.innerHTML = encodedSource
+    template.innerHTML = encodedSource;
   }
   return template;
 };
 
-const addTmpl = (compomint.addTmpl = function (tmplId, element, templateEngine) {
-  let templateText = element instanceof Element ? element.innerHTML : String(element); // Ensure string
+const addTmpl = (compomint.addTmpl = function (
+  tmplId,
+  element,
+  templateEngine
+) {
+  let templateText =
+    element instanceof Element ? element.innerHTML : String(element); // Ensure string
   // Unescape HTML entities and remove comment markers before compilation
   templateText = escapeHtml.unescape(
     templateText.replace(/<!---|--->/gi, "") // Remove custom comment markers if used
@@ -1408,14 +1695,14 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
     loadScript: true,
     loadStyle: true,
     loadLink: true,
-    templateEngine: undefined // No custom template config by default
+    templateEngine: undefined, // No custom template config by default
   };
   option = Object.assign({}, defaultOptions, option); // Merge user options with defaults
 
   const importDataParser = function (obj) {
     if (typeof obj === "string") {
       return { url: obj, option: option }; // Use default options if only URL string is given
-    } else if (obj && typeof obj === 'object' && obj.url) {
+    } else if (obj && typeof obj === "object" && obj.url) {
       // Merge item-specific options with the default options
       obj.option = Object.assign({}, option, obj.option);
       return obj;
@@ -1435,7 +1722,11 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
           if (oldElement) oldElement.parentNode.removeChild(oldElement);
         }
         // Append to head or body appropriately
-        if (element.tagName === 'SCRIPT' || element.tagName === 'LINK' || element.tagName === 'STYLE') {
+        if (
+          element.tagName === "SCRIPT" ||
+          element.tagName === "LINK" ||
+          element.tagName === "STYLE"
+        ) {
           document.head.appendChild(element); // Scripts, Links, Styles go in head
         } else {
           document.body.appendChild(element); // Other elements (less common for this func) go in body
@@ -1472,7 +1763,11 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
           // Ensure it's not inside a <template> or <script type="text/template">
           let parent = node.parentNode;
           while (parent) {
-            if (parent.tagName === 'TEMPLATE' || (parent.tagName === 'SCRIPT' && parent.type.includes('template'))) return false;
+            if (
+              parent.tagName === "TEMPLATE" ||
+              (parent.tagName === "SCRIPT" && parent.type.includes("template"))
+            )
+              return false;
             parent = parent.parentNode;
           }
           return true; // Keep if not inside a template definition
@@ -1482,7 +1777,10 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
           const scriptElm = document.createElement("script");
           // Copy attributes (like src, type, async, defer, id)
           for (let i = 0; i < node.attributes.length; i++) {
-            scriptElm.setAttribute(node.attributes[i].name, node.attributes[i].value);
+            scriptElm.setAttribute(
+              node.attributes[i].name,
+              node.attributes[i].value
+            );
           }
           // Copy inline content
           if (node.innerHTML) {
@@ -1503,7 +1801,8 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
     }
     importData.forEach(function (dataItem) {
       const parsedData = importDataParser(dataItem);
-      if (!parsedData) { // Skip invalid entries
+      if (!parsedData) {
+        // Skip invalid entries
         remaining--;
         if (remaining === 0 && callback) callback();
         return;
@@ -1530,7 +1829,8 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
           rel: "stylesheet",
           href: src,
         });
-        link.addEventListener("load", function () { // CSS load event might not be reliable everywhere
+        link.addEventListener("load", function () {
+          // CSS load event might not be reliable everywhere
           remaining--;
           if (remaining === 0 && callback) callback();
         });
@@ -1550,7 +1850,8 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
       } else {
         // Assume HTML content, fetch and process
         requestFunc(src, null, function (source, status) {
-          if (status === 200 || status === 0) { // Check for success or local file access
+          if (status === 200 || status === 0) {
+            // Check for success or local file access
             try {
               importFunc(source, currentOption);
             } catch (e) {
@@ -1558,7 +1859,9 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
               throw e;
             }
           } else {
-            console.error(`Failed to fetch template file: ${src} (Status: ${status})`);
+            console.error(
+              `Failed to fetch template file: ${src} (Status: ${status})`
+            );
           }
           remaining--;
           if (remaining === 0 && callback) callback();
@@ -1578,12 +1881,22 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
     if (src.endsWith(".js")) {
       const script = tag("script", { async: true, src: src });
       script.addEventListener("load", callback);
-      script.addEventListener("error", () => { console.error(`Failed to load script: ${src} `); if (callback) callback(); });
+      script.addEventListener("error", () => {
+        console.error(`Failed to load script: ${src} `);
+        if (callback) callback();
+      });
       document.head.appendChild(script);
     } else if (src.endsWith(".css")) {
-      const link = tag("link", { type: "text/css", rel: "stylesheet", href: src });
+      const link = tag("link", {
+        type: "text/css",
+        rel: "stylesheet",
+        href: src,
+      });
       link.addEventListener("load", callback); // May not fire reliably
-      link.addEventListener("error", () => { console.error(`Failed to load stylesheet: ${src} `); if (callback) callback(); });
+      link.addEventListener("error", () => {
+        console.error(`Failed to load stylesheet: ${src} `);
+        if (callback) callback();
+      });
       document.head.appendChild(link);
       // setTimeout(callback, 50); // Call callback early for CSS
     } else {
@@ -1595,7 +1908,9 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
             console.error(`Error processing imported HTML from ${src}: `, e);
           }
         } else {
-          console.error(`Failed to fetch template file: ${src} (Status: ${status})`);
+          console.error(
+            `Failed to fetch template file: ${src} (Status: ${status})`
+          );
         }
         if (callback) callback();
       });
@@ -1666,7 +1981,12 @@ const requestFunc = function (url, option, callback) {
 compomint.i18n = {};
 
 compomint.addI18n = function (fullKey, i18nObj) {
-  if (!fullKey || typeof fullKey !== 'string' || !i18nObj || typeof i18nObj !== 'object') {
+  if (
+    !fullKey ||
+    typeof fullKey !== "string" ||
+    !i18nObj ||
+    typeof i18nObj !== "object"
+  ) {
     console.error("Invalid arguments for addI18n:", fullKey, i18nObj);
     return;
   }
@@ -1682,13 +2002,16 @@ compomint.addI18n = function (fullKey, i18nObj) {
       // Last key: Assign the retrieval function
       if (!target[key]) {
         target[key] = function (defaultText) {
-          const lang = document.documentElement.lang || 'en';
+          const lang = document.documentElement.lang || "en";
           let label = i18nObj[lang];
           if (label === undefined || label === null) {
             label = defaultText; // Use provided default
-            if (configs.debug) console.warn(`i18n: Label key["${fullKey}"] for lang "${lang}" is missing.Using default: "${defaultText}"`);
+            if (configs.debug)
+              console.warn(
+                `i18n: Label key["${fullKey}"] for lang "${lang}" is missing.Using default: "${defaultText}"`
+              );
           }
-          return label !== undefined && label !== null ? String(label) : ''; // Ensure string return
+          return label !== undefined && label !== null ? String(label) : ""; // Ensure string return
         };
       }
       Object.keys(i18nObj)
@@ -1719,10 +2042,14 @@ tools.genId = function (tmplId) {
   return tmplId + elementCount;
 };
 
-const genElement = (tools.genElement = function (tagName, attrs = {}, ...children) {
+const genElement = (tools.genElement = function (
+  tagName,
+  attrs = {},
+  ...children
+) {
   const element = document.createElement(tagName);
 
-  if (typeof attrs === 'string') {
+  if (typeof attrs === "string") {
     element.appendChild(document.createTextNode(attrs));
   } else if (attrs instanceof Node) {
     element.appendChild(attrs);
@@ -1734,9 +2061,9 @@ const genElement = (tools.genElement = function (tagName, attrs = {}, ...childre
       const value = attrs[key];
       // Set attributes directly as properties where possible (e.g., className, id, src)
       // Handle 'class' specifically -> 'className'
-      const propName = key === 'class' ? 'className' : key;
+      const propName = key === "class" ? "className" : key;
       try {
-        if (typeof value === 'object') {
+        if (typeof value === "object") {
           Object.assign(element[key], value);
         } else if (propName in element) {
           // Check if the property exists and is writable, or if it's a data-* attribute
@@ -1746,14 +2073,17 @@ const genElement = (tools.genElement = function (tagName, attrs = {}, ...childre
           element.setAttribute(key, value);
         }
       } catch (e) {
-        console.error(`Error setting attribute / property "${key}" on < ${tagName}>: `, e);
+        console.error(
+          `Error setting attribute / property "${key}" on < ${tagName}>: `,
+          e
+        );
       }
     });
   }
 
   // Iterate through the children array and append child nodes
-  children.forEach(child => {
-    if (typeof child === 'string') {
+  children.forEach((child) => {
+    if (typeof child === "string") {
       element.appendChild(document.createTextNode(child));
     } else if (child instanceof Node) {
       element.appendChild(child);
@@ -1772,7 +2102,7 @@ tools.props = function (...propsObjects) {
     // Include attribute only if value is truthy (or explicitly 0)
     if (value || value === 0) {
       // Escape double quotes within the attribute value
-      const escapedValue = String(value).replace(/"/g, '&quot;');
+      const escapedValue = String(value).replace(/"/g, "&quot;");
       propStrArray.push(`${key}="${escapedValue}"`);
     }
   });

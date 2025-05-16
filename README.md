@@ -1274,7 +1274,7 @@ Understanding how Compomint works internally can help you use it more effectivel
 │ Template Text │ -> │ Parse & Extract │ -> │ Generate Function │
 └───────────────┘    └─────────────────┘    └───────────────────┘
                                                  │
-┌────────────────┐    ┌───────────────┐     ┌─────▼────────────┐
+┌────────────────┐    ┌───────────────┐     ┌────▼─────────────┐
 │ Template Scope │ <- │ DOM Creation  │  <- │ Execute Function │
 └────────────────┘    └───────────────┘     └──────────────────┘
         │                    ▲
