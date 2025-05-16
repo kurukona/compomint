@@ -68,7 +68,7 @@
         return Object.prototype.toString.call(value) === '[object Object]';
     };
 
-    // 
+    //
     // Default template settings
     //
     const defaultTemplateEngine = (configs, compomint) => ({
@@ -102,7 +102,7 @@
                 exec: function (preEvaluate, tmplId) {
                     try {
                         // Execute the code in a new function context
-                        new Function("tmplId", preEvaluate)(tmplId);
+                        new Function("compomint", "tmplId", preEvaluate)(compomint, tmplId);
                     }
                     catch (e) {
                         if (configs.throwError) {
@@ -121,7 +121,7 @@
                 exec: function (interpolate) {
                     // Construct JavaScript code to interpolate the value
                     const interpolateSyntax = `typeof (interpolate)=='function' ? (interpolate)() : (interpolate)`;
-                    return (`';\n(() => {let __t, interpolate=${interpolate};\n__p+=((__t=(${interpolateSyntax}))==null ? '' : String(__t) );})();\n__p+='`); // Ensure string conversion
+                    return `';\n(() => {let __t, interpolate=${interpolate};\n__p+=((__t=(${interpolateSyntax}))==null ? '' : String(__t) );})();\n__p+='`; // Ensure string conversion
                 },
             },
             escape: {
@@ -129,7 +129,7 @@
                 exec: function (escape) {
                     const escapeSyntax = `compomint.tools.escapeHtml.escape(typeof (escape)=='function' ? (escape)() : (escape))`;
                     // Construct JavaScript code to escape HTML characters in the value
-                    return (`';\n(() => {let __t, escape=${escape};\n__p+=((__t=(${escapeSyntax}))==null ? '' : String(__t) );})();\n__p+='`); // Ensure string conversion before escape
+                    return `';\n(() => {let __t, escape=${escape};\n__p+=((__t=(${escapeSyntax}))==null ? '' : String(__t) );})();\n__p+='`; // Ensure string conversion before escape
                 },
             },
             elementProps: {
@@ -154,7 +154,7 @@ __lazyScope.elementPropsArray[eventId] = ${props};\n__p+='`; // Store props in l
                             $elementTrigger.setAttribute(key, String(props[key])); // Ensure value is string
                         });
                     });
-                }
+                },
             },
             namedElement: {
                 pattern: /data-co-named-element="##:([\s\S]+?)##"/g,
@@ -208,7 +208,7 @@ var ${key} = null;\n__lazyScope.elementRefArray[eventId] = function(target) {${k
                     const elementLoadSplitArray = elementLoad.split("::");
                     // Store the load function and custom data in lazy scope
                     const source = `';\nconst eventId = (__lazyScope.elementLoadArray.length);\n__p+='data-co-load="'+eventId+'"';
-__lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, customData: ${elementLoadSplitArray[1]}};\n__p+='`;
+__lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, customData: ${elementLoadSplitArray[1]}};\n__p+='`; // 'customData' is determined when compiled, so it does not change even if refreshed.
                     return source;
                 },
                 lazyExec: function (data, lazyScope, component, wrapper) {
@@ -224,16 +224,16 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
                         // Execute the load function with the element and context
                         delete $elementTrigger.dataset.coLoad;
                         try {
-                            if (typeof elementLoad.loadFunc === 'function') {
+                            if (typeof elementLoad.loadFunc === "function") {
                                 const loadFuncParams = [
                                     $elementTrigger,
                                     $elementTrigger,
                                     {
-                                        "data": data,
-                                        "element": $elementTrigger,
-                                        "customData": elementLoad.customData,
-                                        "component": component,
-                                        "compomint": compomint,
+                                        data: data,
+                                        element: $elementTrigger,
+                                        customData: elementLoad.customData,
+                                        component: component,
+                                        compomint: compomint,
                                     },
                                 ];
                                 elementLoad.loadFunc.call(...loadFuncParams);
@@ -296,7 +296,7 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
                     const customEvent = new Event(eventName, {
                         // Dispatch a custom event on the target element
                         bubbles: true,
-                        cancelable: true
+                        cancelable: true,
                     });
                     target.dispatchEvent(customEvent);
                 },
@@ -313,16 +313,16 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
                         $elementTrigger,
                         null,
                         {
-                            "data": data,
-                            "customData": eventData.customData,
-                            "element": $elementTrigger,
-                            "componentElement": $targetElement || ($childTarget === null || $childTarget === void 0 ? void 0 : $childTarget.parentElement),
-                            "component": component,
-                            "compomint": compomint,
+                            data: data,
+                            customData: eventData.customData,
+                            element: $elementTrigger,
+                            componentElement: $targetElement || ($childTarget === null || $childTarget === void 0 ? void 0 : $childTarget.parentElement),
+                            component: component,
+                            compomint: compomint,
                         },
                     ];
                     // Basic case: eventFunc is a single function
-                    if (typeof eventFunc === 'function') {
+                    if (typeof eventFunc === "function") {
                         const eventListener = function (event) {
                             event.stopPropagation();
                             eventFuncParams[1] = event;
@@ -406,7 +406,7 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
                     const source = `';\n(() => {
 const elementId = (__lazyScope.elementArray.length);
 __p+='<template data-co-tmpl-element-id="'+elementId+'"></template>';
-__lazyScope.elementArray[elementId] = {childTarget: ${elementSplitArray[0]}, nonblocking: ${(elementSplitArray[1] || false)}};})();
+__lazyScope.elementArray[elementId] = {childTarget: ${elementSplitArray[0]}, nonblocking: ${elementSplitArray[1] || false}};})();
 __p+='`;
                     return source;
                 },
@@ -444,7 +444,8 @@ __p+='`;
                                         const childElement = child.element || child;
                                         let nodeToAppend = null;
                                         // Convert child to a DOM node if necessary
-                                        if (typeof childElement === "string" || typeof childElement === "number") {
+                                        if (typeof childElement === "string" ||
+                                            typeof childElement === "number") {
                                             nodeToAppend = stringToElement(childElement);
                                         }
                                         else if (typeof childElement === "function") {
@@ -487,7 +488,8 @@ __p+='`;
                                     });
                                     // Handle string, number, or function types
                                 }
-                                else if (typeof childTarget === "string" || typeof childTarget === "number") {
+                                else if (typeof childTarget === "string" ||
+                                    typeof childTarget === "number") {
                                     $tmplElement.parentNode.replaceChild(stringToElement(childTarget), $tmplElement);
                                     // Handle function type
                                 }
@@ -495,7 +497,8 @@ __p+='`;
                                     $tmplElement.parentNode.replaceChild(stringToElement(childTarget()), $tmplElement);
                                     // Handle Node or ComponentScope types
                                 }
-                                else if (childTarget && (childTarget.element || childTarget) instanceof Node) {
+                                else if (childTarget &&
+                                    (childTarget.element || childTarget) instanceof Node) {
                                     const childScope = childTarget; // Assume it might be a scope
                                     const childElement = childScope.element || childScope;
                                     // Replace the placeholder with the child element
@@ -540,16 +543,18 @@ __p+='`;
                                     try {
                                         $tmplElement.parentNode.removeChild($tmplElement);
                                     }
-                                    catch (removeError) { /* Ignore */ }
+                                    catch (removeError) {
+                                        /* Ignore */
+                                    }
                                 }
                             } // end try
                         }; // end doFunc
-                        (nonblocking === undefined || nonblocking === false)
-                            // Execute immediately or with a delay based on nonblocking
-                            ? doFunc()
-                            : setTimeout(doFunc, typeof nonblocking === 'number' ? nonblocking : 0);
+                        nonblocking === undefined || nonblocking === false
+                            ? // Execute immediately or with a delay based on nonblocking
+                                doFunc()
+                            : setTimeout(doFunc, typeof nonblocking === "number" ? nonblocking : 0);
                     }); // end forEach
-                }
+                },
             },
             lazyEvaluate: {
                 pattern: /###([\s\S]+?)##/g,
@@ -589,7 +594,7 @@ __p+='`;
             statusKeyName: "status",
             componentKeyName: "component",
             i18nKeyName: "i18n",
-        }
+        },
     });
 
     const applyBuiltInTemplates = (addTmpl) => {
