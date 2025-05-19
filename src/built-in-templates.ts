@@ -1,9 +1,11 @@
-
-import { CompomintGlobal } from "./type"
+import { CompomintGlobal } from "./type";
 
 const applyBuiltInTemplates = (addTmpl: CompomintGlobal["addTmpl"]): void => {
   // co-Ele is a shorthand for co-Element, it will generate a div element with the given props and event
-  addTmpl("co-Ele", `##%compomint.tools.genElement(data[0], data[1])##`);
+  addTmpl(
+    "co-Ele",
+    `<##=data[0]##></##=data[0]##>###compomint.tools.applyElementProps(this, data[1]);##`
+  );
   addTmpl(
     "co-Element",
     `##
@@ -20,6 +22,6 @@ const applyBuiltInTemplates = (addTmpl: CompomintGlobal["addTmpl"]): void => {
     ##}##
   &lt;/##=data.tag##&gt;`
   );
-}
+};
 
-export { applyBuiltInTemplates }
+export { applyBuiltInTemplates };

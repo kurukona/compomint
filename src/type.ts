@@ -18,7 +18,12 @@ interface LazyScope {
   namedElementArray: string[];
   elementRefArray: ((target: Element) => void)[];
   elementLoadArray: { loadFunc: Function; customData: any }[];
-  eventArray: { eventFunc: Function | Record<string, Function>; $parent: any; customData: any, element: Element }[][];
+  eventArray: {
+    eventFunc: Function | Record<string, Function>;
+    $parent: any;
+    customData: any;
+    element: Element;
+  }[][];
   elementArray: { childTarget: any; nonblocking: boolean | number }[];
   lazyEvaluateArray: ((data: Record<string, any>) => void)[];
 }
@@ -26,7 +31,12 @@ interface LazyScope {
 interface TemplateRule {
   pattern: RegExp;
   exec: (...args: any[]) => string;
-  lazyExec?: (data: Record<string, any>, lazyScope: LazyScope, component: ComponentScope, wrapper: DocumentFragment | Element) => void;
+  lazyExec?: (
+    data: Record<string, any>,
+    lazyScope: LazyScope,
+    component: ComponentScope,
+    wrapper: DocumentFragment | Element
+  ) => void;
   attacher?: (
     self: any,
     data: Record<string, any>,
@@ -40,14 +50,13 @@ interface TemplateRule {
   trigger?: (target: Element, eventName: string) => void;
 }
 
-
 interface TemplateEngine {
   rules: Record<string, TemplateRule>;
   keys: {
-    dataKeyName: string,
-    statusKeyName: string,
-    componentKeyName: string,
-    i18nKeyName: string,
+    dataKeyName: string;
+    statusKeyName: string;
+    componentKeyName: string;
+    i18nKeyName: string;
   };
 }
 
@@ -92,7 +101,15 @@ interface Tools {
     unescape: (str: string) => string;
   };
   genId: (tmplId: string) => string;
-  genElement: (tagName: string, attrs?: Record<string, any> | string | Node | (string | Node)[], ...children: (string | Node)[]) => Element;
+  genElement: (
+    tagName: string,
+    attrs?: Record<string, any> | string | Node | (string | Node)[],
+    ...children: (string | Node)[]
+  ) => Element;
+  applyElementProps: (
+    element: HTMLElement,
+    attrs: Record<string, any>
+  ) => Element;
   props: (...propsObjects: Record<string, any>[]) => string;
   liveReloadSupport?: (component: ComponentScope) => void;
 }
@@ -103,18 +120,34 @@ interface CompomintGlobal {
   templateEngine: TemplateEngine;
   tools: Tools;
   i18n: Record<string, any>;
-  template: (tmplId: string, templateText: string, tmplSettings?: Partial<TemplateEngine>) => RenderingFunction;
+  template: (
+    tmplId: string,
+    templateText: string,
+    tmplSettings?: Partial<TemplateEngine>
+  ) => RenderingFunction;
   remapTmpl: (json: Record<string, string>) => void;
   tmpl: (tmplId: string) => RenderingFunction | null;
-  addTmpl: (tmplId: string, element: Element | string, tmplSettings?: Partial<TemplateEngine>) => RenderingFunction;
-  addTmpls: (source: Element | string, removeInnerTemplate?: boolean | Partial<TemplateEngine>, tmplSettings?: Partial<TemplateEngine>) => Element | TemplateElement;
-  addTmplByUrl: (importData: string | any[] | { url: string; option?: Record<string, any> }, option?: Record<string, any> | (() => void), callback?: Function | (() => void)) => void;
+  addTmpl: (
+    tmplId: string,
+    element: Element | string,
+    tmplSettings?: Partial<TemplateEngine>
+  ) => RenderingFunction;
+  addTmpls: (
+    source: Element | string,
+    removeInnerTemplate?: boolean | Partial<TemplateEngine>,
+    tmplSettings?: Partial<TemplateEngine>
+  ) => Element | TemplateElement;
+  addTmplByUrl: (
+    importData: string | any[] | { url: string; option?: Record<string, any> },
+    option?: Record<string, any> | (() => void),
+    callback?: Function | (() => void)
+  ) => void;
   addI18n: (fullKey: string, i18nObj: Record<string, any>) => void;
   addI18ns: (i18nObjs: Record<string, any>) => void;
 }
 
 // Ensure TemplateElement is defined for environments like older JSDOM
-interface TemplateElement extends HTMLTemplateElement { }
+interface TemplateElement extends HTMLTemplateElement {}
 
 export {
   CompomintConfigs,
