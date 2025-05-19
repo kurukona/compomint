@@ -739,10 +739,7 @@ __p+='`;
         lazyScope.lazyEvaluateArray.forEach(function (selectedFunc, idx) {
           try {
             // Call the function with the component's root element (or its parent if multiple roots) as 'this' context
-            selectedFunc.call(
-              $targetElement || $childTarget.parentElement,
-              data
-            ); // Pass component data as argument
+            selectedFunc.call($targetElement || wrapper, data); // Pass component data as argument
           } catch (e) {
             console.error(
               `Error in lazyEvaluate block ${idx} for template ${component.tmplId}:`,
@@ -1219,35 +1216,7 @@ return __p;`;
       });
     }
 
-    // 6. Execute Lazy Functions (attaching events, refs, etc.)
-    const lazyExec = matcher.lazyExec;
-    if (data) {
-      // Only run lazy exec if data was provided (avoids errors on empty render)
-      matcher.lazyExecKeys.forEach(function (key) {
-        if (lazyScope[key] && lazyScope[key].length > 0) {
-          // Check if the array exists and has items
-          try {
-            lazyExec[key].call(
-              templateEngine.rules[key.slice(0, -5)],
-              data,
-              lazyScope,
-              component,
-              docFragment
-            );
-          } catch (e) {
-            if (configs.throwError) {
-              console.error(
-                `Error during lazy execution of "${key}" for template "${tmplId}":`,
-                e
-              );
-              throw e;
-            }
-          }
-        }
-      });
-    }
-
-    // 7. Determine the final element/fragment and handle container rendering
+    // 6. Determine the final element/fragment and handle container rendering
     if (hasParent) {
       // Clear the container element before appending
       while (wrapperElement.firstChild) {
@@ -1345,7 +1314,7 @@ return __p;`;
       }
     }
 
-    // 8. Finalize and Clean Up
+    // 7. Finalize and Clean Up
     if (returnTarget.normalize) {
       returnTarget.normalize(); // Merge adjacent text nodes
     }
@@ -1354,6 +1323,34 @@ return __p;`;
       cleanNode(returnTarget); // Remove empty text/comment nodes
     }
     component.element = returnTarget; // Assign the final element/fragment to the scope
+
+    // 8. Execute Lazy Functions (attaching events, refs, etc.)
+    const lazyExec = matcher.lazyExec;
+    if (data) {
+      // Only run lazy exec if data was provided (avoids errors on empty render)
+      matcher.lazyExecKeys.forEach(function (key) {
+        if (lazyScope[key] && lazyScope[key].length > 0) {
+          // Check if the array exists and has items
+          try {
+            lazyExec[key].call(
+              templateEngine.rules[key.slice(0, -5)],
+              data,
+              lazyScope,
+              component,
+              docFragment
+            );
+          } catch (e) {
+            if (configs.throwError) {
+              console.error(
+                `Error during lazy execution of "${key}" for template "${tmplId}":`,
+                e
+              );
+              throw e;
+            }
+          }
+        }
+      });
+    }
 
     // Optional: Support for live reloading (if defined elsewhere)
     if (tools.liveReloadSupport) {
@@ -2042,6 +2039,35 @@ tools.genId = function (tmplId) {
   return tmplId + elementCount;
 };
 
+const applyElementProps = (tools.applyElementProps = function (
+  element,
+  attrs = {}
+) {
+  Object.keys(attrs).forEach(function (key) {
+    const value = attrs[key];
+    // Set attributes directly as properties where possible (e.g., className, id, src)
+    // Handle 'class' specifically -> 'className'
+    const propName = key === "class" ? "className" : key;
+    try {
+      if (typeof value === "object") {
+        Object.assign(element[key], value);
+      } else if (propName in element) {
+        // Check if the property exists and is writable, or if it's a data-* attribute
+        element[propName] = value;
+      } else {
+        // Fallback to setAttribute for other cases (like 'for', 'colspan', custom attributes)
+        element.setAttribute(key, value);
+      }
+    } catch (e) {
+      console.error(
+        `Error setting attribute / property "${key}" on < ${tagName}>: `,
+        e
+      );
+    }
+  });
+  return element;
+});
+
 const genElement = (tools.genElement = function (
   tagName,
   attrs = {},
@@ -2057,28 +2083,7 @@ const genElement = (tools.genElement = function (
     children = attrs.concat(children);
   } else {
     // Set attributes
-    Object.keys(attrs).forEach(function (key) {
-      const value = attrs[key];
-      // Set attributes directly as properties where possible (e.g., className, id, src)
-      // Handle 'class' specifically -> 'className'
-      const propName = key === "class" ? "className" : key;
-      try {
-        if (typeof value === "object") {
-          Object.assign(element[key], value);
-        } else if (propName in element) {
-          // Check if the property exists and is writable, or if it's a data-* attribute
-          element[propName] = value;
-        } else {
-          // Fallback to setAttribute for other cases (like 'for', 'colspan', custom attributes)
-          element.setAttribute(key, value);
-        }
-      } catch (e) {
-        console.error(
-          `Error setting attribute / property "${key}" on < ${tagName}>: `,
-          e
-        );
-      }
-    });
+    applyElementProps(element, attrs);
   }
 
   // Iterate through the children array and append child nodes
@@ -2109,7 +2114,10 @@ tools.props = function (...propsObjects) {
   return propStrArray.join(" ");
 };
 
-addTmpl("co-Ele", `##%compomint.tools.genElement(data[0], data[1])##`);
+addTmpl(
+  "co-Ele",
+  `<##=data[0]##></##=data[0]##>###compomint.tools.applyElementProps(this, data[1]);##`
+);
 addTmpl(
   "co-Element",
   `##

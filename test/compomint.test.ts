@@ -1474,6 +1474,33 @@ describe("Compomint Template Engine", () => {
         expect(calls).toEqual([1, 2]); // Ensure they were called in the correct order
       });
 
+      it("should access able component.element namespace", () => {
+        const lazyHandler = jest.fn((element: Element) => {
+          expect(element.outerHTML).toBe('<span id="searchTarget">test</span>');
+        });
+
+        const renderingFunc = compomint.template(
+          "lazy-eval-element",
+          '<div><span id="searchTarget">test</span></div>### data.handler(component.element.querySelector("#searchTarget")) ##'
+        );
+        const component = renderingFunc({ handler: lazyHandler });
+        expect(lazyHandler).toHaveBeenCalledTimes(1);
+      });
+
+      it("should access able this namespace", () => {
+        const lazyHandler = jest.fn((element: Element) => {
+          expect(element.outerHTML).toBe('<span id="searchTarget">test</span>');
+        });
+
+        const renderingFunc = compomint.template(
+          "lazy-eval-element",
+          '<div><span id="searchTarget">test</span></div>### data.handler(this.querySelector("#searchTarget")) ##'
+        );
+        const component = renderingFunc({ handler: lazyHandler });
+
+        expect(lazyHandler).toHaveBeenCalledTimes(1);
+      });
+
       it("should access able compomint namespace", () => {
         const lazyHandler = jest.fn((compomintNs: any) => {
           expect(compomintNs.configs).toEqual({

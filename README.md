@@ -30,9 +30,14 @@ The Compomint template-based component engine is a lightweight JavaScript framew
 Compomint is designed to simplify web application development by providing a lightweight component system. It focuses on high performance and ease of use, allowing developers to create reusable components with HTML, CSS, and JavaScript in a single template.
 
 The framework is particularly suitable for:
+
 - Single Page Applications (SPAs)
 - Component-based user interfaces
 - Applications that require efficient DOM manipulation
+
+## Other Documentation
+
+- [Compomint Template Style Guide](https://github.com/kurukona/compomint/blob/master/Compomint_Template_Style_Guide.md)
 
 ## Key Features
 
@@ -52,6 +57,7 @@ The framework is particularly suitable for:
 ## Example Applications
 
 You can find example applications demonstrating Compomint in action:
+
 - **Compomint Core Greeting (ESM) Demo**: [Code](https://github.com/kurukona/compomint/blob/master/examples/greeting.esm.html) | [Demo](https://kurukona.github.io/compomint/examples/greeting.esm.html)
 - **Compomint Core Greeting (UMD) Demo**: [Code](https://github.com/kurukona/compomint/blob/master/examples/greeting.umd.html) | [Demo](https://kurukona.github.io/compomint/examples/greeting.umd.html)
 - **Component Examples**: [Code](https://github.com/kurukona/compomint/blob/master/examples/component_examples.html) | [Demo](https://kurukona.github.io/compomint/examples/component_examples.html)
@@ -75,24 +81,29 @@ For the UMD build (`compomint.umd.js`):
 <!-- index.html -->
 <script src="path/to/your/compomint.umd.js"></script>
 <!-- OR -->
-<script src="path/to/your/compomint.umd.min.js"></script> <!-- Minified version for production -->
+<script src="path/to/your/compomint.umd.min.js"></script>
+<!-- Minified version for production -->
 
 <script>
-Compomint.compomint.addTmpl('greeting-npm', '<span>##=data.message##</span>');
-const greeting = Compomint.tmpl.greeting.npm({ message: 'Hello from Compomint via NPM!' });
-document.body.appendChild(greeting.element);
+  Compomint.compomint.addTmpl("greeting-npm", "<span>##=data.message##</span>");
+  const greeting = Compomint.tmpl.greeting.npm({
+    message: "Hello from Compomint via NPM!",
+  });
+  document.body.appendChild(greeting.element);
 </script>
 ```
 
 For the ESM build (`compomint.esm.js`), use `type="module"`:
 
 ```javascript
-import { compomint, tmpl } from 'path/to/your/compomint.esm.js'
+import { compomint, tmpl } from "path/to/your/compomint.esm.js";
 // OR
-import { compomint, tmpl } from 'path/to/your/compomint.esm.min.js' // Minified version for production 
+import { compomint, tmpl } from "path/to/your/compomint.esm.min.js"; // Minified version for production
 
-compomint.addTmpl('greeting-npm', '<span>##=data.message##</span>');
-const greeting = tmpl.greeting.npm({ message: 'Hello from Compomint via NPM!' });
+compomint.addTmpl("greeting-npm", "<span>##=data.message##</span>");
+const greeting = tmpl.greeting.npm({
+  message: "Hello from Compomint via NPM!",
+});
 document.body.appendChild(greeting.element);
 ```
 
@@ -106,17 +117,24 @@ For the UMD build (`compomint.js`):
 
 ```html
 <script src="https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.umd.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.umd.min.js"></script> <!-- Minified version for production -->
+<script src="https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.umd.min.js"></script>
+<!-- Minified version for production -->
 ```
 
 For the ESM build (`compomint.esm.js`), use `type="module"`:
 
 ```javascript
-import { compomint, tmpl } from 'https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.esm.js';
-import { compomint, tmpl } from 'https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.esm.min.js'; // Minified version for production
+import {
+  compomint,
+  tmpl,
+} from "https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.esm.js";
+import {
+  compomint,
+  tmpl,
+} from "https://cdn.jsdelivr.net/gh/kurukona/compomint@latest/dist/compomint.esm.min.js"; // Minified version for production
 ```
 
-Using importmap: 
+Using importmap:
 
 ```html
 <!-- index.html -->
@@ -131,13 +149,14 @@ Using importmap:
 
 ```javascript
 // main.js
-import { compomint, tmpl } from 'compomint';
-const greeting = tmpl.greeting.npm({ message: 'Hello from Compomint via NPM!' });
+import { compomint, tmpl } from "compomint";
+const greeting = tmpl.greeting.npm({
+  message: "Hello from Compomint via NPM!",
+});
 document.body.appendChild(greeting.element);
 ```
 
 Using `@latest` will load the most recent version. You can replace `@latest` with a specific version number (e.g., `@1.0.0`) for better stability in production.
-
 
 ### Option 3: NPM
 
@@ -146,7 +165,9 @@ Compomint is available on NPM, making it easy to integrate into your projects us
 ```bash
 npm install compomint
 ```
+
 or
+
 ```bash
 yarn add compomint
 ```
@@ -157,11 +178,13 @@ Once installed, you can import Compomint into your JavaScript files.
 If you are using ESM (ECMAScript Modules) (common in modern frontend projects with bundlers like Webpack, Rollup, or Parcel):
 
 ```javascript
-import { compomint, tmpl } from 'compomint';
+import { compomint, tmpl } from "compomint";
 
 // Start using Compomint:
-compomint.addTmpl('greeting-npm', '<span>##=data.message##</span>');
-const greeting = tmpl.greeting.npm({ message: 'Hello from Compomint via NPM!' });
+compomint.addTmpl("greeting-npm", "<span>##=data.message##</span>");
+const greeting = tmpl.greeting.npm({
+  message: "Hello from Compomint via NPM!",
+});
 document.body.appendChild(greeting.element);
 ```
 
@@ -190,7 +213,7 @@ There are several ways to define templates in Compomint:
 #### Method 1: Using compomint.addTmpl()
 
 ```javascript
-compomint.addTmpl('do-Simple-Label', '<span>##=data.label##</span>');
+compomint.addTmpl("do-Simple-Label", "<span>##=data.label##</span>");
 ```
 
 #### Method 2: Using template tags with compomint.addTmpls()
@@ -232,6 +255,7 @@ compomint.addTmpls(templateString);
 ```
 
 When using the template tag approach:
+
 - The ID attribute determines the component name
 - Styles defined within the template are automatically added to the document head
 - Style tag IDs should follow the format "style-{template-id}" to prevent conflicts
@@ -243,14 +267,12 @@ When using the template tag approach:
 <html>
   <body>
     <template id="do-Simple-Label">
-      <span class="do-Simple-Label">
-        ##=data.label##
-      </span>
+      <span class="do-Simple-Label"> ##=data.label## </span>
     </template>
     <template id="do-Simple-Button">
       <style id="style-do-Simple-Button">
         .do-Simple-Button {
-          background-color: #4CAF50;
+          background-color: #4caf50;
           border: none;
           color: white;
           padding: 8px 16px;
@@ -259,9 +281,11 @@ When using the template tag approach:
           border-radius: 4px;
         }
       </style>
-      <button class="do-Simple-Button"
-          style="color: ##=data.color || 'white'##"
-          data-co-event="##:data.onClick##">
+      <button
+        class="do-Simple-Button"
+        style="color: ##=data.color || 'white'##"
+        data-co-event="##:data.onClick##"
+      >
         ##=data.label##
       </button>
     </template>
@@ -280,29 +304,31 @@ compomint.addTmpls(document.body.innerHTML, true);
 
 ```javascript
 // Load templates from external file
-compomint.addTmplByUrl('templates.html', function() {
-  console.log('Templates loaded successfully!');
+compomint.addTmplByUrl("templates.html", function () {
+  console.log("Templates loaded successfully!");
   // Initialize your application here
   const mainScreen = tmpl.do.MainScreen({});
   document.body.appendChild(mainScreen.element);
 });
 
 // With options for loading
-compomint.addTmplByUrl({
-  url: 'templates.html',
-  option: {
-    loadScript: true,  // Load and execute script tags
-    loadStyle: true,   // Load style tags
-    loadLink: true     // Load link tags
-  }
-}, callback);
+compomint.addTmplByUrl(
+  {
+    url: "templates.html",
+    option: {
+      loadScript: true, // Load and execute script tags
+      loadStyle: true, // Load style tags
+      loadLink: true, // Load link tags
+    },
+  },
+  callback
+);
 
 // Load multiple template files
-compomint.addTmplByUrl([
-  'templates/header.html',
-  'templates/main.html',
-  'templates/footer.html'
-], callback);
+compomint.addTmplByUrl(
+  ["templates/header.html", "templates/main.html", "templates/footer.html"],
+  callback
+);
 ```
 
 ### 2. Create and Use Components
@@ -318,13 +344,14 @@ If a template ID contains hyphens (`-`), they are converted into a nested object
 ```javascript
 // Create a simple label component using the tmpl namespace
 // The 'do-Simple-Label' ID is converted to tmpl.do.SimpleLabel
-const label = tmpl.do.SimpleLabel({label: 'Hello World'});
+const label = tmpl.do.SimpleLabel({ label: "Hello World" });
 
 // Add it to the DOM
 document.body.appendChild(label.element);
 ```
 
 Result:
+
 ```html
 <span class="do-Simple-Label">Hello World</span>
 ```
@@ -333,17 +360,20 @@ Result:
 
 Instead of using the `tmpl` namespace, you can also create components by directly calling the `compomint.tmpl()` function and passing the template ID as a string. This approach is useful in the following scenarios:
 
-*   When the template ID is determined dynamically (e.g., using an ID stored in a variable).
-*   When you prefer explicit function calls over the automatic namespace generation provided by `tmpl`.
+- When the template ID is determined dynamically (e.g., using an ID stored in a variable).
+- When you prefer explicit function calls over the automatic namespace generation provided by `tmpl`.
 
 ```javascript
 // Create a button with click handler
-const button = compomint.tmpl('do-Simple-Button')({
-  label: 'Click Me',
-  color: 'white',
-  onClick: (event, {data, customData, element, componentElement, component, compomint}) => {
-    alert('Button clicked!');
-  }
+const button = compomint.tmpl("do-Simple-Button")({
+  label: "Click Me",
+  color: "white",
+  onClick: (
+    event,
+    { data, customData, element, componentElement, component, compomint }
+  ) => {
+    alert("Button clicked!");
+  },
 });
 
 // Add it to the DOM
@@ -351,6 +381,7 @@ document.body.appendChild(button.element);
 ```
 
 Result:
+
 ```html
 <button class="do-Simple-Button" style="color: white">Click Me</button>
 <!-- With click event handler attached -->
@@ -419,14 +450,15 @@ compomint.addTmpls(`
 
 // Create a counter component with initial count of 5
 const counter = tmpl.do.Counter({
-  title: 'My Counter',
-  initialCount: 5
+  title: "My Counter",
+  initialCount: 5,
 });
 
 document.body.appendChild(counter.element);
 ```
 
 Result:
+
 ```html
 <div class="do-Counter">
   <h3>My Counter</h3>
@@ -471,15 +503,19 @@ compomint.addTmpls(`
 `);
 
 // Create multiple card instances
-document.body.appendChild(tmpl.ui.Card({
-  title: 'Card 1',
-  content: 'This is the first card'
-}).element);
+document.body.appendChild(
+  tmpl.ui.Card({
+    title: "Card 1",
+    content: "This is the first card",
+  }).element
+);
 
-document.body.appendChild(tmpl.ui.Card({
-  title: 'Card 2',
-  content: 'This is the second card'
-}).element);
+document.body.appendChild(
+  tmpl.ui.Card({
+    title: "Card 2",
+    content: "This is the second card",
+  }).element
+);
 ```
 
 When included in a template, style elements with IDs are automatically extracted and added to the document head, ensuring that styles are defined only once regardless of how many component instances you create.
@@ -487,6 +523,7 @@ When included in a template, style elements with IDs are automatically extracted
 ### Built-in Variables
 
 These variables are available within templates:
+
 - data
 - status
 - component
@@ -494,35 +531,38 @@ These variables are available within templates:
 - tmpl
 - compomint
 
-
 #### `data`
+
 Contains the data passed when creating the component.
 
 ```javascript
 // In template: ##=data.userName##
-tmpl.user.Profile({userName: 'John Doe'});
+tmpl.user.Profile({ userName: "John Doe" });
 ```
 
 #### `status`
+
 Object for storing component state information that persists across refreshes.
 
 ```html
 <!-- In template -->
-##
-status.count = status.count || 0;
-##
-<button data-co-event="##:{
+## status.count = status.count || 0; ##
+<button
+  data-co-event="##:{
   click: function(event, {data, component}) {
     status.count++;
     component.refresh();
   }
-}##">
+}##"
+>
   Clicked ##=status.count## times
 </button>
 ```
 
 #### `component`
+
 Reference to the template scope, providing access to:
+
 - `component.element` - The rendered DOM element
 - `component.data` - The data used to render the template
 - `component.status` - The status object for template state
@@ -532,36 +572,42 @@ Reference to the template scope, providing access to:
 
 ```html
 <!-- In template -->
-<button data-co-event="##:{
+<button
+  data-co-event="##:{
   click: function(event, {data, component}) {
     component.refresh({message: 'Updated!'});
   }
-}##">
+}##"
+>
   Update
 </button>
 ```
 
 #### `i18n`
+
 Internationalization object for localized text.
 
 ```javascript
 // In template: ##=i18n.greeting##
 // After setting up translations:
-compomint.addI18n('user-profile.greeting', {
-  'en': 'Welcome',
-  'fr': 'Bienvenue',
-  'es': 'Bienvenido'
+compomint.addI18n("user-profile.greeting", {
+  en: "Welcome",
+  fr: "Bienvenue",
+  es: "Bienvenido",
 });
 ```
 
 #### `tmpl`
+
 Reference to the template registry, providing access to:
-  // Create a component instance like
+// Create a component instance like
+
 - `tmpl.ui.Button({label: 'Click Me'});`
 
-
 #### `compomint`
+
 Reference to the global compomint object, providing access to:
+
 - `compomint.tools.genElement('div', {class: 'message'}, 'Hello');` - Creates a DOM element
 - `compomint.tools.props({class: 'button', disabled: true});` - Creates HTML attribute string
 - `compomint.tools.genId('my-component');` - Generates a unique ID
@@ -601,11 +647,8 @@ If the property is a function, it will be called automatically:
 <span>##=data.getFormattedName##</span>
 
 <!-- When creating the component -->
-tmpl.user.NameTag({
-  getFormattedName: function() {
-    return 'Dr. John Smith, PhD';
-  }
-});
+tmpl.user.NameTag({ getFormattedName: function() { return 'Dr. John Smith, PhD';
+} });
 ```
 
 #### `##- ##` - HTML Escaping
@@ -628,9 +671,7 @@ Used to include other components, HTML elements, or strings:
 
 ```html
 <!-- Insert a single component -->
-<div class="container">
-  ##%childComponent##
-</div>
+<div class="container">##%childComponent##</div>
 
 <!-- Insert an array of components -->
 <div class="container">
@@ -638,9 +679,7 @@ Used to include other components, HTML elements, or strings:
 </div>
 
 <!-- With optional non-blocking (async) insertion -->
-<div class="heavy-content">
-  ##%heavyComponent::true##
-</div>
+<div class="heavy-content">##%heavyComponent::true##</div>
 ```
 
 The second parameter after `::` indicates that insertion should be non-blocking.
@@ -651,18 +690,9 @@ Code that runs when the template is first loaded (not on each render):
 
 ```html
 <template id="user-profile">
-  ##!
-    // This code runs once when the template is loaded
-    compomint.addI18ns({
-      'user-profile': {
-        'greeting': {
-          'en': 'Welcome',
-          'fr': 'Bienvenue',
-          'es': 'Bienvenido'
-        }
-      }
-    });
-  ##
+  ##! // This code runs once when the template is loaded compomint.addI18ns({
+  'user-profile': { 'greeting': { 'en': 'Welcome', 'fr': 'Bienvenue', 'es':
+  'Bienvenido' } } }); ##
   <div>##=i18n.greeting##, ##=data.name##!</div>
 </template>
 ```
@@ -673,26 +703,18 @@ Allows you to write JavaScript code that runs during rendering:
 
 ```html
 <template id="product-list">
-  ##
-    // Process data before rendering
-    const sortedProducts = data.products.sort((a, b) => 
-      a.price - b.price
-    );
-    
-    // Create a formatted price function
-    function formatPrice(price) {
-      return '$' + price.toFixed(2);
-    }
-  ##
-  
+  ## // Process data before rendering const sortedProducts =
+  data.products.sort((a, b) => a.price - b.price ); // Create a formatted price
+  function function formatPrice(price) { return '$' + price.toFixed(2); } ##
+
   <div class="product-list">
     <h2>##=data.title##</h2>
     <ul>
       ##sortedProducts.forEach(product => {##
-        <li>
-          <strong>##=product.name##</strong>
-          <span>##=formatPrice(product.price)##</span>
-        </li>
+      <li>
+        <strong>##=product.name##</strong>
+        <span>##=formatPrice(product.price)##</span>
+      </li>
       ##})##
     </ul>
   </div>
@@ -707,27 +729,18 @@ Code that runs after the template is rendered:
 <template id="chart-component">
   <div class="chart-container" id="chart-##=data.id##"></div>
 
-  ###
-    // This code runs after the element is in the DOM
-    const chartElement = document.getElementById('chart-' + data.id);
-    
-    // Initialize a chart library
-    new Chart(chartElement, {
-      type: 'bar',
-      data: data.chartData,
-      options: data.chartOptions
-    });
-  ##
+  ### // This code runs after the element is in the DOM const chartElement =
+  document.getElementById('chart-' + data.id); // Initialize a chart library new
+  Chart(chartElement, { type: 'bar', data: data.chartData, options:
+  data.chartOptions }); ##
 </template>
 ```
 
 #### `##* ##` - Comment Areas
 
 ```html
-##*
-  This is a comment area that won't be rendered.
-  Use it for documenting your template code.
-##
+##* This is a comment area that won't be rendered. Use it for documenting your
+template code. ##
 ```
 
 ### HTML Attribute Expressions
@@ -743,19 +756,23 @@ Attaches event handlers to HTML elements:
 <button data-co-event="##:handleClick##">Click Me</button>
 
 <!-- Multiple event types -->
-<input data-co-event="##:{
+<input
+  data-co-event="##:{
   focus: handleFocus,
   blur: handleBlur,
   input: handleInput
-}##" />
+}##"
+/>
 
 <!-- With inline function -->
-<button data-co-event="##:{
+<button
+  data-co-event="##:{
   click: function(event, {data, customData, element, componentElement, component, compomint}) {
     console.log('Clicked:', componentElement.textContent);
     alert('Hello, ' + data.userName + '!');
   }
-}##">
+}##"
+>
   Greet
 </button>
 
@@ -766,6 +783,7 @@ Attaches event handlers to HTML elements:
 ```
 
 Event handlers receive these parameters:
+
 1. `event` - The DOM event object
 2. `eventData` - An object containing:
    - `data` - The component's data object
@@ -780,14 +798,16 @@ Event handlers receive these parameters:
 Creates a named reference to an element in the template scope:
 
 ```html
-<input type="text" data-co-named-element="##:'nameInput'##">
+<input type="text" data-co-named-element="##:'nameInput'##" />
 
 <!-- Later in the template or another handler -->
-<button data-co-event="##:{
+<button
+  data-co-event="##:{
   click: function(event, {component}) {
     console.log('Input value:', component.nameInput.value);
   }
-}##">
+}##"
+>
   Get Value
 </button>
 ```
@@ -798,19 +818,21 @@ Binds a DOM element to a variable in the template code:
 
 ```html
 <template id="form-component">
-  ##
-    let formData = {};
-    function submitForm() {
-      formData.name = nameInput.value;
-      formData.email = emailInput.value;
-      console.log('Submitted:', formData);
-    }
-  ##
-  
+  ## let formData = {}; function submitForm() { formData.name = nameInput.value;
+  formData.email = emailInput.value; console.log('Submitted:', formData); } ##
+
   <form>
-    <input type="text" placeholder="Name" data-co-element-ref="##:nameInput##">
-    <input type="email" placeholder="Email" data-co-element-ref="##:emailInput##">
-    
+    <input
+      type="text"
+      placeholder="Name"
+      data-co-element-ref="##:nameInput##"
+    />
+    <input
+      type="email"
+      placeholder="Email"
+      data-co-element-ref="##:emailInput##"
+    />
+
     <button type="button" data-co-event="##:{click: submitForm}##">
       Submit
     </button>
@@ -823,7 +845,10 @@ Binds a DOM element to a variable in the template code:
 Executes a function when an element is loaded into the DOM:
 
 ```html
-<div class="chart-container" data-co-load="##:initializeChart::data.chartData##"></div>
+<div
+  class="chart-container"
+  data-co-load="##:initializeChart::data.chartData##"
+></div>
 
 <!--
 Where initializeChart is defined as:
@@ -839,6 +864,7 @@ function initializeChart(element, {data, customData, element, component, compomi
 ```
 
 Load handlers receive these parameters:
+
 1. `element` - The element itself
 2. `loadData` - An object containing:
    - `data` - The component's data object
@@ -855,46 +881,48 @@ Compomint includes built-in support for multiple languages:
 
 ```javascript
 // Add translations for a single key
-compomint.addI18n('greeting', {
-  'en': 'Hello',
-  'fr': 'Bonjour',
-  'es': 'Hola',
-  'de': 'Hallo'
+compomint.addI18n("greeting", {
+  en: "Hello",
+  fr: "Bonjour",
+  es: "Hola",
+  de: "Hallo",
 });
 
 // Add nested translations
-compomint.addI18n('messages.welcome', {
-  'en': 'Welcome to our site',
-  'fr': 'Bienvenue sur notre site',
-  'es': 'Bienvenido a nuestro sitio'
+compomint.addI18n("messages.welcome", {
+  en: "Welcome to our site",
+  fr: "Bienvenue sur notre site",
+  es: "Bienvenido a nuestro sitio",
 });
 
 // Add multiple translations at once
 compomint.addI18ns({
-  'greeting': {
-    'en': 'Hello',
-    'fr': 'Bonjour'
+  greeting: {
+    en: "Hello",
+    fr: "Bonjour",
   },
-  'farewell': {
-    'en': 'Goodbye',
-    'fr': 'Au revoir'
+  farewell: {
+    en: "Goodbye",
+    fr: "Au revoir",
   },
-  'buttons': {
-    'submit': {
-      'en': 'Submit',
-      'fr': 'Soumettre'
+  buttons: {
+    submit: {
+      en: "Submit",
+      fr: "Soumettre",
     },
-    'cancel': {
-      'en': 'Cancel',
-      'fr': 'Annuler'
-    }
-  }
+    cancel: {
+      en: "Cancel",
+      fr: "Annuler",
+    },
+  },
 });
 ```
 
 Use in templates
+
 ```html
-<span>##=compomint.i18n.greeting('Hello!')##</span> <!-- when language is 'ja' then output is 'Hello!' (default text) -->
+<span>##=compomint.i18n.greeting('Hello!')##</span>
+<!-- when language is 'ja' then output is 'Hello!' (default text) -->
 <p>##=compomint.i18n.messages.welcome('Welcome to our site')##</p>
 <button>##=compomint.i18n.buttons.submit('Submit')##</button>
 ```
@@ -905,20 +933,9 @@ The current language is determined by `document.documentElement.lang`. The param
 
 ```html
 <template id="my-component">
-  ##!
-  // Define translations in template preloading
-  compomint.addI18ns({
-    'my-component': {
-      'greeting': {
-        'en': 'Hello',
-        'fr': 'Bonjour'
-      },
-      'subtitle': {
-        'en': 'Welcome to our app',
-        'fr': 'Bienvenue dans notre application'
-      }
-    }
-  });
+  ##! // Define translations in template preloading compomint.addI18ns({
+  'my-component': { 'greeting': { 'en': 'Hello', 'fr': 'Bonjour' }, 'subtitle':
+  { 'en': 'Welcome to our app', 'fr': 'Bienvenue dans notre application' } } });
   ##
   <div>
     <h1>##=i18n.greeting## ##=data.name##!</h1>
@@ -934,15 +951,15 @@ You can remap template IDs, which is useful for versioning or aliasing:
 ```javascript
 // Remap template IDs
 compomint.remapTmpl({
-  'old-button': 'ui-Button-v2',
-  'legacy-form': 'ui-Form-v3'
+  "old-button": "ui-Button-v2",
+  "legacy-form": "ui-Form-v3",
 });
 
 // Now, this:
-const button = compomint.tmpl('old-button')(data);
+const button = compomint.tmpl("old-button")(data);
 
 // Is equivalent to:
-const button = compomint.tmpl('ui-Button-v2')(data);
+const button = compomint.tmpl("ui-Button-v2")(data);
 ```
 
 ### Custom Template Settings
@@ -952,35 +969,32 @@ You can customize how templates are processed:
 ```javascript
 // Define custom template settings
 const customSettings = {
-  dataKeyName: 'model',  // Use 'model' instead of 'data' in templates
-  statusKeyName: 'state', // Use 'state' instead of 'status' in templates
+  dataKeyName: "model", // Use 'model' instead of 'data' in templates
+  statusKeyName: "state", // Use 'state' instead of 'status' in templates
   // Override other settings as needed
 };
 
 // Create template with custom settings
-compomint.addTmpl('custom-template', 
-  '<div>##=model.label##</div>', 
-  {keys: customSettings}
-);
+compomint.addTmpl("custom-template", "<div>##=model.label##</div>", {
+  keys: customSettings,
+});
 
 // Use the template
-const component = compomint.tmpl('custom-template')({label: 'Hello'});
+const component = compomint.tmpl("custom-template")({ label: "Hello" });
 ```
 
 **Custom Template Expression Syntax**
+
 ```javascript
 // Use custom delimiters for template expressions
-compomint.addTmpl('custom-syntax', 
-  '<div>{{=data.label}}</div>', 
-  {
-    interpolate: {
-      pattern: /{{=([\s\S]+?)}}/g,
-      exec: function(interpolate) {
-        return `';(() => {let interpolate=${interpolate};\n__p+=((__t=(typeof (interpolate)=='function' ? (interpolate)() : (interpolate)))==null?'':__t);})()\n__p+='`;
-      }
-    }
-  }
-);
+compomint.addTmpl("custom-syntax", "<div>{{=data.label}}</div>", {
+  interpolate: {
+    pattern: /{{=([\s\S]+?)}}/g,
+    exec: function (interpolate) {
+      return `';(() => {let interpolate=${interpolate};\n__p+=((__t=(typeof (interpolate)=='function' ? (interpolate)() : (interpolate)))==null?'':__t);})()\n__p+='`;
+    },
+  },
+});
 ```
 
 ## Template Lifecycle
@@ -991,9 +1005,9 @@ Templates in Compomint have a comprehensive lifecycle that you can manage:
 
 ```javascript
 // Render a template with data
-const component = compomint.tmpl('my-template')({
-  name: 'John Doe',
-  email: 'john@example.com'
+const component = compomint.tmpl("my-template")({
+  name: "John Doe",
+  email: "john@example.com",
 });
 ```
 
@@ -1004,15 +1018,17 @@ const component = compomint.tmpl('my-template')({
 document.body.appendChild(component.element);
 
 // Append using component method
-component.appendTo(document.getElementById('container'));
+component.appendTo(document.getElementById("container"));
 
 // Render directly into a container
-compomint.tmpl('my-template')(data, document.getElementById('container'));
+compomint.tmpl("my-template")(data, document.getElementById("container"));
 
 // With a callback after insertion
-compomint.tmpl('my-template')(data, document.getElementById('container'), 
-  function(scope) {
-    console.log('Template rendered and inserted!');
+compomint.tmpl("my-template")(
+  data,
+  document.getElementById("container"),
+  function (scope) {
+    console.log("Template rendered and inserted!");
     // Initialize additional components
   }
 );
@@ -1023,13 +1039,13 @@ compomint.tmpl('my-template')(data, document.getElementById('container'),
 ```javascript
 // Complete re-render with new data
 component.render({
-  name: 'Jane Doe',
-  email: 'jane@example.com'
+  name: "Jane Doe",
+  email: "jane@example.com",
 });
 
 // Partial update (only specified properties)
 component.refresh({
-  name: 'Jane Doe'
+  name: "Jane Doe",
   // email remains unchanged
 });
 ```
@@ -1049,11 +1065,11 @@ component.remove(true);
 
 ```javascript
 // Replace with another template
-const newScope = compomint.tmpl('other-template')(otherData);
+const newScope = compomint.tmpl("other-template")(otherData);
 component.replace(newScope);
 
 // Or replace directly
-component.replace(compomint.tmpl('other-template')(otherData));
+component.replace(compomint.tmpl("other-template")(otherData));
 ```
 
 ### Lifecycle Hooks
@@ -1062,33 +1078,33 @@ You can define hooks for different lifecycle events:
 
 ```javascript
 // Define lifecycle hooks
-component.beforeAppendTo = function() {
-  console.log('About to insert into DOM');
+component.beforeAppendTo = function () {
+  console.log("About to insert into DOM");
   // Pre-insertion setup
 };
 
-component.afterAppendTo = function() {
-  console.log('Inserted into DOM');
+component.afterAppendTo = function () {
+  console.log("Inserted into DOM");
   // Post-insertion initialization
 };
 
-component.beforeRemove = function() {
-  console.log('About to remove from DOM');
+component.beforeRemove = function () {
+  console.log("About to remove from DOM");
   // Cleanup resources
 };
 
-component.afterRemove = function() {
-  console.log('Removed from DOM');
+component.afterRemove = function () {
+  console.log("Removed from DOM");
   // Final cleanup
 };
 
-component.beforeRefresh = function() {
-  console.log('About to update data');
+component.beforeRefresh = function () {
+  console.log("About to update data");
   // Prepare for update
 };
 
-component.afterRefresh = function() {
-  console.log('Updated with new data');
+component.afterRefresh = function () {
+  console.log("Updated with new data");
   // Post-update processing
 };
 ```
@@ -1105,11 +1121,13 @@ component.release();
 ### Template Creation
 
 - `compomint.addTmpl(id, content, settings)` - Creates a new template
+
   - `id` - Template identifier
   - `content` - Template string or DOM element
   - `settings` - Optional template settings
 
 - `compomint.addTmpls(source, removeInnerTemplate, settings)` - Loads multiple templates from source
+
   - `source` - HTML string or DOM element containing templates
   - `removeInnerTemplate` - Whether to remove templates after loading
   - `settings` - Optional template settings
@@ -1149,10 +1167,12 @@ component.release();
 ### Internationalization
 
 - `compomint.addI18n(key, translations)` - Adds translations for a key
+
   - `key` - Translation key (can be nested with dots)
   - `translations` - Object mapping language codes to translations
 
 - `compomint.addI18ns(translationsObject)` - Adds multiple translations
+
   - `translationsObject` - Object mapping keys to translation objects
 
 - `compomint.i18n[key](defaultText)` - Gets translation for current language
@@ -1162,17 +1182,21 @@ component.release();
 ### Utility Functions
 
 - `compomint.tools.genElement(tagName, attrs = {}, ...children)` - Creates a DOM element
+
   - `tagName` - Type of element to create
   - `attrs` - Object of attributes to set
   - `...children` - Child elements to append
 
 - `compomint.tools.props(...propsObjects)` - Creates HTML attribute string
+
   - `propsObjects` - Objects of properties to convert to attributes
 
 - `compomint.tools.genId(prefix)` - Generates a unique ID
+
   - `prefix` - ID prefix (usually template ID)
 
 - `compomint.tools.escapeHtml.escape(string)` - Escapes HTML characters
+
   - `string` - String to escape
 
 - `compomint.tools.escapeHtml.unescape(string)` - Unescapes HTML characters
@@ -1228,29 +1252,32 @@ Expects an object `data` with the following optional properties:
 
 ```javascript
 // Create a paragraph element with various attributes and string content
-const paragraph = compomint.tmpl('co-Element')({
-  tag: 'p',
-  id: 'myParagraph',
-  props: { 
-    class: 'info-text important', 
-    style: 'color: blue; font-weight: bold;',
-    'data-custom': 'value' 
+const paragraph = compomint.tmpl("co-Element")({
+  tag: "p",
+  id: "myParagraph",
+  props: {
+    class: "info-text important",
+    style: "color: blue; font-weight: bold;",
+    "data-custom": "value",
   },
-  content: 'This is an important paragraph.',
-  event: { click: () => alert('Paragraph clicked!') }
+  content: "This is an important paragraph.",
+  event: { click: () => alert("Paragraph clicked!") },
 });
 document.body.appendChild(paragraph.element);
 
 // Create a div containing another element (using co-Ele for the inner part)
-const innerSpan = compomint.tmpl('co-Ele')(['span', { className: 'highlight' }, 'Highlighted Text']);
-const wrapperDiv = compomint.tmpl('co-Element')({
+const innerSpan = compomint.tmpl("co-Ele")([
+  "span",
+  { className: "highlight" },
+  "Highlighted Text",
+]);
+const wrapperDiv = compomint.tmpl("co-Element")({
   // tag defaults to 'div'
-  props: { class: 'wrapper' },
-  content: innerSpan.element // Insert the span element
+  props: { class: "wrapper" },
+  content: innerSpan.element, // Insert the span element
 });
 document.body.appendChild(wrapperDiv.element);
 ```
-
 
 This creates a comprehensive component showcase where you can see the template source code and rendered components side by side.
 
@@ -1324,81 +1351,88 @@ The template scope (`tmplScope`) is an object that:
 ### Performance Optimization
 
 1. **Minimize Re-renders**: Use `refresh()` for minor updates instead of `render()`
+
    ```javascript
    // Good: Update only what changed
-   tmplScope.refresh({counter: newCount});
-   
+   tmplScope.refresh({ counter: newCount });
+
    // Avoid: Complete re-render for small changes
-   tmplScope.render({...data, counter: newCount});
+   tmplScope.render({ ...data, counter: newCount });
    ```
 
 2. **Batch DOM Operations**: Use document fragments when inserting multiple elements
+
    ```javascript
    // Create a fragment first
    const fragment = document.createDocumentFragment();
-   items.forEach(item => {
-     const element = tmpl.ui.ListItem({text: item}).element;
+   items.forEach((item) => {
+     const element = tmpl.ui.ListItem({ text: item }).element;
      fragment.appendChild(element);
    });
-   
+
    // Then add to DOM once
    container.appendChild(fragment);
    ```
 
 3. **Cache Element References**: Store references to elements you'll need to access frequently
+
    ```javascript
    <input type="text" data-co-named-element="##:'nameInput'##">
-   
+
    // Later: Use the cached reference
    tmplScope.nameInput.focus();
    ```
 
 4. **Use Lazy Loading**: Load and initialize heavy components asynchronously
+
    ```javascript
-   <div id="chart-container">
-     ##%heavyChartComponent::true##
-   </div>
+   <div id="chart-container">##%heavyChartComponent::true##</div>
    ```
 
 5. **Template Granularity**: Create smaller, reusable templates instead of large monolithic ones
    ```javascript
    // Better: Compose from smaller components
-   compomint.tmpl('page-layout')({
-     header: tmpl.ui.Header({title: 'Dashboard'}),
-     sidebar: tmpl.ui.Sidebar({items: menuItems}),
+   compomint.tmpl("page-layout")({
+     header: tmpl.ui.Header({ title: "Dashboard" }),
+     sidebar: tmpl.ui.Sidebar({ items: menuItems }),
      content: tmpl.ui.ContentPanel({
-       title: 'Welcome',
-       body: tmpl.ui.WelcomeMessage({userName: 'John'})
-     })
+       title: "Welcome",
+       body: tmpl.ui.WelcomeMessage({ userName: "John" }),
+     }),
    });
    ```
 
 ### Code Organization
 
 1. **Template Namespacing**: Use consistent ID patterns
+
    ```javascript
    // Domain-specific grouping
-   'ui-Button'          // UI components
-   'form-TextField'     // Form components
-   'chart-BarChart'     // Chart components
-   'page-Dashboard'     // Page templates
+   "ui-Button"; // UI components
+   "form-TextField"; // Form components
+   "chart-BarChart"; // Chart components
+   "page-Dashboard"; // Page templates
    ```
 
 2. **Data Preparation**: Format data before passing to templates
+
    ```javascript
    // Prepare data before rendering
    const userData = {
-     fullName: user.firstName + ' ' + user.lastName,
+     fullName: user.firstName + " " + user.lastName,
      formattedDate: new Date(user.joinDate).toLocaleDateString(),
-     isAdmin: user.role === 'admin'
+     isAdmin: user.role === "admin",
    };
-   
-   const userCard = compomint.tmpl('user-card')(userData);
+
+   const userCard = compomint.tmpl("user-card")(userData);
    ```
 
 3. **Event Delegation**: Use event delegation for dynamic content
+
    ```html
-   <ul class="item-list" data-co-event="##:{
+   <ul
+     class="item-list"
+     data-co-event="##:{
      click: function(event) {
        // Check if a list item was clicked
        if (event.target.closest('li')) {
@@ -1406,29 +1440,31 @@ The template scope (`tmplScope`) is an object that:
          console.log('Item clicked:', listItem.dataset.id);
        }
      }
-   }##">
+   }##"
+   >
      ## data.items.forEach(item => { ##
-       <li data-id="##=item.id##">##=item.name##</li>
+     <li data-id="##=item.id##">##=item.name##</li>
      ## }); ##
    </ul>
    ```
 
 4. **Separation of Concerns**: Keep templates focused on presentation
+
    ```javascript
    // Prepare data and logic outside the template
    function createUserCard(userData) {
      // Business logic
      const isVerified = checkUserVerification(userData);
      const permissions = getUserPermissions(userData);
-     
+
      // Pass prepared data to template
      return tmpl.user.Card({
        user: userData,
        isVerified: isVerified,
        permissions: permissions,
-       onEdit: function() {
+       onEdit: function () {
          openUserEditForm(userData.id);
-       }
+       },
      });
    }
    ```
@@ -1437,7 +1473,7 @@ The template scope (`tmplScope`) is an object that:
    ```javascript
    /*
     * User Card Component
-    * 
+    *
     * Expected data:
     * {
     *   user: {
@@ -1451,64 +1487,64 @@ The template scope (`tmplScope`) is an object that:
     *   onEdit: function
     * }
     */
-   compomint.addTmpl('user-card', `...`);
+   compomint.addTmpl("user-card", `...`);
    ```
 
 ### Error Handling
 
 1. **Validate Input Data**: Check data before rendering
+
    ```javascript
    function renderUserProfile(userData) {
      // Validate required fields
      if (!userData || !userData.id || !userData.name) {
-       console.error('Invalid user data:', userData);
+       console.error("Invalid user data:", userData);
        return tmpl.error.InvalidData({
-         message: 'Unable to display user profile due to missing data'
+         message: "Unable to display user profile due to missing data",
        });
      }
-     
+
      return tmpl.user.Profile(userData);
    }
    ```
 
 2. **Provide Fallbacks**: Use default values for missing data
+
    ```html
    <div class="user-card">
-     <img src="##=data.avatar || 'images/default-avatar.png'##" alt="User">
+     <img src="##=data.avatar || 'images/default-avatar.png'##" alt="User" />
      <h3>##=data.name || 'Unknown User'##</h3>
      <p>##=data.bio || 'No bio available'##</p>
    </div>
    ```
 
 3. **Error Recovery**: Use try/catch for data processing
+
    ```html
    <div class="data-chart">
-     ##
-     try {
-       const chartData = processChartData(data.rawData);
-       const chartOptions = generateChartOptions(data.chartType);
-     } catch (error) {
-       console.error('Error processing chart data:', error);
-       chartData = null;
-       chartOptions = null;
-     }
-     ##
-     
-     ##if (chartData && chartOptions) {##
-       <canvas data-co-load="##:initChart::({data: chartData, options: chartOptions})##"></canvas>
+     ## try { const chartData = processChartData(data.rawData); const
+     chartOptions = generateChartOptions(data.chartType); } catch (error) {
+     console.error('Error processing chart data:', error); chartData = null;
+     chartOptions = null; } ## ##if (chartData && chartOptions) {##
+     <canvas
+       data-co-load="##:initChart::({data: chartData, options: chartOptions})##"
+     ></canvas>
      ##} else {##
-       <div class="error-message">Unable to display chart due to data processing error</div>
+     <div class="error-message">
+       Unable to display chart due to data processing error
+     </div>
      ##}##
    </div>
    ```
 
 4. **Debug Mode**: Enable debug mode during development
+
    ```javascript
    // Enable in development
    compomint.configs.debug = true;
    compomint.configs.printExecTime = true;
    compomint.configs.throwError = true;
-   
+
    // Disable in production
    compomint.configs.debug = false;
    compomint.configs.printExecTime = false;
@@ -1745,16 +1781,16 @@ compomint.addTmpls(`
 
 // Initialize the todo app
 const todoApp = tmpl.todo.App({
-  title: 'My Todo List',
+  title: "My Todo List",
   initialTodos: [
-    { id: 1, text: 'Learn Bridge.js', completed: true },
-    { id: 2, text: 'Build a todo app', completed: false },
-    { id: 3, text: 'Share with the community', completed: false }
-  ]
+    { id: 1, text: "Learn Bridge.js", completed: true },
+    { id: 2, text: "Build a todo app", completed: false },
+    { id: 3, text: "Share with the community", completed: false },
+  ],
 });
 
 // Add to the DOM
-document.getElementById('app-container').appendChild(todoApp.element);
+document.getElementById("app-container").appendChild(todoApp.element);
 ```
 
 ### Theme Switcher Component
@@ -1942,12 +1978,12 @@ compomint.addTmpls(`
 
 // Initialize theme switcher
 const themeSwitcher = tmpl.theme.Switcher({
-  defaultTheme: 'light',
+  defaultTheme: "light",
   autoApply: true,
-  onThemeChange: function(themeId, theme) {
-    console.log('Theme changed to:', themeId);
-    console.log('Theme properties:', theme);
-  }
+  onThemeChange: function (themeId, theme) {
+    console.log("Theme changed to:", themeId);
+    console.log("Theme properties:", theme);
+  },
 });
 
 document.body.appendChild(themeSwitcher.element);

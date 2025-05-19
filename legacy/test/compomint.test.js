@@ -1426,7 +1426,7 @@ describe("Compomint Core - Template Syntax", () => {
         // When there are multiple root nodes, the element is a DocumentFragment.
         // The 'this' context becomes the window.
         const lazyHandler = jest.fn(function (element, data) {
-          expect(element).toBe(window);
+          expect(element.nodeName).toBe("#document-fragment");
           expect(data.value).toBe("multi");
         });
         const renderingFunc = compomint.template(
@@ -1455,6 +1455,33 @@ describe("Compomint Core - Template Syntax", () => {
         expect(handler1).toHaveBeenCalledTimes(1);
         expect(handler2).toHaveBeenCalledTimes(1);
         expect(calls).toEqual([1, 2]); // Ensure they were called in the correct order
+      });
+
+      it("should access able component.element namespace", () => {
+        const lazyHandler = jest.fn((element) => {
+          expect(element.outerHTML).toBe('<span id="searchTarget">test</span>');
+        });
+
+        const renderingFunc = compomint.template(
+          "lazy-eval-element",
+          '<div><span id="searchTarget">test</span></div>### data.handler(component.element.querySelector("#searchTarget")) ##'
+        );
+        const component = renderingFunc({ handler: lazyHandler });
+        expect(lazyHandler).toHaveBeenCalledTimes(1);
+      });
+
+      it("should access able this namespace", () => {
+        const lazyHandler = jest.fn((element) => {
+          expect(element.outerHTML).toBe('<span id="searchTarget">test</span>');
+        });
+
+        const renderingFunc = compomint.template(
+          "lazy-eval-element",
+          '<div><span id="searchTarget">test</span></div>### data.handler(this.querySelector("#searchTarget")) ##'
+        );
+        const component = renderingFunc({ handler: lazyHandler });
+
+        expect(lazyHandler).toHaveBeenCalledTimes(1);
       });
 
       it("should access able compomint namespace", () => {
