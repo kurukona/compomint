@@ -2019,7 +2019,7 @@ compomint.addI18n = function (fullKey, i18nObj) {
           return;
         });
     } else {
-      if (!target[key]) {
+      if (!target[key] || typeof target[key] === "function") {
         target[key] = {};
       }
       target = target[key];

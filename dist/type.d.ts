@@ -78,6 +78,7 @@ interface Tools {
     };
     genId: (tmplId: string) => string;
     genElement: (tagName: string, attrs?: Record<string, any> | string | Node | (string | Node)[], ...children: (string | Node)[]) => Element;
+    applyElementProps: (element: HTMLElement, attrs: Record<string, any>) => Element;
     props: (...propsObjects: Record<string, any>[]) => string;
     liveReloadSupport?: (component: ComponentScope) => void;
 }
