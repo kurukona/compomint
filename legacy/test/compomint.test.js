@@ -399,6 +399,74 @@ describe("Compomint Core - Template Syntax", () => {
           "<div>Content: テンプレートIDは pre-eval-compomint</div>"
         );
       });
+
+      it("should access able i18n 'name' during compilation(1)", () => {
+        const templateString = `
+                ##!
+                compomint.addI18ns({
+                  'i18n-name-compomint': {
+                    'name': {
+                      'en': 'Template name is "i18n-name-compomint"',
+                      'ko': '템플릿 이름은 "i18n-name-compomint"',
+                      'ja': 'テンプレート名は "i18n-name-compomint"',
+                      'zh': '模板名称为 "i18n-name-compomint"'
+                    }
+                  }
+                });
+                ##
+                <div>Content: ##=i18n.name##</div>`;
+
+        document.documentElement.lang = "en";
+        const renderingFunc = compomint.template(
+          "i18n-name-compomint",
+          templateString
+        );
+        const component = renderingFunc({});
+        expect(component.element.outerHTML).toBe(
+          '<div>Content: Template name is "i18n-name-compomint"</div>'
+        );
+
+        document.documentElement.lang = "ja";
+        component.refresh({});
+        expect(component.element.outerHTML).toBe(
+          '<div>Content: テンプレート名は "i18n-name-compomint"</div>'
+        );
+      });
+
+      it("should access able i18n 'name' during compilation(2)", () => {
+        const templateString = `
+                ##!
+                compomint.addI18ns({
+                  'i18n-name-compomint': {
+                    'greeting': {
+                      'name': {
+                        'en': 'Template name is "i18n-name-compomint"',
+                        'ko': '템플릿 이름은 "i18n-name-compomint"',
+                        'ja': 'テンプレート名は "i18n-name-compomint"',
+                        'zh': '模板名称为 "i18n-name-compomint"'
+                      }
+                    }
+                  }
+                });
+                ##
+                <div>Content: ##=i18n.greeting.name##</div>`;
+
+        document.documentElement.lang = "en";
+        const renderingFunc = compomint.template(
+          "i18n-name-compomint",
+          templateString
+        );
+        const component = renderingFunc({});
+        expect(component.element.outerHTML).toBe(
+          '<div>Content: Template name is "i18n-name-compomint"</div>'
+        );
+
+        document.documentElement.lang = "ja";
+        component.refresh({});
+        expect(component.element.outerHTML).toBe(
+          '<div>Content: テンプレート名は "i18n-name-compomint"</div>'
+        );
+      });
     });
 
     // --- Element Props Tests (data-co-props) ---

@@ -1326,7 +1326,7 @@ compomint.addI18n = function (
           // delete i18nObj[subKey]; // Avoid deleting if it's also a language key
         });
     } else {
-      if (!target[key]) {
+      if (!target[key] || typeof target[key] === "function") {
         target[key] = {};
       }
       target = target[key];
