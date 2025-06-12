@@ -141,7 +141,7 @@ interface CompomintGlobal {
     importData: string | any[] | { url: string; option?: Record<string, any> },
     option?: Record<string, any> | (() => void),
     callback?: Function | (() => void)
-  ) => void;
+  ) => void | Promise<void>;
   addI18n: (fullKey: string, i18nObj: Record<string, any>) => void;
   addI18ns: (i18nObjs: Record<string, any>) => void;
 }
