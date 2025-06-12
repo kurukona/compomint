@@ -607,5 +607,58 @@ describe('compomint.tools.addTmplByUrl', () => {
     compomint.addTmplByUrl(urls, callback);
   });
 
+  it('should return a Promise when no callback is provided', () => {
+    // Test with callback - should return undefined
+    const resultWithCallback = compomint.addTmplByUrl('test.html', () => {});
+    expect(resultWithCallback).toBeUndefined();
+    
+    // Test without callback - should return Promise
+    const resultWithoutCallback = compomint.addTmplByUrl('test.html');
+    expect(resultWithoutCallback).toBeInstanceOf(Promise);
+  });
+
+  it('should resolve Promise after loading template', async () => {
+    const htmlContent = '<template id="promise-test">Promise Test</template>';
+    
+    // Create a dedicated XHR mock for this test
+    const testMockXhr = {
+      open: jest.fn(),
+      send: jest.fn(),
+      readyState: 4,
+      status: 200,
+      responseText: htmlContent,
+      setRequestHeader: jest.fn(),
+      onreadystatechange: null as any,
+      onerror: null as any,
+      ontimeout: null as any,
+      timeout: 0,
+    };
+    
+    // Override XMLHttpRequest for this test only
+    const originalXHR = (window as any).XMLHttpRequest;
+    (window as any).XMLHttpRequest = jest.fn(() => ({
+      ...testMockXhr,
+      send: jest.fn(function(this: any) {
+        // Trigger response immediately
+        this.onreadystatechange && this.onreadystatechange();
+      })
+    }));
+    (window.XMLHttpRequest as any).DONE = 4;
+    
+    const result = compomint.addTmplByUrl('promise-test.html');
+    
+    // Check that a Promise is returned
+    expect(result).toBeInstanceOf(Promise);
+    
+    // Wait for the promise
+    await (result as Promise<void>);
+    
+    // Verify the template was loaded
+    expect(compomint.tmplCache.has('promise-test')).toBe(true);
+    
+    // Restore original XHR
+    (window as any).XMLHttpRequest = originalXHR;
+  });
+
 
 });

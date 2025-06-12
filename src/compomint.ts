@@ -1197,26 +1197,28 @@ const addTmplByUrl: CompomintGlobal["addTmplByUrl"] = (compomint.addTmplByUrl =
       });
     };
 
-    const finalCallback = callback || (() => {}); // Ensure callback is a function
+    // Create the promise for all operations
+    const operationPromise = Array.isArray(importData)
+      ? importData.length === 0 
+        ? Promise.resolve()
+        : Promise.all(importData.map(loadResource))
+          .then(() => {})
+          .catch((err) => {
+            console.error("Error loading resources in addTmplByUrl:", err);
+          })
+      : loadResource(importData)
+          .catch((err) => {
+            console.error("Error loading resource in addTmplByUrl:", err);
+          });
 
-    if (Array.isArray(importData)) {
-      if (importData.length === 0) {
-        finalCallback();
-        return;
-      }
-      Promise.all(importData.map(loadResource))
-        .then(finalCallback as (value: void[]) => void[] | PromiseLike<void[]>)
-        .catch((err) => {
-          console.error("Error loading resources in addTmplByUrl:", err);
-          finalCallback(); // Call callback even if some resources failed
-        });
+    // If callback is provided, use it; otherwise return the promise
+    if (callback) {
+      operationPromise
+        .then(() => callback())
+        .catch(() => callback()); // Call callback even on error
+      return;
     } else {
-      loadResource(importData)
-        .then(finalCallback as (value: void) => void[] | PromiseLike<void[]>)
-        .catch((err) => {
-          console.error("Error loading resource in addTmplByUrl:", err);
-          finalCallback(); // Call callback even if resource failed
-        });
+      return operationPromise;
     }
   });
 

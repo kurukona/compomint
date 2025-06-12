@@ -1789,19 +1789,12 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
     }
   };
 
-  // Handle single URL/object or array
-  if (Array.isArray(importData)) {
-    let remaining = importData.length;
-    if (remaining === 0 && callback) {
-      callback(); // Call callback immediately if array is empty
-      return;
-    }
-    importData.forEach(function (dataItem) {
+  // Create promise-based loading function
+  const loadResource = function (dataItem) {
+    return new Promise(function (resolve, reject) {
       const parsedData = importDataParser(dataItem);
       if (!parsedData) {
-        // Skip invalid entries
-        remaining--;
-        if (remaining === 0 && callback) callback();
+        resolve(); // Resolve immediately for invalid data
         return;
       }
       const src = parsedData.url;
@@ -1809,15 +1802,13 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
 
       // Check file type for direct script/style loading
       if (src.indexOf(".js") > -1) {
-        const script = genElement("script", { async: true, src: src }); // Use helper 'genElement' function
+        const script = genElement("script", { async: true, src: src });
         script.addEventListener("load", function () {
-          remaining--;
-          if (remaining === 0 && callback) callback();
+          resolve();
         });
         script.addEventListener("error", function () {
           console.error(`Failed to load script: ${src} `);
-          remaining--;
-          if (remaining === 0 && callback) callback();
+          resolve(); // Resolve even on error
         });
         document.head.appendChild(script);
       } else if (src.indexOf(".css") > -1) {
@@ -1827,91 +1818,55 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
           href: src,
         });
         link.addEventListener("load", function () {
-          // CSS load event might not be reliable everywhere
-          remaining--;
-          if (remaining === 0 && callback) callback();
+          resolve();
         });
         link.addEventListener("error", function () {
           console.error(`Failed to load stylesheet: ${src} `);
-          remaining--;
-          if (remaining === 0 && callback) callback();
+          resolve(); // Resolve even on error
         });
         document.head.appendChild(link);
-        // Call callback slightly early for CSS as load event isn't guaranteed
-        // setTimeout(() => {
-        //    if (remaining > 0) { // Check if already called back
-        //       remaining--;
-        //       if (remaining === 0 && callback) callback();
-        //    }
-        // }, 50); // Adjust timeout as needed
       } else {
         // Assume HTML content, fetch and process
         requestFunc(src, null, function (source, status) {
           if (status === 200 || status === 0) {
-            // Check for success or local file access
             try {
               importFunc(source, currentOption);
             } catch (e) {
               console.error(`Error processing imported HTML from ${src}: `, e);
-              throw e;
             }
           } else {
             console.error(
               `Failed to fetch template file: ${src} (Status: ${status})`
             );
           }
-          remaining--;
-          if (remaining === 0 && callback) callback();
+          resolve(); // Resolve after processing or error
         });
       }
     });
-  } else {
-    // Handle single import item
-    const parsedData = importDataParser(importData);
-    if (!parsedData) {
-      if (callback) callback(); // Call callback even if input is invalid
-      return;
-    }
-    const src = parsedData.url;
-    const currentOption = parsedData.option;
+  };
 
-    if (src.endsWith(".js")) {
-      const script = tag("script", { async: true, src: src });
-      script.addEventListener("load", callback);
-      script.addEventListener("error", () => {
-        console.error(`Failed to load script: ${src} `);
-        if (callback) callback();
-      });
-      document.head.appendChild(script);
-    } else if (src.endsWith(".css")) {
-      const link = tag("link", {
-        type: "text/css",
-        rel: "stylesheet",
-        href: src,
-      });
-      link.addEventListener("load", callback); // May not fire reliably
-      link.addEventListener("error", () => {
-        console.error(`Failed to load stylesheet: ${src} `);
-        if (callback) callback();
-      });
-      document.head.appendChild(link);
-      // setTimeout(callback, 50); // Call callback early for CSS
-    } else {
-      requestFunc(src, null, function (source, status) {
-        if (status === 200 || status === 0) {
-          try {
-            importFunc(source, currentOption);
-          } catch (e) {
-            console.error(`Error processing imported HTML from ${src}: `, e);
-          }
-        } else {
-          console.error(
-            `Failed to fetch template file: ${src} (Status: ${status})`
-          );
-        }
-        if (callback) callback();
-      });
-    }
+  // Create the operation promise
+  const operationPromise = Array.isArray(importData)
+    ? importData.length === 0
+      ? Promise.resolve()
+      : Promise.all(importData.map(loadResource))
+          .then(function () {})
+          .catch(function (err) {
+            console.error("Error loading resources in addTmplByUrl:", err);
+          })
+    : loadResource(importData)
+        .catch(function (err) {
+          console.error("Error loading resource in addTmplByUrl:", err);
+        });
+
+  // If callback is provided, use it; otherwise return the promise
+  if (callback) {
+    operationPromise
+      .then(function () { callback(); })
+      .catch(function () { callback(); }); // Call callback even on error
+    return;
+  } else {
+    return operationPromise;
   }
 });
 

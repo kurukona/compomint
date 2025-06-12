@@ -303,13 +303,36 @@ compomint.addTmpls(document.body.innerHTML, true);
 #### Method 4: Loading Templates from External URL
 
 ```javascript
-// Load templates from external file
+// Load templates from external file with callback
 compomint.addTmplByUrl("templates.html", function () {
   console.log("Templates loaded successfully!");
   // Initialize your application here
   const mainScreen = tmpl.do.MainScreen({});
   document.body.appendChild(mainScreen.element);
 });
+
+// Promise-based loading (NEW: Version 1.0.3+)
+compomint.addTmplByUrl("templates.html")
+  .then(() => {
+    console.log("Templates loaded successfully!");
+    const mainScreen = tmpl.do.MainScreen({});
+    document.body.appendChild(mainScreen.element);
+  })
+  .catch((error) => {
+    console.error("Failed to load templates:", error);
+  });
+
+// Async/await support
+async function loadAndInitialize() {
+  try {
+    await compomint.addTmplByUrl("templates.html");
+    console.log("Templates loaded successfully!");
+    const mainScreen = tmpl.do.MainScreen({});
+    document.body.appendChild(mainScreen.element);
+  } catch (error) {
+    console.error("Failed to load templates:", error);
+  }
+}
 
 // With options for loading
 compomint.addTmplByUrl(
@@ -321,14 +344,25 @@ compomint.addTmplByUrl(
       loadLink: true, // Load link tags
     },
   },
-  callback
+  callback // Optional: if provided, uses callback; otherwise returns Promise
 );
 
 // Load multiple template files
-compomint.addTmplByUrl(
-  ["templates/header.html", "templates/main.html", "templates/footer.html"],
-  callback
-);
+compomint.addTmplByUrl([
+  "templates/header.html", 
+  "templates/main.html", 
+  "templates/footer.html"
+]).then(() => {
+  console.log("All templates loaded successfully!");
+  // All templates are now available
+  const header = tmpl.ui.Header({ title: "My App" });
+  const main = tmpl.ui.Main({ content: "Welcome!" });
+  const footer = tmpl.ui.Footer({ year: 2024 });
+  
+  document.body.appendChild(header.element);
+  document.body.appendChild(main.element);
+  document.body.appendChild(footer.element);
+});
 ```
 
 ### 2. Create and Use Components
@@ -1133,9 +1167,10 @@ component.release();
   - `settings` - Optional template settings
 
 - `compomint.addTmplByUrl(url, options, callback)` - Loads templates from URL
-  - `url` - URL string or object with URL and options
-  - `options` - Loading options (loadScript, loadStyle, loadLink)
-  - `callback` - Function to call after loading
+  - `url` - URL string, array of URLs, or object with URL and options
+  - `options` - Loading options (loadScript, loadStyle, loadLink) or callback function
+  - `callback` - Optional function to call after loading
+  - **Returns**: Promise if no callback is provided (NEW: Version 1.0.3+)
 
 ### Template Rendering
 
