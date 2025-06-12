@@ -1158,44 +1158,54 @@ const addTmplByUrl: CompomintGlobal["addTmplByUrl"] = (compomint.addTmplByUrl =
             async: true,
             src: src,
           }) as HTMLScriptElement;
-          //script.onload = () => resolve();
-          script.onerror = () => {
+          script.addEventListener("load", () => resolve());
+          script.addEventListener("error", () => {
             console.error(`Failed to load script: ${src}`);
-          }; // Resolve even on error
+            reject(new Error(`Failed to load script: ${src}`));
+          });
           document.head.appendChild(script);
-          resolve();
         } else if (src.endsWith(".css")) {
           const link = genElement("link", {
             type: "text/css",
             rel: "stylesheet",
             href: src,
           }) as HTMLLinkElement;
-          //link.onload = () => resolve(); // CSS load might be unreliable
-          link.onerror = () => {
+          link.addEventListener("load", () => resolve());
+          link.addEventListener("error", () => {
             console.error(`Failed to load stylesheet: ${src}`);
-          }; // Resolve even on error
+            reject(new Error(`Failed to load stylesheet: ${src}`));
+          });
           document.head.appendChild(link);
-          resolve();
-          // Resolve slightly early for CSS? Or rely on potential browser caching?
-          // For simplicity, let's resolve on load/error.
         } else {
           requestFunc(src, null, (source, status) => {
             if (status === 200 || status === 0) {
               try {
                 importFunc(source!, currentOption); // Use non-null assertion for source
+                resolve(); // Resolve after successful processing
               } catch (e) {
                 console.error(`Error processing imported HTML from ${src}:`, e);
+                reject(new Error(`Error processing imported HTML from ${src}: ${e}`));
               }
             } else {
               console.error(
                 `Failed to fetch template file: ${src} (Status: ${status})`
               );
+              reject(new Error(`Failed to fetch template file: ${src} (Status: ${status})`));
             }
-            resolve(); // Resolve after processing or error
           });
         }
       });
     };
+
+    // Handle null or undefined importData
+    if (importData == null) {
+      if (callback) {
+        callback();
+        return;
+      } else {
+        return Promise.resolve();
+      }
+    }
 
     // Create the promise for all operations
     const operationPromise = Array.isArray(importData)
@@ -1205,17 +1215,23 @@ const addTmplByUrl: CompomintGlobal["addTmplByUrl"] = (compomint.addTmplByUrl =
           .then(() => {})
           .catch((err) => {
             console.error("Error loading resources in addTmplByUrl:", err);
+            throw err; // Re-throw the error to allow operationPromise to reject
           })
       : loadResource(importData)
           .catch((err) => {
             console.error("Error loading resource in addTmplByUrl:", err);
+            throw err; // Re-throw the error to allow operationPromise to reject
           });
 
     // If callback is provided, use it; otherwise return the promise
     if (callback) {
       operationPromise
         .then(() => callback())
-        .catch(() => callback()); // Call callback even on error
+        .catch((err) => {
+          // Log error but still call callback for backward compatibility
+          console.error("Error in addTmplByUrl callback mode:", err);
+          callback();
+        });
       return;
     } else {
       return operationPromise;

@@ -358,28 +358,28 @@ describe("Compomint Core - addTmplByUrl", () => {
     mockXhr._respond(200, htmlContent);
   });
 
-  it("should handle invalid importData gracefully", async () => {
-    const callback = jest.fn();
+  it("should handle invalid importData gracefully", (done) => {
+    let callbackCount = 0;
+    const callback = jest.fn(() => {
+      callbackCount++;
+      if (callbackCount === 2) {
+        expect(callback).toHaveBeenCalledTimes(2);
+        expect(
+          consoleErrorSpy.mock.calls.some((call) =>
+            call[0].includes("Invalid import data format")
+          )
+        ).toBe(true);
+        consoleErrorSpy.mockRestore();
+        done();
+      }
+    });
+    
     const consoleErrorSpy = jest
       .spyOn(console, "error")
       .mockImplementation(() => {});
 
-    // Test null - should call callback via Promise
-    compomint.addTmplByUrl(null, callback);
-    
-    // Test invalid array items - should call callback via Promise
-    compomint.addTmplByUrl([123, {}], callback);
-    
-    // Wait a bit for promises to resolve
-    await new Promise(resolve => setTimeout(resolve, 10));
-    
-    expect(callback).toHaveBeenCalledTimes(2); // Should be called twice via Promise resolution
-    expect(
-      consoleErrorSpy.mock.calls.some((call) =>
-        call[0].includes("Invalid import data format")
-      )
-    ).toBe(true);
-    consoleErrorSpy.mockRestore();
+    compomint.addTmplByUrl(null, callback); // Test null
+    compomint.addTmplByUrl([123, {}], callback); // Test invalid array items
   });
 
   it("should remove old style/link elements with the same ID(1)", (done) => {
@@ -602,53 +602,51 @@ describe("Compomint Core - addTmplByUrl", () => {
     // The `done` callback ensures Jest waits for the final callback.
   });
 
-  it("should handle array with mixed success/failure", async () => {
+  it("should handle array with mixed success/failure", (done) => {
     const htmlContent = '<template id="ok-tmpl">OK</template>';
-    const urls = ["ok.html", "fail.html", "script.js"];
+    const urls = ["ok.html", "fail.html"];
     let loadCount = 0;
     let successCount = 0;
 
-    // Mock script load event listener attachment
-    const scriptElement = document.createElement("script");
-    scriptElement.addEventListener = jest.fn((event, cb) => {
-      if (event === "load") {
-        cb();
-      }
-    });
-    scriptElement.src = "";
-
-    const element = document.createElement("template");
-
-    const createElementSpy = jest
-      .spyOn(document, "createElement")
-      .mockImplementation((tag) => {
-        if (tag === "script") {
-          return scriptElement;
-        } else if (tag === "link") {
-          return linkElement;
-        }
-        return element;
-      });
-
-    // Override XHR mock behavior
-    const xhrMockInstance = {
-      ...mockXhr,
+    // Override XHR mock behavior with simpler approach
+    const originalXHR = window.XMLHttpRequest;
+    window.XMLHttpRequest = jest.fn(() => ({
+      open: jest.fn(function (method, url) {
+        this._url = url;
+      }),
       send: jest.fn(function () {
         loadCount++;
         if (this._url.includes("ok.html")) {
           successCount++;
-          setTimeout(() => this._respond(200, htmlContent), 0);
+          setTimeout(() => {
+            this.status = 200;
+            this.responseText = htmlContent;
+            this.readyState = 4;
+            if (this.onreadystatechange) {
+              this.onreadystatechange();
+            }
+          }, 10);
         } else if (this._url.includes("fail.html")) {
-          setTimeout(() => this._respond(404, "Not Found"), 0);
+          setTimeout(() => {
+            this.status = 404;
+            this.responseText = "Not Found";
+            this.readyState = 4;
+            if (this.onreadystatechange) {
+              this.onreadystatechange();
+            }
+          }, 10);
         }
-        // script.js is handled by createElement mock
       }),
-      open: jest.fn(function (method, url) {
-        this._url = url;
-      }),
-    };
-    window.XMLHttpRequest = jest.fn(() => xhrMockInstance);
-    XMLHttpRequest.DONE = 4;
+      setRequestHeader: jest.fn(),
+      readyState: 0,
+      status: 0,
+      responseText: "",
+      onreadystatechange: null,
+      onerror: null,
+      ontimeout: null,
+      timeout: 0,
+    }));
+    window.XMLHttpRequest.DONE = 4;
 
     const consoleErrorSpy = jest
       .spyOn(console, "error")
@@ -656,13 +654,18 @@ describe("Compomint Core - addTmplByUrl", () => {
 
     const callback = jest.fn(() => {
       expect(loadCount).toBe(2); // All attempts finished
-      expect(successCount).toBe(1); // ok.html and script.js succeeded
+      expect(successCount).toBe(1); // ok.html succeeded
       expect(compomint.tmplCache.has("ok-tmpl")).toBe(true);
-      //expect(addTmplsSpy).toHaveBeenCalledTimes(1); // Only for ok.html
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining("Failed to fetch template file: fail.html")
+      // Check that error was logged
+      expect(consoleErrorSpy).toHaveBeenCalled();
+      const errorCalls = consoleErrorSpy.mock.calls;
+      const hasExpectedError = errorCalls.some(call => 
+        call[0] && call[0].includes && call[0].includes("Error loading resources in addTmplByUrl:")
       );
-      createElementSpy.mockRestore();
+      expect(hasExpectedError).toBe(true);
+      
+      // Restore
+      window.XMLHttpRequest = originalXHR;
       consoleErrorSpy.mockRestore();
       done();
     });

@@ -1808,7 +1808,7 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
         });
         script.addEventListener("error", function () {
           console.error(`Failed to load script: ${src} `);
-          resolve(); // Resolve even on error
+          reject(new Error(`Failed to load script: ${src}`));
         });
         document.head.appendChild(script);
       } else if (src.indexOf(".css") > -1) {
@@ -1822,7 +1822,7 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
         });
         link.addEventListener("error", function () {
           console.error(`Failed to load stylesheet: ${src} `);
-          resolve(); // Resolve even on error
+          reject(new Error(`Failed to load stylesheet: ${src}`));
         });
         document.head.appendChild(link);
       } else {
@@ -1831,19 +1831,31 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
           if (status === 200 || status === 0) {
             try {
               importFunc(source, currentOption);
+              resolve(); // Resolve after successful processing
             } catch (e) {
               console.error(`Error processing imported HTML from ${src}: `, e);
+              reject(new Error(`Error processing imported HTML from ${src}: ${e}`));
             }
           } else {
             console.error(
               `Failed to fetch template file: ${src} (Status: ${status})`
             );
+            reject(new Error(`Failed to fetch template file: ${src} (Status: ${status})`));
           }
-          resolve(); // Resolve after processing or error
         });
       }
     });
   };
+
+  // Handle null or undefined importData
+  if (importData == null) {
+    if (callback) {
+      callback();
+      return;
+    } else {
+      return Promise.resolve();
+    }
+  }
 
   // Create the operation promise
   const operationPromise = Array.isArray(importData)
@@ -1853,17 +1865,23 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
           .then(function () {})
           .catch(function (err) {
             console.error("Error loading resources in addTmplByUrl:", err);
+            throw err; // Re-throw the error to allow operationPromise to reject
           })
     : loadResource(importData)
         .catch(function (err) {
           console.error("Error loading resource in addTmplByUrl:", err);
+          throw err; // Re-throw the error to allow operationPromise to reject
         });
 
   // If callback is provided, use it; otherwise return the promise
   if (callback) {
     operationPromise
       .then(function () { callback(); })
-      .catch(function () { callback(); }); // Call callback even on error
+      .catch(function (err) { 
+        // Log error but still call callback for backward compatibility
+        console.error("Error in addTmplByUrl callback mode:", err);
+        callback(); 
+      });
     return;
   } else {
     return operationPromise;
