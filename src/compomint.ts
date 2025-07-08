@@ -1184,13 +1184,19 @@ const addTmplByUrl: CompomintGlobal["addTmplByUrl"] = (compomint.addTmplByUrl =
                 resolve(); // Resolve after successful processing
               } catch (e) {
                 console.error(`Error processing imported HTML from ${src}:`, e);
-                reject(new Error(`Error processing imported HTML from ${src}: ${e}`));
+                reject(
+                  new Error(`Error processing imported HTML from ${src}: ${e}`)
+                );
               }
             } else {
               console.error(
                 `Failed to fetch template file: ${src} (Status: ${status})`
               );
-              reject(new Error(`Failed to fetch template file: ${src} (Status: ${status})`));
+              reject(
+                new Error(
+                  `Failed to fetch template file: ${src} (Status: ${status})`
+                )
+              );
             }
           });
         }
@@ -1209,19 +1215,18 @@ const addTmplByUrl: CompomintGlobal["addTmplByUrl"] = (compomint.addTmplByUrl =
 
     // Create the promise for all operations
     const operationPromise = Array.isArray(importData)
-      ? importData.length === 0 
+      ? importData.length === 0
         ? Promise.resolve()
         : Promise.all(importData.map(loadResource))
-          .then(() => {})
-          .catch((err) => {
-            console.error("Error loading resources in addTmplByUrl:", err);
-            throw err; // Re-throw the error to allow operationPromise to reject
-          })
-      : loadResource(importData)
-          .catch((err) => {
-            console.error("Error loading resource in addTmplByUrl:", err);
-            throw err; // Re-throw the error to allow operationPromise to reject
-          });
+            .then(() => {})
+            .catch((err) => {
+              console.error("Error loading resources in addTmplByUrl:", err);
+              throw err; // Re-throw the error to allow operationPromise to reject
+            })
+      : loadResource(importData).catch((err) => {
+          console.error("Error loading resource in addTmplByUrl:", err);
+          throw err; // Re-throw the error to allow operationPromise to reject
+        });
 
     // If callback is provided, use it; otherwise return the promise
     if (callback) {
@@ -1319,30 +1324,63 @@ compomint.addI18n = function (
     if (!key) return;
 
     if (keyLength === i) {
-      if (!target[key]) {
-        target[key] = function (defaultText?: string): string {
-          const lang = document.documentElement.lang || "en";
-          let label = i18nObj[lang];
-          if (label === undefined || label === null) {
-            label = defaultText;
-            if (configs.debug)
-              console.warn(
-                `i18n: Label key ["${fullKey}"] for lang "${lang}" is missing. Using default: "${defaultText}"`
-              );
-          }
-          return label !== undefined && label !== null ? String(label) : "";
-        };
+      // Check if any language value is an array
+      const hasArrayValues = Object.keys(i18nObj).some((lang) =>
+        Array.isArray(i18nObj[lang])
+      );
+
+      if (hasArrayValues) {
+        // Handle arrays - create array structure
+        if (!target[key]) {
+          target[key] = [];
+        }
+
+        // Process each language's array
+        Object.keys(i18nObj)
+          .filter((lang) => Array.isArray(i18nObj[lang]))
+          .forEach((lang) => {
+            const array = i18nObj[lang];
+            array.forEach((item: any, index: number) => {
+              if (!target[key][index]) {
+                target[key][index] = {};
+              }
+              if (item instanceof Object && !Array.isArray(item)) {
+                Object.keys(item).forEach((subKey) => {
+                  compomint.addI18n(
+                    fullKey + "." + index + "." + subKey,
+                    item[subKey]
+                  );
+                });
+              }
+            });
+          });
+      } else {
+        // Handle regular i18n function
+        if (!target[key]) {
+          target[key] = function (defaultText?: string): string {
+            const lang = document.documentElement.lang || "en";
+            let label = i18nObj[lang];
+            if (label === undefined || label === null) {
+              label = defaultText;
+              if (configs.debug)
+                console.warn(
+                  `i18n: Label key ["${fullKey}"] for lang "${lang}" is missing. Using default: "${defaultText}"`
+                );
+            }
+            return label !== undefined && label !== null ? String(label) : "";
+          };
+        }
+        // Handle nested objects within the language definitions
+        Object.keys(i18nObj)
+          .filter(
+            (lang) =>
+              i18nObj[lang] instanceof Object && !Array.isArray(i18nObj[lang])
+          ) // Check for plain objects
+          .forEach((subKey) => {
+            compomint.addI18n(fullKey + "." + subKey, i18nObj[subKey]);
+            // delete i18nObj[subKey]; // Avoid deleting if it's also a language key
+          });
       }
-      // Handle nested objects within the language definitions
-      Object.keys(i18nObj)
-        .filter(
-          (lang) =>
-            i18nObj[lang] instanceof Object && !Array.isArray(i18nObj[lang])
-        ) // Check for plain objects
-        .forEach((subKey) => {
-          compomint.addI18n(fullKey + "." + subKey, i18nObj[subKey]);
-          // delete i18nObj[subKey]; // Avoid deleting if it's also a language key
-        });
     } else {
       if (!target[key] || typeof target[key] === "function") {
         target[key] = {};
@@ -1353,9 +1391,64 @@ compomint.addI18n = function (
 };
 
 compomint.addI18ns = function (i18nObjs: Record<string, any>): void {
-  Object.keys(i18nObjs || {}).forEach(function (key) {
-    compomint.addI18n(key, i18nObjs[key]);
-  });
+  function processNested(obj: any, keyPath: string = "") {
+    Object.keys(obj).forEach(function (key) {
+      const value = obj[key];
+      const fullKey = keyPath ? keyPath + "." + key : key;
+
+      if (Array.isArray(value)) {
+        // Handle array at this level
+        const keyParts = fullKey.split(".");
+        let target = compomint.i18n;
+        for (let i = 0; i < keyParts.length - 1; i++) {
+          if (!target[keyParts[i]]) {
+            target[keyParts[i]] = {};
+          }
+          target = target[keyParts[i]];
+        }
+
+        const finalKey = keyParts[keyParts.length - 1];
+        if (!target[finalKey]) {
+          target[finalKey] = [];
+        }
+
+        // Process each array item
+        value.forEach((item, index) => {
+          if (!target[finalKey][index]) {
+            target[finalKey][index] = {};
+          }
+
+          if (item && typeof item === "object") {
+            Object.keys(item).forEach((itemKey) => {
+              compomint.addI18n(
+                fullKey + "." + index + "." + itemKey,
+                item[itemKey]
+              );
+            });
+          }
+        });
+      } else if (value && typeof value === "object") {
+        // Check if this object contains language translations (en, ko, etc.)
+        const keys = Object.keys(value);
+        const isTranslationObject = keys.some((k) =>
+          ["en", "ko", "ja", "zh", "fr", "de", "es"].includes(k)
+        );
+
+        if (isTranslationObject) {
+          // This is a translation object, use addI18n
+          compomint.addI18n(fullKey, value);
+        } else {
+          // This is a nested structure, continue processing
+          processNested(value, fullKey);
+        }
+      } else {
+        // Primitive value, use addI18n
+        compomint.addI18n(fullKey, value);
+      }
+    });
+  }
+
+  processNested(i18nObjs);
 };
 
 let elementCount = 0;

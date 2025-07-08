@@ -2467,6 +2467,166 @@ describe("Compomint Core - Template Syntax", () => {
         expect(compomint.i18n.common.ok()).toBe("Oui");
         expect(compomint.i18n.common.cancel()).toBe("Annuler");
       });
+
+      it("should preserve array structure in i18n", () => {
+        compomint.addI18ns({
+          menu: {
+            title: {
+              en: "Title",
+              ko: "타이틀",
+            },
+            items: [
+              {
+                home: {
+                  en: "Home1",
+                  ko: "홈1",
+                },
+                about: {
+                  en: "About1",
+                  ko: "소개1",
+                },
+              },
+              {
+                home: {
+                  en: "Home2",
+                  ko: "홈2",
+                },
+                about: {
+                  en: "About2",
+                  ko: "소개2",
+                },
+              },
+            ],
+          },
+
+          menu2: {
+            test1: {
+              items: [
+                {
+                  home: {
+                    en: "Home1",
+                    ko: "홈1",
+                  },
+                  about: {
+                    en: "About1",
+                    ko: "소개1",
+                  },
+                },
+                {
+                  home: {
+                    en: "Home2",
+                    ko: "홈2",
+                  },
+                  about: {
+                    en: "About2",
+                    ko: "소개2",
+                  },
+                },
+              ],
+            },
+          },
+
+          menu3: {
+            test1: {
+              test2: {
+                title: {
+                  en: "Title",
+                  ko: "타이틀",
+                },
+                items: [
+                  {
+                    home: {
+                      en: "Home1",
+                      ko: "홈1",
+                    },
+                    about: {
+                      en: "About1",
+                      ko: "소개1",
+                    },
+                  },
+                  {
+                    home: {
+                      en: "Home2",
+                      ko: "홈2",
+                    },
+                    about: {
+                      en: "About2",
+                      ko: "소개2",
+                    },
+                  },
+                ],
+              },
+            },
+          },
+        });
+
+        document.documentElement.lang = "en";
+        // Test individual array items are accessible
+        expect(compomint.i18n.menu.items[0].home()).toBe("Home1");
+        expect(compomint.i18n.menu.items[0].about()).toBe("About1");
+        expect(compomint.i18n.menu.items[1].home()).toBe("Home2");
+        expect(compomint.i18n.menu.items[1].about()).toBe("About2");
+
+        expect(compomint.i18n.menu.title()).toBe("Title");
+        expect(compomint.i18n.menu3.test1.test2.title()).toBe("Title");
+
+        document.documentElement.lang = "ko";
+        expect(compomint.i18n.menu.items[0].home()).toBe("홈1");
+        expect(compomint.i18n.menu.items[0].about()).toBe("소개1");
+        expect(compomint.i18n.menu.items[1].home()).toBe("홈2");
+        expect(compomint.i18n.menu.items[1].about()).toBe("소개2");
+
+        expect(compomint.i18n.menu2.test1.items[0].home()).toBe("홈1");
+        expect(compomint.i18n.menu2.test1.items[0].about()).toBe("소개1");
+        expect(compomint.i18n.menu2.test1.items[1].home()).toBe("홈2");
+        expect(compomint.i18n.menu2.test1.items[1].about()).toBe("소개2");
+
+        expect(compomint.i18n.menu3.test1.test2.items[0].home()).toBe("홈1");
+        expect(compomint.i18n.menu3.test1.test2.items[0].about()).toBe("소개1");
+        expect(compomint.i18n.menu3.test1.test2.items[1].home()).toBe("홈2");
+        expect(compomint.i18n.menu3.test1.test2.items[1].about()).toBe("소개2");
+
+        expect(compomint.i18n.menu.title()).toBe("타이틀");
+        expect(compomint.i18n.menu3.test1.test2.title()).toBe("타이틀");
+      });
+
+      it("should allow loop operations on i18n array", () => {
+        compomint.addI18ns({
+          categories: {
+            list: [
+              {
+                tech: {
+                  en: "Tech",
+                  ko: "기술",
+                },
+              },
+              {
+                science: {
+                  en: "Science",
+                  ko: "과학",
+                },
+              },
+              {
+                arts: {
+                  en: "Arts",
+                  ko: "예술",
+                },
+              },
+            ],
+          },
+        });
+
+        document.documentElement.lang = "en";
+        // Test individual array items are accessible
+        expect(compomint.i18n.categories.list[0].tech()).toBe("Tech");
+        expect(compomint.i18n.categories.list[1].science()).toBe("Science");
+        expect(compomint.i18n.categories.list[2].arts()).toBe("Arts");
+
+        document.documentElement.lang = "ko";
+        expect(compomint.i18n.categories.list[0].tech()).toBe("기술");
+        expect(compomint.i18n.categories.list[1].science()).toBe("과학");
+        expect(compomint.i18n.categories.list[2].arts()).toBe("예술");
+      });
     });
 
     describe("genElement", () => {
