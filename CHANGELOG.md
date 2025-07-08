@@ -1,3 +1,13 @@
+## [1.1.1](https://github.com/kurukona/compomint/compare/v1.1.0...v1.1.1) (2025-07-08)
+
+### Bug Fixes
+
+* i18n array handling - preserve array structure instead of converting to objects ([567bbac](https://github.com/kurukona/compomint/commit/567bbac7e85bc4ce45d7da2aeab349b3f3ee339d)), closes [#17](https://github.com/kurukona/compomint/issues/17)
+
+### Performance Improvements
+
+* optimize i18n array handling performance ([e065108](https://github.com/kurukona/compomint/commit/e0651087ba89c41291c513790393f6db0242e5de))
+
 ## [1.1.0](https://github.com/kurukona/compomint/compare/v1.0.3...v1.1.0) (2025-06-12)
 
 ### Features
