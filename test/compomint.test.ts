@@ -2604,6 +2604,31 @@ describe("Compomint Template Engine", () => {
         expect(compomint.i18n.menu.title()).toBe("타이틀");
         expect(compomint.i18n.menu2.test1.test2.title()).toBe("타이틀");
       });
+
+      it("should handle various language codes in i18n", () => {
+        compomint.addI18ns({
+          messages: {
+            greeting: {
+              en: "Hello",
+              ko: "안녕하세요",
+              "zh-CN": "你好",
+              "en-US": "Hello (US)",
+              fr: "Bonjour",
+              de: "Hallo",
+              ja: "こんにちは"
+            }
+          }
+        });
+
+        document.documentElement.lang = "en";
+        expect(compomint.i18n.messages.greeting()).toBe("Hello");
+        
+        document.documentElement.lang = "zh-CN";
+        expect(compomint.i18n.messages.greeting()).toBe("你好");
+        
+        document.documentElement.lang = "en-US";
+        expect(compomint.i18n.messages.greeting()).toBe("Hello (US)");
+      });
     });
 
     describe("genElement", () => {

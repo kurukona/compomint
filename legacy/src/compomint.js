@@ -2081,10 +2081,13 @@ compomint.addI18ns = function (i18nObjs) {
           }
         });
       } else if (value && typeof value === "object") {
-        // Check if this object contains language translations (en, ko, etc.)
+        // Check if this object contains language translations
+        // A translation object has only primitive values (string/number/boolean)
+        // If it has nested objects, it's likely a structural object, not a translation
         const keys = Object.keys(value);
-        const isTranslationObject = keys.some(function (k) {
-          return ["en", "ko", "ja", "zh", "fr", "de", "es"].includes(k);
+        const isTranslationObject = keys.length > 0 && keys.every(function (k) {
+          const val = value[k];
+          return typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean';
         });
 
         if (isTranslationObject) {
