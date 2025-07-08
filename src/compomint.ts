@@ -1391,53 +1391,74 @@ compomint.addI18n = function (
 };
 
 compomint.addI18ns = function (i18nObjs: Record<string, any>): void {
-  function processNested(obj: any, keyPath: string = "") {
-    Object.keys(obj).forEach(function (key) {
+  // Cache for target path resolution to avoid repeated splits
+  const targetCache = new Map<string, any>();
+
+  function getTargetPath(fullKey: string): any {
+    if (targetCache.has(fullKey)) {
+      return targetCache.get(fullKey);
+    }
+
+    const keyParts = fullKey.split(".");
+    let target = compomint.i18n;
+    for (let i = 0; i < keyParts.length - 1; i++) {
+      if (!target[keyParts[i]]) {
+        target[keyParts[i]] = {};
+      }
+      target = target[keyParts[i]];
+    }
+
+    targetCache.set(fullKey, target);
+    return target;
+  }
+
+  function isTranslationObject(value: any): boolean {
+    // Fast check: if it has nested objects, it's not a translation
+    for (const key in value) {
+      const val = value[key];
+      const type = typeof val;
+      if (type !== "string" && type !== "number" && type !== "boolean") {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function processNested(obj: any, keyPath: string = ""): void {
+    for (const key in obj) {
       const value = obj[key];
       const fullKey = keyPath ? keyPath + "." + key : key;
 
       if (Array.isArray(value)) {
-        // Handle array at this level
-        const keyParts = fullKey.split(".");
-        let target = compomint.i18n;
-        for (let i = 0; i < keyParts.length - 1; i++) {
-          if (!target[keyParts[i]]) {
-            target[keyParts[i]] = {};
-          }
-          target = target[keyParts[i]];
-        }
+        // Handle array at this level - optimized version
+        const target = getTargetPath(fullKey);
+        const finalKey = fullKey.split(".").pop()!;
 
-        const finalKey = keyParts[keyParts.length - 1];
         if (!target[finalKey]) {
           target[finalKey] = [];
         }
 
-        // Process each array item
-        value.forEach((item, index) => {
+        // Process each array item with reduced function calls
+        for (let index = 0; index < value.length; index++) {
+          const item = value[index];
           if (!target[finalKey][index]) {
             target[finalKey][index] = {};
           }
 
           if (item && typeof item === "object") {
-            Object.keys(item).forEach((itemKey) => {
-              compomint.addI18n(
-                fullKey + "." + index + "." + itemKey,
-                item[itemKey]
-              );
-            });
+            // Direct processing without recursive addI18n calls
+            for (const itemKey in item) {
+              const itemValue = item[itemKey];
+              if (itemValue && typeof itemValue === "object") {
+                // Create the i18n function directly
+                const itemPath = fullKey + "." + index + "." + itemKey;
+                compomint.addI18n(itemPath, itemValue);
+              }
+            }
           }
-        });
+        }
       } else if (value && typeof value === "object") {
-        // Check if this object contains language translations
-        // A translation object has only primitive values (string/number/boolean)
-        // If it has nested objects, it's likely a structural object, not a translation
-        const keys = Object.keys(value);
-        const isTranslationObject = keys.length > 0 && keys.every((k) => {
-          const val = value[k];
-          return typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean';
-        });
-
-        if (isTranslationObject) {
+        if (isTranslationObject(value)) {
           // This is a translation object, use addI18n
           compomint.addI18n(fullKey, value);
         } else {
@@ -1448,7 +1469,7 @@ compomint.addI18ns = function (i18nObjs: Record<string, any>): void {
         // Primitive value, use addI18n
         compomint.addI18n(fullKey, value);
       }
-    });
+    }
   }
 
   processNested(i18nObjs);

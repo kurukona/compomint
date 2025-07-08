@@ -2615,17 +2615,17 @@ describe("Compomint Template Engine", () => {
               "en-US": "Hello (US)",
               fr: "Bonjour",
               de: "Hallo",
-              ja: "こんにちは"
-            }
-          }
+              ja: "こんにちは",
+            },
+          },
         });
 
         document.documentElement.lang = "en";
         expect(compomint.i18n.messages.greeting()).toBe("Hello");
-        
+
         document.documentElement.lang = "zh-CN";
         expect(compomint.i18n.messages.greeting()).toBe("你好");
-        
+
         document.documentElement.lang = "en-US";
         expect(compomint.i18n.messages.greeting()).toBe("Hello (US)");
       });

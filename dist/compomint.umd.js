@@ -1506,12 +1506,12 @@ return __p;`;
                             async: true,
                             src: src,
                         });
-                        //script.onload = () => resolve();
-                        script.onerror = () => {
+                        script.addEventListener("load", () => resolve());
+                        script.addEventListener("error", () => {
                             console.error(`Failed to load script: ${src}`);
-                        }; // Resolve even on error
+                            reject(new Error(`Failed to load script: ${src}`));
+                        });
                         document.head.appendChild(script);
-                        resolve();
                     }
                     else if (src.endsWith(".css")) {
                         const link = genElement("link", {
@@ -1519,53 +1519,70 @@ return __p;`;
                             rel: "stylesheet",
                             href: src,
                         });
-                        //link.onload = () => resolve(); // CSS load might be unreliable
-                        link.onerror = () => {
+                        link.addEventListener("load", () => resolve());
+                        link.addEventListener("error", () => {
                             console.error(`Failed to load stylesheet: ${src}`);
-                        }; // Resolve even on error
+                            reject(new Error(`Failed to load stylesheet: ${src}`));
+                        });
                         document.head.appendChild(link);
-                        resolve();
-                        // Resolve slightly early for CSS? Or rely on potential browser caching?
-                        // For simplicity, let's resolve on load/error.
                     }
                     else {
                         requestFunc(src, null, (source, status) => {
                             if (status === 200 || status === 0) {
                                 try {
                                     importFunc(source, currentOption); // Use non-null assertion for source
+                                    resolve(); // Resolve after successful processing
                                 }
                                 catch (e) {
                                     console.error(`Error processing imported HTML from ${src}:`, e);
+                                    reject(new Error(`Error processing imported HTML from ${src}: ${e}`));
                                 }
                             }
                             else {
                                 console.error(`Failed to fetch template file: ${src} (Status: ${status})`);
+                                reject(new Error(`Failed to fetch template file: ${src} (Status: ${status})`));
                             }
-                            resolve(); // Resolve after processing or error
                         });
                     }
                 });
             };
-            const finalCallback = callback || (() => { }); // Ensure callback is a function
-            if (Array.isArray(importData)) {
-                if (importData.length === 0) {
-                    finalCallback();
+            // Handle null or undefined importData
+            if (importData == null) {
+                if (callback) {
+                    callback();
                     return;
                 }
-                Promise.all(importData.map(loadResource))
-                    .then(finalCallback)
-                    .catch((err) => {
-                    console.error("Error loading resources in addTmplByUrl:", err);
-                    finalCallback(); // Call callback even if some resources failed
+                else {
+                    return Promise.resolve();
+                }
+            }
+            // Create the promise for all operations
+            const operationPromise = Array.isArray(importData)
+                ? importData.length === 0
+                    ? Promise.resolve()
+                    : Promise.all(importData.map(loadResource))
+                        .then(() => { })
+                        .catch((err) => {
+                        console.error("Error loading resources in addTmplByUrl:", err);
+                        throw err; // Re-throw the error to allow operationPromise to reject
+                    })
+                : loadResource(importData).catch((err) => {
+                    console.error("Error loading resource in addTmplByUrl:", err);
+                    throw err; // Re-throw the error to allow operationPromise to reject
                 });
+            // If callback is provided, use it; otherwise return the promise
+            if (callback) {
+                operationPromise
+                    .then(() => callback())
+                    .catch((err) => {
+                    // Log error but still call callback for backward compatibility
+                    console.error("Error in addTmplByUrl callback mode:", err);
+                    callback();
+                });
+                return;
             }
             else {
-                loadResource(importData)
-                    .then(finalCallback)
-                    .catch((err) => {
-                    console.error("Error loading resource in addTmplByUrl:", err);
-                    finalCallback(); // Call callback even if resource failed
-                });
+                return operationPromise;
             }
         });
     const requestFunc = function (url, option, callback) {
@@ -1633,25 +1650,52 @@ return __p;`;
             if (!key)
                 return;
             if (keyLength === i) {
-                if (!target[key]) {
-                    target[key] = function (defaultText) {
-                        const lang = document.documentElement.lang || "en";
-                        let label = i18nObj[lang];
-                        if (label === undefined || label === null) {
-                            label = defaultText;
-                            if (configs.debug)
-                                console.warn(`i18n: Label key ["${fullKey}"] for lang "${lang}" is missing. Using default: "${defaultText}"`);
-                        }
-                        return label !== undefined && label !== null ? String(label) : "";
-                    };
+                // Check if any language value is an array
+                const hasArrayValues = Object.keys(i18nObj).some((lang) => Array.isArray(i18nObj[lang]));
+                if (hasArrayValues) {
+                    // Handle arrays - create array structure
+                    if (!target[key]) {
+                        target[key] = [];
+                    }
+                    // Process each language's array
+                    Object.keys(i18nObj)
+                        .filter((lang) => Array.isArray(i18nObj[lang]))
+                        .forEach((lang) => {
+                        const array = i18nObj[lang];
+                        array.forEach((item, index) => {
+                            if (!target[key][index]) {
+                                target[key][index] = {};
+                            }
+                            if (item instanceof Object && !Array.isArray(item)) {
+                                Object.keys(item).forEach((subKey) => {
+                                    compomint.addI18n(fullKey + "." + index + "." + subKey, item[subKey]);
+                                });
+                            }
+                        });
+                    });
                 }
-                // Handle nested objects within the language definitions
-                Object.keys(i18nObj)
-                    .filter((lang) => i18nObj[lang] instanceof Object && !Array.isArray(i18nObj[lang])) // Check for plain objects
-                    .forEach((subKey) => {
-                    compomint.addI18n(fullKey + "." + subKey, i18nObj[subKey]);
-                    // delete i18nObj[subKey]; // Avoid deleting if it's also a language key
-                });
+                else {
+                    // Handle regular i18n function
+                    if (!target[key]) {
+                        target[key] = function (defaultText) {
+                            const lang = document.documentElement.lang || "en";
+                            let label = i18nObj[lang];
+                            if (label === undefined || label === null) {
+                                label = defaultText;
+                                if (configs.debug)
+                                    console.warn(`i18n: Label key ["${fullKey}"] for lang "${lang}" is missing. Using default: "${defaultText}"`);
+                            }
+                            return label !== undefined && label !== null ? String(label) : "";
+                        };
+                    }
+                    // Handle nested objects within the language definitions
+                    Object.keys(i18nObj)
+                        .filter((lang) => i18nObj[lang] instanceof Object && !Array.isArray(i18nObj[lang])) // Check for plain objects
+                        .forEach((subKey) => {
+                        compomint.addI18n(fullKey + "." + subKey, i18nObj[subKey]);
+                        // delete i18nObj[subKey]; // Avoid deleting if it's also a language key
+                    });
+                }
             }
             else {
                 if (!target[key] || typeof target[key] === "function") {
@@ -1662,9 +1706,81 @@ return __p;`;
         });
     };
     compomint.addI18ns = function (i18nObjs) {
-        Object.keys(i18nObjs || {}).forEach(function (key) {
-            compomint.addI18n(key, i18nObjs[key]);
-        });
+        // Cache for target path resolution to avoid repeated splits
+        const targetCache = new Map();
+        function getTargetPath(fullKey) {
+            if (targetCache.has(fullKey)) {
+                return targetCache.get(fullKey);
+            }
+            const keyParts = fullKey.split(".");
+            let target = compomint.i18n;
+            for (let i = 0; i < keyParts.length - 1; i++) {
+                if (!target[keyParts[i]]) {
+                    target[keyParts[i]] = {};
+                }
+                target = target[keyParts[i]];
+            }
+            targetCache.set(fullKey, target);
+            return target;
+        }
+        function isTranslationObject(value) {
+            // Fast check: if it has nested objects, it's not a translation
+            for (const key in value) {
+                const val = value[key];
+                const type = typeof val;
+                if (type !== "string" && type !== "number" && type !== "boolean") {
+                    return false;
+                }
+            }
+            return true;
+        }
+        function processNested(obj, keyPath = "") {
+            for (const key in obj) {
+                const value = obj[key];
+                const fullKey = keyPath ? keyPath + "." + key : key;
+                if (Array.isArray(value)) {
+                    // Handle array at this level - optimized version
+                    const target = getTargetPath(fullKey);
+                    const finalKey = fullKey.split(".").pop();
+                    if (!target[finalKey]) {
+                        target[finalKey] = [];
+                    }
+                    // Process each array item with reduced function calls
+                    for (let index = 0; index < value.length; index++) {
+                        const item = value[index];
+                        if (!target[finalKey][index]) {
+                            target[finalKey][index] = {};
+                        }
+                        if (item && typeof item === "object") {
+                            // Direct processing without recursive addI18n calls
+                            for (const itemKey in item) {
+                                const itemValue = item[itemKey];
+                                if (itemValue && typeof itemValue === "object") {
+                                    // Create the i18n function directly
+                                    const itemPath = fullKey + "." + index + "." + itemKey;
+                                    compomint.addI18n(itemPath, itemValue);
+                                }
+                            }
+                        }
+                    }
+                }
+                else if (value && typeof value === "object") {
+                    if (isTranslationObject(value)) {
+                        // This is a translation object, use addI18n
+                        compomint.addI18n(fullKey, value);
+                    }
+                    else {
+                        // This is a nested structure, continue processing
+                        processNested(value, fullKey);
+                    }
+                }
+                else {
+                    // Primitive value, use addI18n
+                    compomint.addI18n(fullKey, value);
+                }
+            }
+        }
+        processNested(i18nObjs);
     };
     let elementCount = 0;
     tools.genId = function (tmplId) {

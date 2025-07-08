@@ -2043,54 +2043,75 @@ compomint.addI18n = function (fullKey, i18nObj) {
 };
 
 compomint.addI18ns = function (i18nObjs) {
+  // Cache for target path resolution to avoid repeated splits
+  var targetCache = {};
+
+  function getTargetPath(fullKey) {
+    if (targetCache[fullKey]) {
+      return targetCache[fullKey];
+    }
+
+    var keyParts = fullKey.split(".");
+    var target = compomint.i18n;
+    for (var i = 0; i < keyParts.length - 1; i++) {
+      if (!target[keyParts[i]]) {
+        target[keyParts[i]] = {};
+      }
+      target = target[keyParts[i]];
+    }
+
+    targetCache[fullKey] = target;
+    return target;
+  }
+
+  function isTranslationObject(value) {
+    // Fast check: if it has nested objects, it's not a translation
+    for (var key in value) {
+      var val = value[key];
+      var type = typeof val;
+      if (type !== "string" && type !== "number" && type !== "boolean") {
+        return false;
+      }
+    }
+    return true;
+  }
+
   function processNested(obj, keyPath) {
     keyPath = keyPath || "";
-    Object.keys(obj).forEach(function (key) {
-      const value = obj[key];
-      const fullKey = keyPath ? keyPath + "." + key : key;
+    for (var key in obj) {
+      var value = obj[key];
+      var fullKey = keyPath ? keyPath + "." + key : key;
 
       if (Array.isArray(value)) {
-        // Handle array at this level
-        const keyParts = fullKey.split(".");
-        let target = compomint.i18n;
-        for (let i = 0; i < keyParts.length - 1; i++) {
-          if (!target[keyParts[i]]) {
-            target[keyParts[i]] = {};
-          }
-          target = target[keyParts[i]];
-        }
+        // Handle array at this level - optimized version
+        var target = getTargetPath(fullKey);
+        var finalKey = fullKey.split(".").pop();
 
-        const finalKey = keyParts[keyParts.length - 1];
         if (!target[finalKey]) {
           target[finalKey] = [];
         }
 
-        // Process each array item
-        value.forEach(function (item, index) {
+        // Process each array item with reduced function calls
+        for (var index = 0; index < value.length; index++) {
+          var item = value[index];
           if (!target[finalKey][index]) {
             target[finalKey][index] = {};
           }
 
           if (item && typeof item === "object") {
-            Object.keys(item).forEach(function (itemKey) {
-              compomint.addI18n(
-                fullKey + "." + index + "." + itemKey,
-                item[itemKey]
-              );
-            });
+            // Direct processing without recursive addI18n calls
+            for (var itemKey in item) {
+              var itemValue = item[itemKey];
+              if (itemValue && typeof itemValue === "object") {
+                // Create the i18n function directly
+                var itemPath = fullKey + "." + index + "." + itemKey;
+                compomint.addI18n(itemPath, itemValue);
+              }
+            }
           }
-        });
+        }
       } else if (value && typeof value === "object") {
-        // Check if this object contains language translations
-        // A translation object has only primitive values (string/number/boolean)
-        // If it has nested objects, it's likely a structural object, not a translation
-        const keys = Object.keys(value);
-        const isTranslationObject = keys.length > 0 && keys.every(function (k) {
-          const val = value[k];
-          return typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean';
-        });
-
-        if (isTranslationObject) {
+        if (isTranslationObject(value)) {
           // This is a translation object, use addI18n
           compomint.addI18n(fullKey, value);
         } else {
@@ -2101,7 +2122,7 @@ compomint.addI18ns = function (i18nObjs) {
         // Primitive value, use addI18n
         compomint.addI18n(fullKey, value);
       }
-    });
+    }
   }
 
   processNested(i18nObjs);
