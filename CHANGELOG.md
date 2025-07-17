@@ -1,3 +1,9 @@
+## [1.1.2](https://github.com/kurukona/compomint/compare/v1.1.1...v1.1.2) (2025-07-17)
+
+### Bug Fixes
+
+* templateEngine option handling in addTmplByUrl (fixes [#19](https://github.com/kurukona/compomint/issues/19)) ([0cfbe12](https://github.com/kurukona/compomint/commit/0cfbe126d5d866e0b9adec19f41341daa9ca3f2f))
+
 ## [1.1.1](https://github.com/kurukona/compomint/compare/v1.1.0...v1.1.1) (2025-07-08)
 
 ### Bug Fixes
