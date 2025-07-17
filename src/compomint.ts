@@ -282,11 +282,18 @@ const templateBuilder = (compomint.template =
     let matcher = defaultMatcher;
 
     if (customTemplateEngine) {
-      templateEngine = Object.assign(
-        {},
-        compomint.templateEngine,
-        customTemplateEngine
-      );
+      templateEngine = {
+        rules: Object.assign(
+          {},
+          templateEngine.rules,
+          customTemplateEngine.rules || {}
+        ),
+        keys: Object.assign(
+          {},
+          templateEngine.keys,
+          customTemplateEngine.keys || {}
+        ),
+      };
       matcher = matcherFunc(templateEngine.rules);
     }
 
@@ -1097,7 +1104,7 @@ const addTmplByUrl: CompomintGlobal["addTmplByUrl"] = (compomint.addTmplByUrl =
       currentOption: Record<string, any>
     ): void => {
       const templateContainer = safeTemplate(source);
-      addTmpls(templateContainer, false, currentOption.tmplSettings);
+      addTmpls(templateContainer, false, currentOption.templateEngine);
       const content =
         (templateContainer as TemplateElement).content || templateContainer;
 
