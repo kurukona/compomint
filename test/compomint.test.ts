@@ -1645,6 +1645,114 @@ describe("Compomint Template Engine", () => {
       });
     });
 
+    // --- escapeSyntax Tests (#\#...#\#) ---
+    describe("escapeSyntax (#\\#...#\\#)", () => {
+      it("should escape template syntax to prevent processing", () => {
+        const renderingFunc = compomint.template(
+          "escape-syntax-basic",
+          "<div>This shows template syntax: #\\#=data.example#\\#</div>"
+        );
+        const component = renderingFunc({ example: "Hello World" });
+        expect(component.element.innerHTML).toBe(
+          "This shows template syntax: ##=data.example##"
+        );
+      });
+
+      it("should escape interpolation syntax without executing it", () => {
+        const renderingFunc = compomint.template(
+          "escape-syntax-interpolate",
+          "<div>Raw syntax: #\\#=data.message#\\# vs processed: ##=data.message##</div>"
+        );
+        const component = renderingFunc({ message: "Hello" });
+        expect(component.element.innerHTML).toBe(
+          "Raw syntax: ##=data.message## vs processed: Hello"
+        );
+      });
+
+      it("should escape escape syntax to show literal escape syntax", () => {
+        const renderingFunc = compomint.template(
+          "escape-syntax-escape",
+          "<div>Escaped escape: #\\#-data.html#\\# vs real escape: ##-data.html##</div>"
+        );
+        const component = renderingFunc({
+          html: "<script>alert('xss')</script>",
+        });
+        expect(component.element.innerHTML).toBe(
+          "Escaped escape: ##-data.html## vs real escape: &lt;script&gt;alert('xss')&lt;/script&gt;"
+        );
+      });
+
+      it("should escape evaluate syntax without executing JavaScript", () => {
+        const renderingFunc = compomint.template(
+          "escape-syntax-evaluate",
+          "<div>Escaped code: #\\#let x = 5;#\\# | Normal: ##let y = 10;## ##=y##</div>"
+        );
+        const component = renderingFunc({});
+        expect(component.element.innerHTML).toBe(
+          "Escaped code: ##let x = 5;## | Normal:  10"
+        );
+      });
+
+      it("should escape element insertion syntax", () => {
+        const renderingFunc = compomint.template(
+          "escape-syntax-element",
+          "<div>Shows element syntax: #\\#%data.content#\\#</div>"
+        );
+        const component = renderingFunc({ content: "This won't be inserted" });
+        expect(component.element.innerHTML).toBe(
+          "Shows element syntax: ##%data.content##"
+        );
+      });
+
+      it("should escape lazy evaluation syntax", () => {
+        const renderingFunc = compomint.template(
+          "escape-syntax-lazy",
+          "<div>Shows lazy syntax: #\\#x = 1;#\\#</div>"
+        );
+        const component = renderingFunc({});
+        expect(component.element.innerHTML).toBe(
+          "Shows lazy syntax: ##x = 1;##"
+        );
+      });
+
+      it("should escape comment syntax", () => {
+        const renderingFunc = compomint.template(
+          "escape-syntax-comment",
+          "<div>Shows comment syntax: #\\#* This is a comment *#\\#</div>"
+        );
+        const component = renderingFunc({});
+        expect(component.element.innerHTML).toBe(
+          "Shows comment syntax: ##* This is a comment *##"
+        );
+      });
+
+      it("should escape preEvaluate syntax", () => {
+        const renderingFunc = compomint.template(
+          "escape-syntax-pre",
+          "<div>Shows preEvaluate syntax: #\\#! var x = 1; #\\#</div>"
+        );
+        const component = renderingFunc({});
+        expect(component.element.innerHTML).toBe(
+          "Shows preEvaluate syntax: ##! var x = 1; ##"
+        );
+      });
+
+      it("should handle multiple escaped syntaxes in one template", () => {
+        const renderingFunc = compomint.template(
+          "escape-syntax-multiple",
+          "<div>Examples: #\\#=data.value#\\# and #\\#-data.html#\\# and #\\#data.func()#\\#</div>"
+        );
+        const component = renderingFunc({
+          value: "test",
+          html: "<em>emphasized</em>",
+          func: () => "function result",
+        });
+        expect(component.element.innerHTML).toBe(
+          "Examples: ##=data.value## and ##-data.html## and ##data.func()##"
+        );
+      });
+    });
+
     // --- evaluate Tests (##) ---
     describe("evaluate (##)", () => {
       it("should execute arbitrary JavaScript code", () => {
@@ -2439,6 +2547,138 @@ describe("Compomint Template Engine", () => {
         expect(typeof compomint.tmpl("t2")).not.toBe("function");
         expect(typeof compomint.tmpl("t3")).toBe("function");
         expect(typeof compomint.tmpl("t4")).not.toBe("function");
+      });
+
+      it("should support custom template engine with addTmpl", () => {
+        const customTemplateEngine = {
+          rules: {
+            interpolate: {
+              pattern: /\{\{(.+?)\}\}/g,
+              exec: function (match: string) {
+                return `';(() => {let interpolate=${match};\n__p+=((__t=(typeof (interpolate)=='function' ? (interpolate)() : (interpolate)))==null?'':__t);})()\n__p+='`;
+              },
+            },
+          },
+          keys: {
+            dataKeyName: "data",
+            statusKeyName: "status",
+            componentKeyName: "component",
+            i18nKeyName: "i18n",
+          },
+        };
+
+        // Add template with custom engine - pass directly as third parameter
+        compomint.addTmpl(
+          "custom-engine-test",
+          "<div>{{data.message}}</div>",
+          customTemplateEngine as any
+        );
+
+        const renderingFunc = compomint.tmpl("custom-engine-test")!;
+        expect(typeof renderingFunc).toBe("function");
+
+        const component = renderingFunc({ message: "Hello World" });
+        expect(component.element.outerHTML).toBe("<div>Hello World</div>");
+      });
+
+      it("should support custom template engine with custom keys", () => {
+        const customTemplateEngine = {
+          rules: {
+            // Use default interpolation pattern but with custom variable names
+            interpolate: {
+              pattern: /##=([\s\S]+?)##/g,
+              exec: function (interpolate: string) {
+                interpolate = `'** ' + ${interpolate} + ' **'`;
+                return `';(() => {let interpolate=${interpolate};\n__p+=((__t=(typeof (interpolate)=='function' ? (interpolate)() : (interpolate)))==null?'':__t);})()\n__p+='`;
+              },
+            },
+          },
+          keys: {
+            dataKeyName: "model",
+            statusKeyName: "state",
+            componentKeyName: "scope",
+            i18nKeyName: "translate",
+          },
+        };
+
+        compomint.addTmpl(
+          "custom-keys-test",
+          "<div>##=model.title##</div>",
+          customTemplateEngine as any
+        );
+
+        const component = compomint.tmpl("custom-keys-test")!({
+          title: "Custom Keys Test",
+        });
+
+        expect(component.element.outerHTML).toBe(
+          "<div>** Custom Keys Test **</div>"
+        );
+      });
+
+      it("should support custom template engine with addTmpls", () => {
+        const customTemplateEngine = {
+          rules: {
+            interpolate: {
+              pattern: /\[\[(.+?)\]\]/g,
+              exec: function (match: string) {
+                return `';(() => {let interpolate=${match};\n__p+=((__t=(typeof (interpolate)=='function' ? (interpolate)() : (interpolate)))==null?'':__t);})()\n__p+='`;
+              },
+            },
+          },
+          keys: {
+            dataKeyName: "data",
+            statusKeyName: "status",
+            componentKeyName: "component",
+            i18nKeyName: "i18n",
+          },
+        };
+
+        const templateSource = `
+          <template id="custom-addtmpls-test">
+            <div>[[data.content]]</div>
+          </template>
+        `;
+
+        compomint.addTmpls(templateSource, false, customTemplateEngine as any);
+
+        const component = compomint.tmpl("custom-addtmpls-test")!({
+          content: "Multiple templates test",
+        });
+
+        expect(component.element.outerHTML).toBe(
+          "<div>Multiple templates test</div>"
+        );
+      });
+
+      it("should merge custom template engine with default settings", () => {
+        const customTemplateEngine = {
+          rules: {
+            // Add a custom rule in addition to default ones
+            customTripleBrace: {
+              pattern: /\{\{\{(.+?)\}\}\}/g,
+              exec: function (match: string) {
+                return `';(() => {let interpolate=${match};\n__p+='<strong>' + ((__t=(typeof (interpolate)=='function' ? (interpolate)() : (interpolate)))==null?'':__t) + '</strong>';})()\n__p+='`;
+              },
+            },
+          },
+          // Don't override keys, should use defaults
+        };
+
+        compomint.addTmpl(
+          "merge-engine-test",
+          "<div>##=data.title## - {{{data.emphasis}}}</div>",
+          customTemplateEngine as any
+        );
+
+        const component = compomint.tmpl("merge-engine-test")!({
+          title: "Normal Text",
+          emphasis: "Bold Text",
+        });
+
+        expect(component.element.outerHTML).toBe(
+          "<div>Normal Text - <strong>Bold Text</strong></div>"
+        );
       });
     });
 

@@ -582,6 +582,12 @@ __p+='`;
                 return "';\n" + evaluate + "\n__p+='";
             },
         },
+        escapeSyntax: {
+            pattern: /#\\#([\s\S]+?)#\\#/g,
+            exec: function (syntax) {
+                return `'+\n'##${syntax}##'+\n'`;
+            },
+        },
     },
     keys: {
         dataKeyName: "data",
@@ -806,7 +812,10 @@ const templateBuilder = (compomint.template =
         let templateEngine = compomint.templateEngine;
         let matcher = defaultMatcher;
         if (customTemplateEngine) {
-            templateEngine = Object.assign({}, compomint.templateEngine, customTemplateEngine);
+            templateEngine = {
+                rules: Object.assign({}, templateEngine.rules, customTemplateEngine.rules || {}),
+                keys: Object.assign({}, templateEngine.keys, customTemplateEngine.keys || {}),
+            };
             matcher = matcherFunc(templateEngine.rules);
         }
         const source = `
@@ -1450,7 +1459,7 @@ const addTmpls = (compomint.addTmpls = function (source, removeInnerTemplate, te
         };
         const importFunc = (source, currentOption) => {
             const templateContainer = safeTemplate(source);
-            addTmpls(templateContainer, false, currentOption.tmplSettings);
+            addTmpls(templateContainer, false, currentOption.templateEngine);
             const content = templateContainer.content || templateContainer;
             if (currentOption.loadLink) {
                 const links = content.querySelectorAll('link[rel="stylesheet"]');

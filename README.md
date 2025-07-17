@@ -4,8 +4,10 @@
 
 The Compomint template-based component engine is a lightweight JavaScript framework for creating web applications with a focus on component-based architecture. It provides a powerful template-based system that allows you to create, combine, and reuse UI components efficiently.
 
-[Compomint Website](https://compomint.dev/)
-[Github Repository](https://github.com/kurukona/compomint)
+- [Compomint Website](https://compomint.dev/)
+- [Github Repository](https://github.com/kurukona/compomint)
+
+You can explore live code examples and try out Compomint features in the interactive playground available on the Compomint Website.
 
 ## Table of Contents
 
@@ -312,7 +314,8 @@ compomint.addTmplByUrl("templates.html", function () {
 });
 
 // Promise-based loading (NEW: Version 1.0.3+)
-compomint.addTmplByUrl("templates.html")
+compomint
+  .addTmplByUrl("templates.html")
   .then(() => {
     console.log("Templates loaded successfully!");
     const mainScreen = tmpl.do.MainScreen({});
@@ -348,21 +351,23 @@ compomint.addTmplByUrl(
 );
 
 // Load multiple template files
-compomint.addTmplByUrl([
-  "templates/header.html", 
-  "templates/main.html", 
-  "templates/footer.html"
-]).then(() => {
-  console.log("All templates loaded successfully!");
-  // All templates are now available
-  const header = tmpl.ui.Header({ title: "My App" });
-  const main = tmpl.ui.Main({ content: "Welcome!" });
-  const footer = tmpl.ui.Footer({ year: 2024 });
-  
-  document.body.appendChild(header.element);
-  document.body.appendChild(main.element);
-  document.body.appendChild(footer.element);
-});
+compomint
+  .addTmplByUrl([
+    "templates/header.html",
+    "templates/main.html",
+    "templates/footer.html",
+  ])
+  .then(() => {
+    console.log("All templates loaded successfully!");
+    // All templates are now available
+    const header = tmpl.ui.Header({ title: "My App" });
+    const main = tmpl.ui.Main({ content: "Welcome!" });
+    const footer = tmpl.ui.Footer({ year: 2024 });
+
+    document.body.appendChild(header.element);
+    document.body.appendChild(main.element);
+    document.body.appendChild(footer.element);
+  });
 ```
 
 ### 2. Create and Use Components
@@ -777,6 +782,31 @@ Code that runs after the template is rendered:
 template code. ##
 ```
 
+#### `#\# #\#` - Escape Syntax
+
+Used to display template syntax literally without processing it:
+
+```html
+<!-- Show template syntax as text -->
+<div>This shows template syntax: #\#=data.example#\#</div>
+<!-- Output: This shows template syntax: ##=data.example## -->
+
+<!-- Compare escaped vs processed syntax -->
+<div>Raw syntax: #\#=data.message#\# vs processed: ##=data.message##</div>
+<!-- Output: Raw syntax: ##=data.message## vs processed: Hello -->
+
+<!-- Escape different types of syntax -->
+<div>Escaped escape: #\#-data.html#\# vs real escape: ##-data.html##</div>
+<div>Escaped code: #\#let x = 5;#\# shows as literal text</div>
+<div>Escaped element: #\#%data.content#\# won't insert elements</div>
+<div>Escaped comment: #\#* This is a comment *#\# becomes visible</div>
+```
+
+This is useful for:
+- Documentation and tutorials about Compomint syntax
+- Showing template examples to users
+- Debugging template code by displaying the syntax literally
+
 ### HTML Attribute Expressions
 
 Compomint provides special HTML attributes for handling events, references, and dynamic content:
@@ -1016,6 +1046,69 @@ compomint.addTmpl("custom-template", "<div>##=model.label##</div>", {
 // Use the template
 const component = compomint.tmpl("custom-template")({ label: "Hello" });
 ```
+
+**Custom Template Engine**
+
+You can define a custom template engine with your own expression syntax and processing rules:
+
+```javascript
+// Define a custom template engine
+const customTemplateEngine = {
+  rules: {
+    // Custom interpolation rule using double braces
+    customInterpolate: {
+      pattern: /\{\{(.+?)\}\}/g,
+      exec: function (match) {
+        return `<span class="custom-output">${match}</span>`;
+      },
+    },
+    // Custom code execution rule
+    customCode: {
+      pattern: /\{%(.+?)%\}/g,
+      exec: function (code) {
+        return `'; ${code}; __p+='`;
+      },
+    },
+  },
+  keys: {
+    dataKeyName: "model",        // Use 'model' instead of 'data'
+    statusKeyName: "state",      // Use 'state' instead of 'status'
+    componentKeyName: "scope",   // Use 'scope' instead of 'component'
+    i18nKeyName: "translate",    // Use 'translate' instead of 'i18n'
+  },
+};
+
+// Use custom template engine when creating templates
+compomint.addTmpl("custom-engine-template", 
+  "<div>{{model.userName}} - {% state.clickCount = state.clickCount || 0; %}</div>", 
+  { templateEngine: customTemplateEngine }
+);
+
+// Use custom template engine when loading templates from URL
+compomint.addTmplByUrl("templates.html", {
+  templateEngine: customTemplateEngine
+}, function() {
+  console.log("Templates with custom engine loaded!");
+});
+
+// Promise-based loading with custom template engine
+compomint.addTmplByUrl({
+  url: "templates.html",
+  option: {
+    templateEngine: customTemplateEngine,
+    loadScript: true,
+    loadStyle: true,
+  }
+}).then(() => {
+  console.log("Custom engine templates loaded successfully!");
+});
+```
+
+The custom template engine allows you to:
+- Define custom expression patterns and processing logic
+- Change the variable names used within templates (data, status, component, i18n)
+- Create domain-specific template languages
+- Implement specialized processing for different use cases
 
 **Custom Template Expression Syntax**
 

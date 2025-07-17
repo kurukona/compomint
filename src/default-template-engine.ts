@@ -718,6 +718,12 @@ __p+='`;
         return "';\n" + evaluate + "\n__p+='";
       },
     },
+    escapeSyntax: {
+      pattern: /#\\#([\s\S]+?)#\\#/g,
+      exec: function (syntax) {
+        return `'+\n'##${syntax}##'+\n'`;
+      },
+    },
   },
   keys: {
     dataKeyName: "data",
