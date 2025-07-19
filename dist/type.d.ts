@@ -7,6 +7,7 @@ interface TemplateMeta {
     renderingFunc: RenderingFunction;
     source?: string;
     templateText?: string;
+    sourceGenFunc?: Function;
     elements?: Set<any>;
 }
 interface LazyScope {
@@ -82,6 +83,43 @@ interface Tools {
     props: (...propsObjects: Record<string, any>[]) => string;
     liveReloadSupport?: (component: ComponentScope) => void;
 }
+interface SSROptions {
+    renderToString?: boolean;
+    hydrateOnClient?: boolean;
+    generateIds?: boolean;
+    preserveWhitespace?: boolean;
+    lang?: string;
+}
+interface SSRRenderResult {
+    html: string;
+    css: string;
+    scripts: string[];
+    metadata: {
+        templateIds: string[];
+        componentIds: string[];
+        renderTime: number;
+    };
+}
+interface SSRPageOptions {
+    title?: string;
+    meta?: Array<{
+        name?: string;
+        property?: string;
+        content: string;
+    }>;
+    links?: Array<{
+        rel: string;
+        href: string;
+        [key: string]: string;
+    }>;
+    scripts?: Array<{
+        src?: string;
+        content?: string;
+        [key: string]: any;
+    }>;
+    bodyClass?: string;
+    lang?: string;
+}
 interface CompomintGlobal {
     configs: CompomintConfigs;
     tmplCache: Map<string, TemplateMeta>;
@@ -99,7 +137,14 @@ interface CompomintGlobal {
     }, option?: Record<string, any> | (() => void), callback?: Function | (() => void)) => void | Promise<void>;
     addI18n: (fullKey: string, i18nObj: Record<string, any>) => void;
     addI18ns: (i18nObjs: Record<string, any>) => void;
+    ssr?: {
+        isSupported(): boolean;
+        setupEnvironment(): boolean;
+        createRenderer(options?: SSROptions): any;
+        renderToString(templateId: string, data?: any, options?: SSROptions): Promise<string>;
+        renderPage(templateId: string, data?: any, pageOptions?: SSRPageOptions): Promise<string>;
+    };
 }
 interface TemplateElement extends HTMLTemplateElement {
 }
-export { CompomintConfigs, TemplateMeta, LazyScope, TemplateRule, TemplateEngine, ComponentScope, RenderingFunction, Tools, CompomintGlobal, TemplateElement, };
+export { CompomintConfigs, TemplateMeta, LazyScope, TemplateRule, TemplateEngine, ComponentScope, RenderingFunction, Tools, CompomintGlobal, TemplateElement, SSROptions, SSRRenderResult, SSRPageOptions, };

@@ -4,6 +4,36 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.Compomint = {}));
 })(this, (function (exports) { 'use strict';
 
+    /******************************************************************************
+    Copyright (c) Microsoft Corporation.
+
+    Permission to use, copy, modify, and/or distribute this software for any
+    purpose with or without fee is hereby granted.
+
+    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+    REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+    AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+    INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+    LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+    OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+    PERFORMANCE OF THIS SOFTWARE.
+    ***************************************************************************** */
+
+    function __awaiter(thisArg, _arguments, P, generator) {
+        function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+        return new (P || (P = Promise))(function (resolve, reject) {
+            function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+            function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+            function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+            step((generator = generator.apply(thisArg, _arguments || [])).next());
+        });
+    }
+
+    typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
+        var e = new Error(message);
+        return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
+    };
+
     const firstElementChild = function (ele) {
         if (ele.firstElementChild)
             return ele.firstElementChild;
@@ -17,11 +47,13 @@
     };
     const childElementCount = function (ele) {
         return (ele.childElementCount ||
-            Array.prototype.filter.call(ele.childNodes, function (child) {
+            Array.prototype.filter.call(ele.childNodes || [], function (child) {
                 return child instanceof Element;
             }).length);
     };
     const cleanNode = function (node) {
+        if (!node.childNodes)
+            return;
         for (let n = 0; n < node.childNodes.length; n++) {
             const child = node.childNodes[n];
             if (child.nodeType === 8 || // Comment node
@@ -36,13 +68,32 @@
             }
         }
     };
-    const domParser = new DOMParser();
+    const getDOMParser = () => {
+        if (typeof DOMParser !== 'undefined') {
+            return new DOMParser();
+        }
+        // SSR fallback - create mock DOMParser
+        return {
+            parseFromString: (str, type) => {
+                const mockDoc = {
+                    body: {
+                        childNodes: [],
+                        firstChild: null,
+                        appendChild: () => { },
+                        removeChild: () => { }
+                    }
+                };
+                return mockDoc;
+            }
+        };
+    };
     const stringToElement = function (str) {
         if (typeof str === 'number' || !isNaN(Number(str))) {
             return document.createTextNode(String(str));
         }
         else if (typeof str === 'string') {
             try {
+                const domParser = getDOMParser();
                 const doc = domParser.parseFromString(str, "text/html");
                 const body = doc.body;
                 if (body.childNodes.length === 1) {
@@ -625,6 +676,957 @@ __p+='`;
      * Copyright (c) 2025-present, Choi Sungho
      * Code released under the MIT license
      */
+    /**
+     * Environment detection utilities
+     */
+    // Store original window state before SSR setup
+    const _originalWindow = typeof window;
+    const Environment = {
+        // Check if we're in a server environment
+        isServer() {
+            return (_originalWindow === 'undefined' || globalThis.__SSR_ENVIRONMENT__) &&
+                typeof globalThis !== 'undefined' &&
+                typeof globalThis.process !== 'undefined' &&
+                typeof globalThis.process.versions !== 'undefined' &&
+                !!globalThis.process.versions.node;
+        },
+        // Check if we're in a browser environment  
+        isBrowser() {
+            return _originalWindow !== 'undefined' &&
+                typeof document !== 'undefined' &&
+                !globalThis.__SSR_ENVIRONMENT__;
+        },
+        // Check if DOM APIs are available
+        hasDOM() {
+            return typeof document !== 'undefined' &&
+                typeof document.createElement === 'function';
+        },
+        // Check if we're in a Node.js environment
+        isNode() {
+            return typeof globalThis.process !== 'undefined' &&
+                typeof globalThis.process.versions !== 'undefined' &&
+                !!globalThis.process.versions.node;
+        }
+    };
+    /**
+     * DOM Polyfills for Server-Side Rendering
+     */
+    class SSRDOMPolyfill {
+        constructor() {
+            this.elements = new Map();
+            this.styleCollector = [];
+            this.scriptCollector = [];
+        }
+        static getInstance() {
+            if (!SSRDOMPolyfill.instance) {
+                SSRDOMPolyfill.instance = new SSRDOMPolyfill();
+            }
+            return SSRDOMPolyfill.instance;
+        }
+        /**
+         * Create a minimal DOM-like element for SSR
+         */
+        createElement(tagName) {
+            const element = {
+                nodeType: 1, // Element nodeType
+                tagName: tagName.toUpperCase(),
+                id: '',
+                className: '',
+                textContent: '',
+                _innerHTML: '',
+                attributes: new Map(),
+                children: [],
+                parentNode: null,
+                style: {},
+                dataset: {},
+                firstChild: null,
+                lastChild: null,
+                childElementCount: 0,
+                firstElementChild: null,
+                content: null, // For template elements
+                // Make childNodes iterable
+                get childNodes() {
+                    return this.children;
+                },
+                setAttribute(name, value) {
+                    this.attributes.set(name, value);
+                    if (name === 'id')
+                        this.id = value;
+                    if (name === 'class')
+                        this.className = value;
+                },
+                // Override innerHTML setter to parse HTML
+                set innerHTML(html) {
+                    this._innerHTML = html;
+                    // Clear existing children
+                    this.children = [];
+                    // Parse HTML and create child elements
+                    if (html) {
+                        this.parseAndCreateChildren(html);
+                    }
+                },
+                get innerHTML() {
+                    return this._innerHTML || '';
+                },
+                parseAndCreateChildren(html) {
+                    // Simple HTML parsing for template elements - more flexible regex
+                    const templateRegex = /<template[^>]*?id\s*=\s*["']([^"']+)["'][^>]*?>([\s\S]*?)<\/template>/gi;
+                    const scriptRegex = /<script[^>]*?type\s*=\s*["']text\/template["'][^>]*?id\s*=\s*["']([^"']+)["'][^>]*?>([\s\S]*?)<\/script>/gi;
+                    const scriptCompomintRegex = /<script[^>]*?type\s*=\s*["']text\/compomint["'][^>]*?id\s*=\s*["']([^"']+)["'][^>]*?>([\s\S]*?)<\/script>/gi;
+                    let match;
+                    // Match template elements
+                    templateRegex.lastIndex = 0; // Reset regex
+                    while ((match = templateRegex.exec(html)) !== null) {
+                        const templateElement = this.createTemplateElement(match[1], match[2]);
+                        this.children.push(templateElement);
+                    }
+                    // Match script[type="text/template"] elements
+                    scriptRegex.lastIndex = 0; // Reset regex
+                    while ((match = scriptRegex.exec(html)) !== null) {
+                        const scriptElement = this.createScriptElement(match[1], match[2], 'text/template');
+                        this.children.push(scriptElement);
+                    }
+                    // Match script[type="text/compomint"] elements
+                    scriptCompomintRegex.lastIndex = 0; // Reset regex
+                    while ((match = scriptCompomintRegex.exec(html)) !== null) {
+                        const scriptElement = this.createScriptElement(match[1], match[2], 'text/compomint');
+                        this.children.push(scriptElement);
+                    }
+                },
+                createTemplateElement(id, content) {
+                    const polyfill = SSRDOMPolyfill.getInstance();
+                    const template = polyfill.createElement('template');
+                    template.id = id;
+                    template.setAttribute('id', id);
+                    // Unescape HTML entities for template content
+                    const unescapedContent = content
+                        .replace(/&lt;/g, '<')
+                        .replace(/&gt;/g, '>')
+                        .replace(/&amp;/g, '&')
+                        .replace(/&quot;/g, '"')
+                        .replace(/&#x27;/g, "'");
+                    template._innerHTML = unescapedContent;
+                    return template;
+                },
+                createScriptElement(id, content, type) {
+                    const polyfill = SSRDOMPolyfill.getInstance();
+                    const script = polyfill.createElement('script');
+                    script.id = id;
+                    script.setAttribute('id', id);
+                    script.setAttribute('type', type);
+                    script._innerHTML = content;
+                    return script;
+                },
+                getAttribute(name) {
+                    return this.attributes.get(name) || null;
+                },
+                appendChild(child) {
+                    this.children.push(child);
+                    child.parentNode = this;
+                    this.firstChild = this.children[0] || null;
+                    this.lastChild = this.children[this.children.length - 1] || null;
+                    this.childElementCount = this.children.length;
+                    this.firstElementChild = this.children[0] || null;
+                    return child;
+                },
+                removeChild(child) {
+                    const index = this.children.indexOf(child);
+                    if (index > -1) {
+                        this.children.splice(index, 1);
+                        child.parentNode = null;
+                        this.firstChild = this.children[0] || null;
+                        this.lastChild = this.children[this.children.length - 1] || null;
+                        this.childElementCount = this.children.length;
+                        this.firstElementChild = this.children[0] || null;
+                    }
+                    return child;
+                },
+                normalize() {
+                    // Mock normalize function
+                },
+                querySelector(selector) {
+                    // Simple implementation for basic selectors
+                    if (selector.startsWith('#')) {
+                        const id = selector.substring(1);
+                        return this.findById(id);
+                    }
+                    if (selector.startsWith('.')) {
+                        const className = selector.substring(1);
+                        return this.findByClass(className);
+                    }
+                    return this.findByTagName(selector);
+                },
+                querySelectorAll(selector) {
+                    const results = [];
+                    // Handle comma-separated selectors
+                    const selectors = selector.split(',').map(s => s.trim());
+                    for (const sel of selectors) {
+                        // Check self first
+                        if (this.matches && this.matches(sel)) {
+                            if (!results.includes(this)) {
+                                results.push(this);
+                            }
+                        }
+                        // Search children recursively
+                        for (const child of this.children) {
+                            if (child.querySelectorAll) {
+                                const childResults = child.querySelectorAll(sel);
+                                for (const result of childResults) {
+                                    if (!results.includes(result)) {
+                                        results.push(result);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return results;
+                },
+                matches(selector) {
+                    const trimmedSelector = selector.trim();
+                    if (trimmedSelector.startsWith('#')) {
+                        return this.id === trimmedSelector.substring(1);
+                    }
+                    if (trimmedSelector.startsWith('.')) {
+                        return this.className.includes(trimmedSelector.substring(1));
+                    }
+                    // Handle attribute selectors like template[id], script[type="text/template"][id]
+                    if (trimmedSelector.includes('[') && trimmedSelector.includes(']')) {
+                        // Extract tag name if present
+                        const tagMatch = trimmedSelector.match(/^(\w+)(?:\[|$)/);
+                        if (tagMatch) {
+                            const expectedTag = tagMatch[1].toLowerCase();
+                            if (this.tagName.toLowerCase() !== expectedTag) {
+                                return false;
+                            }
+                        }
+                        // Extract all attribute selectors
+                        const attrMatches = trimmedSelector.match(/\[([^\]]+)\]/g);
+                        if (attrMatches) {
+                            for (const attrMatch of attrMatches) {
+                                // Parse individual attribute selector
+                                const attrContent = attrMatch.slice(1, -1); // Remove [ and ]
+                                if (attrContent.includes('=')) {
+                                    // Attribute with value like [type="text/template"]
+                                    const parts = attrContent.split('=');
+                                    const attrName = parts[0].trim();
+                                    const attrValue = parts[1].replace(/['"]/g, '').trim();
+                                    if (this.getAttribute(attrName) !== attrValue) {
+                                        return false;
+                                    }
+                                }
+                                else {
+                                    // Attribute without value like [id]
+                                    const attrName = attrContent.trim();
+                                    const hasAttr = this.getAttribute(attrName) !== null;
+                                    if (!hasAttr) {
+                                        return false;
+                                    }
+                                }
+                            }
+                        }
+                        return true;
+                    }
+                    // Simple tag selector
+                    return this.tagName.toLowerCase() === trimmedSelector.toLowerCase();
+                },
+                findById(id) {
+                    if (this.id === id)
+                        return this;
+                    for (const child of this.children) {
+                        const found = child.findById && child.findById(id);
+                        if (found)
+                            return found;
+                    }
+                    return null;
+                },
+                findByClass(className) {
+                    if (this.className.includes(className))
+                        return this;
+                    for (const child of this.children) {
+                        const found = child.findByClass && child.findByClass(className);
+                        if (found)
+                            return found;
+                    }
+                    return null;
+                },
+                findByTagName(tagName) {
+                    if (this.tagName === tagName.toUpperCase())
+                        return this;
+                    for (const child of this.children) {
+                        const found = child.findByTagName && child.findByTagName(tagName);
+                        if (found)
+                            return found;
+                    }
+                    return null;
+                },
+                // Convert to HTML string
+                toHTML() {
+                    // Special handling for template elements - return their content
+                    if (this.tagName.toLowerCase() === 'template') {
+                        if (this.innerHTML) {
+                            return this.innerHTML;
+                        }
+                        else {
+                            // Return children content
+                            return this.children.map((child) => typeof child === 'string' ? child : child.toHTML ? child.toHTML() : '').join('');
+                        }
+                    }
+                    let html = `<${this.tagName.toLowerCase()}`;
+                    // Add attributes
+                    for (const [name, value] of this.attributes) {
+                        html += ` ${name}="${value}"`;
+                    }
+                    // Self-closing tags
+                    if (['img', 'br', 'hr', 'input', 'meta', 'link'].includes(this.tagName.toLowerCase())) {
+                        html += ' />';
+                        return html;
+                    }
+                    html += '>';
+                    // Add content
+                    if (this.textContent) {
+                        html += this.textContent;
+                    }
+                    else if (this.innerHTML) {
+                        html += this.innerHTML;
+                    }
+                    else {
+                        // Add children
+                        for (const child of this.children) {
+                            if (typeof child === 'string') {
+                                html += child;
+                            }
+                            else if (child.toHTML) {
+                                html += child.toHTML();
+                            }
+                        }
+                    }
+                    html += `</${this.tagName.toLowerCase()}>`;
+                    return html;
+                }
+            };
+            // Special handling for template elements
+            if (tagName.toLowerCase() === 'template') {
+                element.content = this.createDocumentFragment();
+                // Override innerHTML for template elements to populate content
+                element.innerHTML;
+                Object.defineProperty(element, 'innerHTML', {
+                    get: function () {
+                        return this._innerHTML || '';
+                    },
+                    set: function (html) {
+                        this._innerHTML = html;
+                        // Clear existing content
+                        this.content.children = [];
+                        // Parse and add to content
+                        if (html) {
+                            this.parseAndCreateChildren(html);
+                            // Copy parsed children to content
+                            for (const child of this.children) {
+                                this.content.children.push(child);
+                                child.parentNode = this.content;
+                            }
+                            // Update content fragment properties
+                            this.content.firstChild = this.content.children[0] || null;
+                            this.content.lastChild = this.content.children[this.content.children.length - 1] || null;
+                            this.content.childElementCount = this.content.children.length;
+                            this.content.firstElementChild = this.content.children[0] || null;
+                        }
+                    },
+                    configurable: true,
+                    enumerable: true
+                });
+            }
+            return element;
+        }
+        /**
+         * Create a document fragment for SSR
+         */
+        createDocumentFragment() {
+            return {
+                nodeType: 11, // DocumentFragment nodeType
+                children: [],
+                firstChild: null,
+                lastChild: null,
+                childElementCount: 0,
+                firstElementChild: null,
+                // Make childNodes iterable
+                get childNodes() {
+                    return this.children;
+                },
+                appendChild(child) {
+                    this.children.push(child);
+                    child.parentNode = this;
+                    this.firstChild = this.children[0] || null;
+                    this.lastChild = this.children[this.children.length - 1] || null;
+                    this.childElementCount = this.children.length;
+                    this.firstElementChild = this.children[0] || null;
+                    return child;
+                },
+                removeChild(child) {
+                    const index = this.children.indexOf(child);
+                    if (index > -1) {
+                        this.children.splice(index, 1);
+                        child.parentNode = null;
+                        this.firstChild = this.children[0] || null;
+                        this.lastChild = this.children[this.children.length - 1] || null;
+                        this.childElementCount = this.children.length;
+                        this.firstElementChild = this.children[0] || null;
+                    }
+                    return child;
+                },
+                normalize() {
+                    // Mock normalize function
+                },
+                querySelector(selector) {
+                    for (const child of this.children) {
+                        if (child.querySelector) {
+                            const result = child.querySelector(selector);
+                            if (result)
+                                return result;
+                        }
+                    }
+                    return null;
+                },
+                querySelectorAll(selector) {
+                    const results = [];
+                    // Handle comma-separated selectors
+                    const selectors = selector.split(',').map(s => s.trim());
+                    for (const sel of selectors) {
+                        // Search children
+                        for (const child of this.children) {
+                            if (child.querySelectorAll) {
+                                const childResults = child.querySelectorAll(sel);
+                                for (const result of childResults) {
+                                    if (!results.includes(result)) {
+                                        results.push(result);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return results;
+                },
+                toHTML() {
+                    return this.children.map((child) => typeof child === 'string' ? child : child.toHTML ? child.toHTML() : '').join('');
+                }
+            };
+        }
+        /**
+         * Create a text node for SSR
+         */
+        createTextNode(text) {
+            return {
+                nodeType: 3,
+                textContent: text,
+                toHTML() {
+                    return this.textContent;
+                }
+            };
+        }
+        /**
+         * Create a comment node for SSR
+         */
+        createComment(text) {
+            return {
+                nodeType: 8,
+                textContent: text,
+                toHTML() {
+                    return `<!-- ${this.textContent} -->`;
+                }
+            };
+        }
+        /**
+         * Collect styles during SSR
+         */
+        collectStyle(css) {
+            this.styleCollector.push(css);
+        }
+        /**
+         * Collect scripts during SSR
+         */
+        collectScript(script) {
+            this.scriptCollector.push(script);
+        }
+        /**
+         * Get collected styles
+         */
+        getCollectedStyles() {
+            return this.styleCollector.join('\n');
+        }
+        /**
+         * Get collected scripts
+         */
+        getCollectedScripts() {
+            return [...this.scriptCollector];
+        }
+        /**
+         * Reset collectors
+         */
+        reset() {
+            this.styleCollector = [];
+            this.scriptCollector = [];
+        }
+    }
+    /**
+     * SSR Document Mock
+     */
+    function createSSRDocument() {
+        const polyfill = SSRDOMPolyfill.getInstance();
+        return {
+            createElement: (tagName) => polyfill.createElement(tagName),
+            createDocumentFragment: () => polyfill.createDocumentFragment(),
+            createTextNode: (text) => polyfill.createTextNode(text),
+            createComment: (text) => polyfill.createComment(text),
+            getElementById: (id) => null,
+            head: {
+                appendChild: (element) => {
+                    if (element.tagName === 'STYLE') {
+                        polyfill.collectStyle(element.textContent || element.innerHTML);
+                    }
+                    else if (element.tagName === 'SCRIPT') {
+                        polyfill.collectScript(element.textContent || element.innerHTML);
+                    }
+                },
+                removeChild: () => { },
+                innerHTML: ''
+            },
+            body: {
+                appendChild: () => { },
+                removeChild: () => { },
+                innerHTML: '',
+                contains: () => false
+            },
+            documentElement: {
+                lang: 'en',
+                getAttribute: function (name) {
+                    if (name === 'lang')
+                        return this.lang;
+                    return null;
+                },
+                setAttribute: function (name, value) {
+                    if (name === 'lang')
+                        this.lang = value;
+                }
+            }
+        };
+    }
+    /**
+     * SSR Window Mock
+     */
+    function createSSRWindow() {
+        return {
+            Node: {
+                prototype: {}
+            },
+            Element: {
+                prototype: {}
+            },
+            CharacterData: {
+                prototype: {}
+            },
+            DocumentType: {
+                prototype: {}
+            },
+            XMLHttpRequest: function () {
+                throw new Error('XMLHttpRequest is not available in SSR environment');
+            }
+        };
+    }
+    /**
+     * SSR Element Mock for global scope
+     */
+    function createSSRElementClass() {
+        const SSRElement = class {
+            constructor(tagName) {
+                this.tagName = '';
+                this.innerHTML = '';
+                this.textContent = '';
+                this.id = '';
+                this.className = '';
+                this.children = [];
+                this.parentNode = null;
+                if (tagName)
+                    this.tagName = tagName.toUpperCase();
+            }
+        };
+        return SSRElement;
+    }
+    /**
+     * Setup SSR environment
+     */
+    function setupSSREnvironment() {
+        if (Environment.isNode()) {
+            // Mark as SSR environment
+            globalThis.__SSR_ENVIRONMENT__ = true;
+            // Setup global DOM polyfills
+            const ssrDocument = createSSRDocument();
+            const ssrWindow = createSSRWindow();
+            globalThis.document = ssrDocument;
+            globalThis.window = ssrWindow;
+            // Also set on global for Node.js compatibility
+            if (typeof globalThis.global !== 'undefined') {
+                globalThis.global.document = ssrDocument;
+                globalThis.global.window = ssrWindow;
+            }
+            // Setup global Element, Node classes
+            globalThis.Element = createSSRElementClass();
+            globalThis.Node = class SSRNode {
+            };
+            globalThis.CharacterData = class SSRCharacterData {
+            };
+            globalThis.DocumentType = class SSRDocumentType {
+            };
+            // Mock XMLHttpRequest to prevent errors
+            globalThis.XMLHttpRequest = function () {
+                throw new Error('XMLHttpRequest is not available in SSR environment. Use static template rendering instead.');
+            };
+            return true;
+        }
+        return false;
+    }
+
+    /*
+     * Copyright (c) 2025-present, Choi Sungho
+     * Code released under the MIT license
+     */
+    /**
+     * Server-Side Rendering Engine for Compomint
+     */
+    class SSRRenderer {
+        constructor(compomint, options = {}) {
+            this.renderStartTime = 0;
+            this.compomint = compomint;
+            this.options = Object.assign({ renderToString: true, hydrateOnClient: false, generateIds: true, preserveWhitespace: false, lang: 'en' }, options);
+            this.polyfill = SSRDOMPolyfill.getInstance();
+            // Setup SSR environment if needed
+            this.setupEnvironment();
+        }
+        setupEnvironment() {
+            if (Environment.isServer()) {
+                setupSSREnvironment();
+                // Override compomint's DOM dependencies for SSR
+                this.setupSSROverrides();
+            }
+        }
+        setupSSROverrides() {
+            // Store original functions
+            const originalDocument = globalThis.document;
+            // Override document.createElement to use our polyfill
+            if (originalDocument) {
+                originalDocument.createElement = (tagName) => {
+                    return this.polyfill.createElement(tagName);
+                };
+            }
+        }
+        /**
+         * Render a template to HTML string on the server
+         */
+        renderToString(templateId_1) {
+            return __awaiter(this, arguments, void 0, function* (templateId, data = {}, options = {}) {
+                this.renderStartTime = Date.now();
+                const mergedOptions = Object.assign(Object.assign({}, this.options), options);
+                // Reset polyfill collectors
+                this.polyfill.reset();
+                // Set language for i18n if provided
+                if (options.lang) {
+                    const doc = globalThis.document;
+                    if (doc && doc.documentElement) {
+                        doc.documentElement.lang = options.lang;
+                    }
+                }
+                try {
+                    // Get the template metadata
+                    const templateMeta = this.compomint.tmplCache.get(templateId);
+                    if (!templateMeta || !templateMeta.sourceGenFunc) {
+                        throw new Error(`Template "${templateId}" not found or missing sourceGenFunc`);
+                    }
+                    // Create SSR-specific data with metadata
+                    const ssrData = Object.assign(Object.assign({}, data), { $ssr: true, $generateIds: mergedOptions.generateIds, $hydrateOnClient: mergedOptions.hydrateOnClient });
+                    // Get template engine keys
+                    const templateEngine = this.compomint.templateEngine;
+                    // Call sourceGenFunc directly to get HTML string
+                    let result;
+                    try {
+                        result = templateMeta.sourceGenFunc.call(null, // no this context needed
+                        ssrData, // data
+                        {}, // status (empty for SSR)
+                        { tmplId: templateId }, // component
+                        this.compomint.i18n, // i18n (pass full i18n object, not just template-specific)
+                        this.compomint, // compomint
+                        this.compomint.tmpl || {}, // tmpl
+                        {}, // lazyScope (empty for SSR)
+                        false // debugger
+                        );
+                    }
+                    catch (error) {
+                        throw error;
+                    }
+                    // Convert result to string
+                    const html = typeof result === 'string' ? result : String(result);
+                    // Parse the rendered HTML to extract and collect styles/scripts
+                    this.extractStylesAndScripts(html);
+                    // SSR-specific: Extract styles from original template text since Compomint strips them during compilation
+                    if (templateMeta.templateText) {
+                        this.extractStylesFromTemplateText(templateMeta.templateText);
+                    }
+                    // Collect styles and scripts
+                    const css = this.polyfill.getCollectedStyles();
+                    const scripts = this.polyfill.getCollectedScripts();
+                    // Build metadata
+                    const metadata = {
+                        templateIds: [templateId],
+                        componentIds: [templateId], // Use templateId as component id
+                        renderTime: Date.now() - this.renderStartTime
+                    };
+                    return {
+                        html: html || '',
+                        css,
+                        scripts,
+                        metadata
+                    };
+                }
+                catch (error) {
+                    throw new Error(`SSR rendering failed for template "${templateId}": ${error}`);
+                }
+            });
+        }
+        /**
+         * Render multiple templates and combine results
+         */
+        renderMultiple(templates_1) {
+            return __awaiter(this, arguments, void 0, function* (templates, options = {}) {
+                this.renderStartTime = Date.now();
+                this.polyfill.reset();
+                const results = [];
+                for (const template of templates) {
+                    const result = yield this.renderToString(template.id, template.data, options);
+                    results.push(result);
+                }
+                // Combine results
+                const combinedHTML = results.map(r => r.html).join('\n');
+                const combinedCSS = results.map(r => r.css).filter(Boolean).join('\n');
+                const combinedScripts = results.reduce((acc, r) => acc.concat(r.scripts), []);
+                const combinedTemplateIds = results.reduce((acc, r) => acc.concat(r.metadata.templateIds), []);
+                const combinedComponentIds = results.reduce((acc, r) => acc.concat(r.metadata.componentIds), []);
+                return {
+                    html: combinedHTML,
+                    css: combinedCSS,
+                    scripts: combinedScripts,
+                    metadata: {
+                        templateIds: combinedTemplateIds,
+                        componentIds: combinedComponentIds,
+                        renderTime: Date.now() - this.renderStartTime
+                    }
+                };
+            });
+        }
+        /**
+         * Generate complete HTML page with SSR content
+         */
+        renderPage(templateId_1) {
+            return __awaiter(this, arguments, void 0, function* (templateId, data = {}, pageOptions = {}) {
+                const result = yield this.renderToString(templateId, data);
+                const { title = 'Compomint SSR Page', meta = [], links = [], scripts = [], bodyClass = '', lang = 'en' } = pageOptions;
+                return `<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${this.escapeHTML(title)}</title>
+  ${meta.map(m => {
+                const nameAttr = m.name ? `name="${this.escapeHTML(m.name)}"` : '';
+                const propertyAttr = m.property ? `property="${this.escapeHTML(m.property)}"` : '';
+                return `<meta ${nameAttr}${propertyAttr} content="${this.escapeHTML(m.content)}">`;
+            }).join('\n  ')}
+  ${links.map(link => {
+                const attrs = Object.keys(link)
+                    .map((key) => `${key}="${this.escapeHTML(link[key])}"`)
+                    .join(' ');
+                return `<link ${attrs}>`;
+            }).join('\n  ')}
+  ${result.css ? `<style>\n${result.css}\n</style>` : ''}
+</head>
+<body${bodyClass ? ` class="${this.escapeHTML(bodyClass)}"` : ''}>
+  ${result.html}
+  ${scripts.map(script => {
+                if (script.src) {
+                    const attrs = Object.keys(script)
+                        .map((key) => `${key}="${this.escapeHTML(script[key])}"`)
+                        .join(' ');
+                    return `<script ${attrs}></script>`;
+                }
+                else if (script.content) {
+                    return `<script>${script.content}</script>`;
+                }
+                return '';
+            }).join('\n  ')}
+  ${result.scripts.map(script => `<script>${script}</script>`).join('\n  ')}
+  ${this.generateHydrationScript(result)}
+</body>
+</html>`;
+            });
+        }
+        /**
+         * Render component in SSR mode
+         */
+        renderComponentSSR(templateFunction, data) {
+            return __awaiter(this, void 0, void 0, function* () {
+                // Create a mock container for SSR
+                const mockContainer = this.polyfill.createDocumentFragment();
+                // Render the component with SSR-specific handling
+                const component = templateFunction(data, mockContainer);
+                // If component has async operations, wait for them
+                if (component && typeof component.then === 'function') {
+                    return yield component;
+                }
+                return component;
+            });
+        }
+        /**
+         * Extract HTML from rendered component
+         */
+        extractHTML(component) {
+            if (!component || !component.element) {
+                console.warn('Component or component.element is missing');
+                return '';
+            }
+            // If element has toHTML method (our polyfill), use it
+            if (typeof component.element.toHTML === 'function') {
+                return component.element.toHTML();
+            }
+            // Handle DocumentFragment case
+            if (component.element.nodeType === 11) { // DocumentFragment
+                // For DocumentFragment, we need to extract HTML from children
+                const children = component.element.childNodes || [];
+                return Array.from(children).map((child) => {
+                    if (typeof child.toHTML === 'function') {
+                        return child.toHTML();
+                    }
+                    else if (child.innerHTML) {
+                        return child.innerHTML;
+                    }
+                    else if (child.textContent) {
+                        return child.textContent;
+                    }
+                    else if (child.nodeType === 3) { // Text node
+                        return child.textContent || '';
+                    }
+                    return '';
+                }).join('');
+            }
+            // Fallback for other cases
+            if (component.element.innerHTML) {
+                return component.element.innerHTML;
+            }
+            if (component.element.textContent) {
+                return component.element.textContent;
+            }
+            return '';
+        }
+        /**
+         * Generate hydration script for client-side
+         */
+        generateHydrationScript(result) {
+            if (!this.options.hydrateOnClient) {
+                return '';
+            }
+            const hydrationData = {
+                templateIds: result.metadata.templateIds,
+                componentIds: result.metadata.componentIds,
+                renderTime: result.metadata.renderTime
+            };
+            return `
+<script>
+  // Compomint SSR Hydration Data
+  window.__COMPOMINT_SSR__ = ${JSON.stringify(hydrationData)};
+  
+  // Hydration helper
+  window.__COMPOMINT_HYDRATE__ = function(compomint) {
+    console.log('Hydrating Compomint SSR components...', window.__COMPOMINT_SSR__);
+    // Additional hydration logic can be added here
+  };
+</script>`;
+        }
+        /**
+         * Escape HTML for safe output
+         */
+        escapeHTML(text) {
+            const escapeMap = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#x27;'
+            };
+            return text.replace(/[&<>"']/g, char => escapeMap[char] || char);
+        }
+        /**
+         * Extract styles and scripts from rendered HTML
+         */
+        extractStylesAndScripts(html) {
+            // Extract styles
+            const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+            let styleMatch;
+            while ((styleMatch = styleRegex.exec(html)) !== null) {
+                const css = styleMatch[1].trim();
+                if (css) {
+                    this.polyfill.collectStyle(css);
+                }
+            }
+            // Extract scripts
+            const scriptRegex = /<script[^>]*(?:src\s*=\s*["'][^"']*["'])?[^>]*>([\s\S]*?)<\/script>/gi;
+            let scriptMatch;
+            while ((scriptMatch = scriptRegex.exec(html)) !== null) {
+                const script = scriptMatch[1].trim();
+                if (script) {
+                    this.polyfill.collectScript(script);
+                }
+            }
+        }
+        /**
+         * Extract styles from original template text (SSR-specific workaround)
+         * This is needed because Compomint strips <style> tags during template compilation
+         */
+        extractStylesFromTemplateText(templateText) {
+            // Decode HTML entities first
+            const decodedText = templateText
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&amp;/g, '&')
+                .replace(/&quot;/g, '"')
+                .replace(/&#x27;/g, "'");
+            // Extract styles from decoded template text
+            const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
+            let styleMatch;
+            while ((styleMatch = styleRegex.exec(decodedText)) !== null) {
+                const css = styleMatch[1].trim();
+                if (css) {
+                    this.polyfill.collectStyle(css);
+                }
+            }
+        }
+        /**
+         * Get renderer statistics
+         */
+        getStats() {
+            return {
+                environment: Environment.isServer() ? 'server' : 'client',
+                polyfillActive: Environment.isServer(),
+                lastRenderTime: this.renderStartTime ? Date.now() - this.renderStartTime : 0
+            };
+        }
+    }
+    /**
+     * Create SSR renderer instance
+     */
+    function createSSRRenderer(compomint, options = {}) {
+        return new SSRRenderer(compomint, options);
+    }
+
+    /*
+     * Copyright (c) 2025-present, Choi Sungho
+     * Code released under the MIT license
+     */
     // Polyfill for Object.assign
     if (typeof Object.assign != "function") {
         Object.defineProperty(Object, "assign", {
@@ -666,17 +1668,23 @@ __p+='`;
                 },
             });
         });
-    })([Element.prototype, CharacterData.prototype, DocumentType.prototype]);
+    })([
+        typeof Element !== "undefined" ? Element.prototype : {},
+        typeof CharacterData !== "undefined" ? CharacterData.prototype : {},
+        typeof DocumentType !== "undefined" ? DocumentType.prototype : {},
+    ].filter(Boolean));
     // Polyfill for Node.isConnected
     (function (supported) {
-        if (supported)
+        if (supported || typeof window === "undefined" || !window.Node)
             return;
         Object.defineProperty(window.Node.prototype, "isConnected", {
             get: function () {
                 return document.body.contains(this);
             },
         });
-    })("isConnected" in window.Node.prototype);
+    })(typeof window !== "undefined" &&
+        window.Node &&
+        "isConnected" in window.Node.prototype);
     const compomint = {};
     const tmpl = {};
     const tools = (compomint.tools = compomint.tools || {});
@@ -686,7 +1694,8 @@ __p+='`;
     if (!cachedTmpl.has("anonymous")) {
         cachedTmpl.set("anonymous", { elements: new Set() }); // Cast to TemplateMeta
     }
-    const isSupportTemplateTag = "content" in document.createElement("template");
+    const isSupportTemplateTag = typeof document !== "undefined" &&
+        "content" in document.createElement("template");
     const noMatch = /(.)^/;
     const escapes = {
         "'": "\\'",
@@ -1065,17 +2074,36 @@ return __p;`;
                     : null;
                 if (shadowStyle && docFragment.querySelector) {
                     // Check if querySelector exists
-                    const host = document.createElement(tmplId); // Use tmplId as host tag name
-                    try {
-                        const shadow = host.attachShadow({ mode: "open" });
-                        while (docFragment.firstChild) {
-                            shadow.appendChild(docFragment.firstChild);
-                        }
-                        docFragment = host; // Replace fragment with the host element
+                    // In SSR environment, collect styles instead of creating shadow DOM
+                    if (Environment.isServer()) {
+                        // Extract and collect all styles for SSR
+                        const styles = docFragment.querySelectorAll("style");
+                        styles.forEach((style) => {
+                            const css = style.textContent || style.innerHTML;
+                            if (css &&
+                                globalThis.document &&
+                                globalThis.document.head) {
+                                // Use SSR polyfill to collect styles
+                                const polyfill = SSRDOMPolyfill.getInstance();
+                                polyfill.collectStyle(css);
+                            }
+                        });
+                        // Don't create shadow DOM in SSR, leave styles in place for extraction
                     }
-                    catch (e) {
-                        console.error(`Failed to attach shadow DOM for template "${tmplId}":`, e);
-                        // Proceed without shadow DOM if attachShadow fails
+                    else {
+                        // Browser environment - create shadow DOM as usual
+                        const host = document.createElement(tmplId); // Use tmplId as host tag name
+                        try {
+                            const shadow = host.attachShadow({ mode: "open" });
+                            while (docFragment.firstChild) {
+                                shadow.appendChild(docFragment.firstChild);
+                            }
+                            docFragment = host; // Replace fragment with the host element
+                        }
+                        catch (e) {
+                            console.error(`Failed to attach shadow DOM for template "${tmplId}":`, e);
+                            // Proceed without shadow DOM if attachShadow fails
+                        }
                     }
                 }
                 if (docFragment.firstChild && docFragment.firstChild.nodeType == 8) {
@@ -1316,11 +2344,13 @@ return __p;`;
                 const tmplMeta = configs.debug
                     ? {
                         renderingFunc: renderingFunc,
+                        sourceGenFunc: sourceGenFunc,
                         source: escapeHtml.escape(`function ${tmplId}_source (${templateEngine.keys.dataKeyName}, ${templateEngine.keys.statusKeyName}, ${templateEngine.keys.componentKeyName}, ${templateEngine.keys.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`),
                         templateText: escapeHtml.escape(templateText),
                     }
                     : {
                         renderingFunc: renderingFunc,
+                        sourceGenFunc: sourceGenFunc,
                     };
                 cachedTmpl.set(tmplId, tmplMeta);
                 const tmplIdNames = tmplId.split("-");
@@ -1359,7 +2389,7 @@ return __p;`;
     };
     const safeTemplate = function (source) {
         let template;
-        if (source instanceof Element) {
+        if (typeof source !== "undefined" && source instanceof Element) {
             if (source.tagName === "TEMPLATE")
                 return source;
             return source; // Assume it's a container element
@@ -1384,7 +2414,25 @@ return __p;`;
         return template;
     };
     const addTmpl = (compomint.addTmpl = function (tmplId, element, templateEngine) {
-        let templateText = element instanceof Element ? element.innerHTML : String(element);
+        let templateText;
+        // Check for Element or SSR polyfill objects
+        if (typeof element !== "undefined" &&
+            element &&
+            typeof element === "object") {
+            // Try to get template content from SSR polyfill object or real Element
+            if ("_innerHTML" in element) {
+                templateText = element._innerHTML;
+            }
+            else if ("innerHTML" in element) {
+                templateText = element.innerHTML;
+            }
+            else {
+                templateText = String(element);
+            }
+        }
+        else {
+            templateText = String(element);
+        }
         templateText = escapeHtml.unescape(templateText.replace(/<!---|--->/gi, ""));
         return templateBuilder(tmplId, templateText, templateEngine);
     });
@@ -1395,6 +2443,10 @@ return __p;`;
         }
         else {
             removeInnerTemplate = !!removeInnerTemplate;
+        }
+        // Use default template engine if none provided
+        if (!templateEngine) {
+            templateEngine = compomint.templateEngine;
         }
         const container = safeTemplate(source);
         const content = container.content || container; // Use content if available
@@ -1868,6 +2920,25 @@ return __p;`;
         });
         return propStrArray.join(" ");
     };
+    // Add SSR functionality
+    compomint.ssr = {
+        isSupported: Environment.isServer,
+        setupEnvironment: setupSSREnvironment,
+        createRenderer: (options = {}) => createSSRRenderer(compomint, options),
+        renderToString: (templateId_1, ...args_1) => __awaiter(void 0, [templateId_1, ...args_1], void 0, function* (templateId, data = {}, options = {}) {
+            const renderer = createSSRRenderer(compomint, options);
+            const result = yield renderer.renderToString(templateId, data, options);
+            return result.html;
+        }),
+        renderPage: (templateId_1, ...args_1) => __awaiter(void 0, [templateId_1, ...args_1], void 0, function* (templateId, data = {}, pageOptions = {}) {
+            const renderer = createSSRRenderer(compomint);
+            return yield renderer.renderPage(templateId, data, pageOptions);
+        }),
+    };
+    // Setup SSR environment if we're on the server
+    if (Environment.isServer()) {
+        setupSSREnvironment();
+    }
     // Add built-in template
     applyBuiltInTemplates(addTmpl);
 
