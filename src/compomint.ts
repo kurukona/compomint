@@ -82,8 +82,8 @@ if (typeof Object.assign != "function") {
   });
 })(
   typeof window !== "undefined" &&
-    window.Node &&
-    "isConnected" in window.Node.prototype
+  window.Node &&
+  "isConnected" in window.Node.prototype
 );
 
 const compomint = {} as CompomintGlobal;
@@ -430,7 +430,7 @@ return __p;`;
             }
             self.element.parentElement.replaceChild(
               (newComponent as ComponentScope).element ||
-                (newComponent as Element),
+              (newComponent as Element),
               self.element as Node
             );
           },
@@ -575,17 +575,17 @@ return __p;`;
           renderedHTML = !data
             ? `<template data-co-empty-template="${tmplId}"></template>`
             : sourceGenFunc!.call(
-                // Use non-null assertion
-                wrapperElement || null,
-                data,
-                component[statusKeyName],
-                component,
-                compomint.i18n[tmplId],
-                compomint,
-                tmpl,
-                lazyScope,
-                configs.debug // Pass debug flag for __debugger
-              );
+              // Use non-null assertion
+              wrapperElement || null,
+              data,
+              component[statusKeyName],
+              component,
+              compomint.i18n[tmplId],
+              compomint,
+              tmpl,
+              lazyScope,
+              configs.debug // Pass debug flag for __debugger
+            );
         } catch (e: any) {
           if (configs.throwError) {
             console.error(
@@ -959,17 +959,17 @@ return __p;`;
     if (tmplId) {
       const tmplMeta: TemplateMeta = configs.debug
         ? {
-            renderingFunc: renderingFunc,
-            sourceGenFunc: sourceGenFunc,
-            source: escapeHtml.escape(
-              `function ${tmplId}_source (${templateEngine.keys.dataKeyName}, ${templateEngine.keys.statusKeyName}, ${templateEngine.keys.componentKeyName}, ${templateEngine.keys.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`
-            ),
-            templateText: escapeHtml.escape(templateText),
-          }
+          renderingFunc: renderingFunc,
+          sourceGenFunc: sourceGenFunc,
+          source: escapeHtml.escape(
+            `function ${tmplId}_source (${templateEngine.keys.dataKeyName}, ${templateEngine.keys.statusKeyName}, ${templateEngine.keys.componentKeyName}, ${templateEngine.keys.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`
+          ),
+          templateText: escapeHtml.escape(templateText),
+        }
         : {
-            renderingFunc: renderingFunc,
-            sourceGenFunc: sourceGenFunc,
-          };
+          renderingFunc: renderingFunc,
+          sourceGenFunc: sourceGenFunc,
+        };
       cachedTmpl.set(tmplId, tmplMeta);
 
       const tmplIdNames = tmplId.split("-");
@@ -1298,15 +1298,15 @@ const addTmplByUrl: CompomintGlobal["addTmplByUrl"] = (compomint.addTmplByUrl =
       ? importData.length === 0
         ? Promise.resolve()
         : Promise.all(importData.map(loadResource))
-            .then(() => {})
-            .catch((err) => {
-              console.error("Error loading resources in addTmplByUrl:", err);
-              throw err; // Re-throw the error to allow operationPromise to reject
-            })
+          .then(() => { })
+          .catch((err) => {
+            console.error("Error loading resources in addTmplByUrl:", err);
+            throw err; // Re-throw the error to allow operationPromise to reject
+          })
       : loadResource(importData).catch((err) => {
-          console.error("Error loading resource in addTmplByUrl:", err);
-          throw err; // Re-throw the error to allow operationPromise to reject
-        });
+        console.error("Error loading resource in addTmplByUrl:", err);
+        throw err; // Re-throw the error to allow operationPromise to reject
+      });
 
     // If callback is provided, use it; otherwise return the promise
     if (callback) {
@@ -1663,6 +1663,7 @@ if (Environment.isServer()) {
   setupSSREnvironment();
 }
 
+<<<<<<< HEAD
 compomint.hydrate = function (): void {
   if (Environment.isServer()) {
     console.warn("Hydration cannot be run on the server.");
@@ -1736,6 +1737,8 @@ compomint.hydrate = function (): void {
   delete (window as any).__COMPOMINT_SSR__;
 };
 
+=======
+>>>>>>> 1891c2d (feat: Add initial SSR support and documentation)
 // Add built-in template
 applyBuiltInTemplates(addTmpl);
 

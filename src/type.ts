@@ -173,7 +173,10 @@ interface CompomintGlobal {
   ) => void | Promise<void>;
   addI18n: (fullKey: string, i18nObj: Record<string, any>) => void;
   addI18ns: (i18nObjs: Record<string, any>) => void;
+<<<<<<< HEAD
   hydrate: () => void;
+=======
+>>>>>>> 1891c2d (feat: Add initial SSR support and documentation)
   ssr?: {
     isSupported(): boolean;
     setupEnvironment(): boolean;
