@@ -1,3 +1,9 @@
+## [1.1.3](https://github.com/kurukona/compomint/compare/v1.1.2...v1.1.3) (2025-07-21)
+
+### Bug Fixes
+
+* eventId variable conflicts in template rules (fixes [#21](https://github.com/kurukona/compomint/issues/21)) ([0446c09](https://github.com/kurukona/compomint/commit/0446c096124e0f367f6ded26da0e37b33dfe8f2f))
+
 ## [1.1.2](https://github.com/kurukona/compomint/compare/v1.1.1...v1.1.2) (2025-07-17)
 
 ### Bug Fixes
