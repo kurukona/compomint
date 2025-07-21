@@ -1051,6 +1051,7 @@ const component = compomint.tmpl("custom-template")({ label: "Hello" });
 
 You can define a custom template engine with your own expression syntax and processing rules:
 
+{% raw %}
 ```javascript
 // Define a custom template engine
 const customTemplateEngine = {
@@ -1103,6 +1104,7 @@ compomint.addTmplByUrl({
   console.log("Custom engine templates loaded successfully!");
 });
 ```
+{% endraw %}
 
 The custom template engine allows you to:
 - Define custom expression patterns and processing logic
