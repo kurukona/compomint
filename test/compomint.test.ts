@@ -2978,4 +2978,286 @@ describe("Compomint Template Engine", () => {
       });
     });
   });
+
+  describe("eventId variable conflict tests - checking combinations work correctly", () => {
+    describe("data-co-element-ref combinations", () => {
+      it("should work correctly when data-co-element-ref and data-co-load are declared on the same tag", () => {
+        const testHandler = jest.fn();
+
+        expect(() => {
+          const renderingFunc = compomint.template(
+            "element-ref-load-combo",
+            `<div data-co-element-ref="##:testElement##" data-co-load="##:data.testHandler##" id="test-div">
+              Test content
+            </div>`
+          );
+
+          const component = renderingFunc({
+            testHandler: testHandler,
+          });
+          expect(component.element).toBeDefined();
+        }).not.toThrow();
+      });
+
+      it("should work correctly when data-co-element-ref and data-co-event are declared on the same tag", () => {
+        const testHandler = jest.fn();
+
+        expect(() => {
+          const renderingFunc = compomint.template(
+            "element-ref-event-combo",
+            `<div data-co-element-ref="##:testElement##" data-co-event="##:data.testHandler##" id="test-div">
+              Test content
+            </div>`
+          );
+
+          const component = renderingFunc({
+            testHandler: testHandler,
+          });
+          expect(component.element).toBeDefined();
+        }).not.toThrow();
+      });
+
+      it("should work correctly when data-co-element-ref and data-co-props are declared on the same tag", () => {
+        expect(() => {
+          const renderingFunc = compomint.template(
+            "element-ref-props-combo",
+            `<div data-co-element-ref="##:testElement##" data-co-props="##:{class: 'test'}##" id="test-div">
+              Test content
+            </div>`
+          );
+
+          const component = renderingFunc({});
+          expect(component.element).toBeDefined();
+        }).not.toThrow();
+      });
+
+      it("should work correctly when data-co-element-ref and data-co-named-element are declared on the same tag", () => {
+        expect(() => {
+          const renderingFunc = compomint.template(
+            "element-ref-named-combo",
+            `<div data-co-element-ref="##:testElement##" data-co-named-element="##:'namedTest'##" id="test-div">
+              Test content
+            </div>`
+          );
+
+          const component = renderingFunc({});
+          expect(component.element).toBeDefined();
+        }).not.toThrow();
+      });
+    });
+
+    describe("data-co-load combinations", () => {
+      it("should work correctly when data-co-load and data-co-event are declared on the same tag", () => {
+        const testHandler = jest.fn();
+        const eventHandler = jest.fn();
+
+        expect(() => {
+          const renderingFunc = compomint.template(
+            "load-event-combo",
+            `<div data-co-load="##:data.testHandler##" data-co-event="##:data.eventHandler##" id="test-div">
+              Test content
+            </div>`
+          );
+
+          const component = renderingFunc({
+            testHandler: testHandler,
+            eventHandler: eventHandler,
+          });
+          expect(component.element).toBeDefined();
+        }).not.toThrow();
+      });
+
+      it("should work correctly when data-co-load and data-co-props are declared on the same tag", () => {
+        const testHandler = jest.fn();
+
+        expect(() => {
+          const renderingFunc = compomint.template(
+            "load-props-combo",
+            `<div data-co-load="##:data.testHandler##" data-co-props="##:{class: 'test'}##" id="test-div">
+              Test content
+            </div>`
+          );
+
+          const component = renderingFunc({
+            testHandler: testHandler,
+          });
+          expect(component.element).toBeDefined();
+        }).not.toThrow();
+      });
+
+      it("should work correctly when data-co-load and data-co-named-element are declared on the same tag", () => {
+        const testHandler = jest.fn();
+
+        expect(() => {
+          const renderingFunc = compomint.template(
+            "load-named-combo",
+            `<div data-co-load="##:data.testHandler##" data-co-named-element="##:'namedTest'##" id="test-div">
+              Test content
+            </div>`
+          );
+
+          const component = renderingFunc({
+            testHandler: testHandler,
+          });
+          expect(component.element).toBeDefined();
+        }).not.toThrow();
+      });
+    });
+
+    describe("data-co-event combinations", () => {
+      it("should work correctly when data-co-event and data-co-props are declared on the same tag", () => {
+        const eventHandler = jest.fn();
+
+        expect(() => {
+          const renderingFunc = compomint.template(
+            "event-props-combo",
+            `<div data-co-event="##:data.eventHandler##" data-co-props="##:{class: 'test'}##" id="test-div">
+              Test content
+            </div>`
+          );
+
+          const component = renderingFunc({
+            eventHandler: eventHandler,
+          });
+          expect(component.element).toBeDefined();
+        }).not.toThrow();
+      });
+
+      it("should work correctly when data-co-event and data-co-named-element are declared on the same tag", () => {
+        const eventHandler = jest.fn();
+
+        expect(() => {
+          const renderingFunc = compomint.template(
+            "event-named-combo",
+            `<div data-co-event="##:data.eventHandler##" data-co-named-element="##:'namedTest'##" id="test-div">
+              Test content
+            </div>`
+          );
+
+          const component = renderingFunc({
+            eventHandler: eventHandler,
+          });
+          expect(component.element).toBeDefined();
+        }).not.toThrow();
+      });
+    });
+
+    describe("data-co-props combinations", () => {
+      it("should work correctly when data-co-props and data-co-named-element are declared on the same tag", () => {
+        expect(() => {
+          const renderingFunc = compomint.template(
+            "props-named-combo",
+            `<div data-co-props="##:{class: 'test'}##" data-co-named-element="##:'namedTest'##" id="test-div">
+              Test content
+            </div>`
+          );
+
+          const component = renderingFunc({});
+          expect(component.element).toBeDefined();
+        }).not.toThrow();
+      });
+    });
+
+    describe("multiple combinations", () => {
+      it("should work correctly when data-co-element-ref, data-co-load, and data-co-event are declared on the same tag", () => {
+        const testHandler = jest.fn();
+        const eventHandler = jest.fn();
+
+        expect(() => {
+          const renderingFunc = compomint.template(
+            "triple-combo",
+            `<div data-co-element-ref="##:testElement##" data-co-load="##:data.testHandler##" data-co-event="##:data.eventHandler##" id="test-div">
+              Test content
+            </div>`
+          );
+
+          const component = renderingFunc({
+            testHandler: testHandler,
+            eventHandler: eventHandler,
+          });
+          expect(component.element).toBeDefined();
+        }).not.toThrow();
+      });
+    });
+
+    describe("individual rules work correctly", () => {
+      it("should work normally when data-co-element-ref is used alone", () => {
+        expect(() => {
+          const renderingFunc = compomint.template(
+            "element-ref-only",
+            `<div data-co-element-ref="##:testElement##" id="test-div">
+              Test content
+            </div>`
+          );
+
+          const component = renderingFunc({});
+          expect(component.element).toBeDefined();
+        }).not.toThrow();
+      });
+
+      it("should work normally when data-co-load is used alone", () => {
+        const testHandler = jest.fn();
+
+        expect(() => {
+          const renderingFunc = compomint.template(
+            "load-only",
+            `<div data-co-load="##:data.testHandler##" id="test-div">
+              Test content
+            </div>`
+          );
+
+          const component = renderingFunc({
+            testHandler: testHandler,
+          });
+          expect(component.element).toBeDefined();
+        }).not.toThrow();
+      });
+
+      it("should work normally when data-co-event is used alone", () => {
+        const eventHandler = jest.fn();
+
+        expect(() => {
+          const renderingFunc = compomint.template(
+            "event-only",
+            `<div data-co-event="##:data.eventHandler##" id="test-div">
+              Test content
+            </div>`
+          );
+
+          const component = renderingFunc({
+            eventHandler: eventHandler,
+          });
+          expect(component.element).toBeDefined();
+        }).not.toThrow();
+      });
+
+      it("should work normally when data-co-props is used alone", () => {
+        expect(() => {
+          const renderingFunc = compomint.template(
+            "props-only",
+            `<div data-co-props="##:{class: 'test'}##" id="test-div">
+              Test content
+            </div>`
+          );
+
+          const component = renderingFunc({});
+          expect(component.element).toBeDefined();
+        }).not.toThrow();
+      });
+
+      it("should work normally when data-co-named-element is used alone", () => {
+        expect(() => {
+          const renderingFunc = compomint.template(
+            "named-only",
+            `<div data-co-named-element="##:'namedTest'##" id="test-div">
+              Test content
+            </div>`
+          );
+
+          const component = renderingFunc({});
+          expect(component.element).toBeDefined();
+        }).not.toThrow();
+      });
+    });
+  });
 });
