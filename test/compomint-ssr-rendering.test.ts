@@ -24,15 +24,15 @@ import { compomint, tmpl } from "../src/compomint";
 describe("Compomint SSR (Server-Side Rendering)", () => {
   beforeAll(() => {
     // Debug environment variables
-    console.log('Debug Environment:');
-    console.log('typeof window:', typeof window);
-    console.log('typeof globalThis:', typeof globalThis);  
-    console.log('typeof process:', typeof process);
-    console.log('process.versions?.node:', (process as any).versions?.node);
-    console.log('Environment.isNode():', Environment.isNode());
-    console.log('Environment.isServer():', Environment.isServer());
-    console.log('Environment.isBrowser():', Environment.isBrowser());
-    
+    console.log("Debug Environment:");
+    console.log("typeof window:", typeof window);
+    console.log("typeof globalThis:", typeof globalThis);
+    console.log("typeof process:", typeof process);
+    console.log("process.versions?.node:", (process as any).versions?.node);
+    console.log("Environment.isNode():", Environment.isNode());
+    console.log("Environment.isServer():", Environment.isServer());
+    console.log("Environment.isBrowser():", Environment.isBrowser());
+
     // Ensure we're in Node.js environment
     expect(Environment.isNode()).toBe(true);
     expect(Environment.isServer()).toBe(true);
@@ -42,15 +42,15 @@ describe("Compomint SSR (Server-Side Rendering)", () => {
   beforeEach(() => {
     // Clear template cache
     compomint.tmplCache.clear();
-    
+
     // Reset global tmpl object
     for (const key in tmpl) {
       delete tmpl[key];
     }
-    
+
     // Reset i18n
     compomint.i18n = {};
-    
+
     // Enable debug mode to store sourceGenFunc
     compomint.configs.debug = true;
   });
@@ -78,12 +78,13 @@ describe("Compomint SSR (Server-Side Rendering)", () => {
 
       // Render using SSR
       const html = await compomint.ssr!.renderToString("ssr-simple", {
-        name: "World"
+        name: "World",
       });
 
       expect(html).toContain("Hello, World!");
-      expect(html).toContain("<div>");
-      expect(html).toContain("</div>");
+      expect(html).toMatch(
+        /<div data-co-id="ssr-simple\d+" data-co-tmpl-id="ssr-simple">Hello, World!<\/div>/
+      );
     });
 
     it("should handle templates with styles", async () => {
@@ -98,16 +99,18 @@ describe("Compomint SSR (Server-Side Rendering)", () => {
 
       const renderer = compomint.ssr!.createRenderer();
       const result = await renderer.renderToString("ssr-with-style", {
-        message: "Styled content"
+        message: "Styled content",
       });
 
-      expect(result.html).toContain("Styled content");
+      expect(result.html).toMatch(
+        /<div data-co-id="ssr-with-style\d+" data-co-tmpl-id="ssr-with-style" class="test">Styled content<\/div>/
+      );
       expect(result.css).toContain(".test { color: red; }");
     });
 
     it("should handle templates with multiple elements", async () => {
       compomint.addTmpl(
-        "ssr-multiple", 
+        "ssr-multiple",
         `<div>
           <h1>##=data.title##</h1>
           <p>##=data.description##</p>
@@ -116,11 +119,65 @@ describe("Compomint SSR (Server-Side Rendering)", () => {
 
       const html = await compomint.ssr!.renderToString("ssr-multiple", {
         title: "Test Title",
-        description: "Test Description"
+        description: "Test Description",
       });
 
-      expect(html).toContain("<h1>Test Title</h1>");
-      expect(html).toContain("<p>Test Description</p>");
+      expect(html).toMatch(
+        /<div data-co-id="ssr-multiple\d+" data-co-tmpl-id="ssr-multiple">\s*<h1>Test Title<\/h1>\s*<p>Test Description<\/p>\s*<\/div>/
+      );
+    });
+
+    it("should handle element insertion (##%##) with compomint.addTmpls", async () => {
+      // Define child templates using addTmpls
+      compomint.addTmpls(`
+        <template id="ssr-child-component">
+          <div class="child">##=data.content##</div>
+        </template>
+        <template id="ssr-list-item">
+          <li>##=data.name## - ##=data.value##</li>
+        </template>
+      `);
+
+      // Define parent template with ##%## element insertion
+      compomint.addTmpl(
+        "ssr-parent-with-elements",
+        `<div class="parent">
+          <h1>##=data.title##</h1>
+          ##%data.childComponent##
+          <ul>
+            ##%data.listItems##
+          </ul>
+        </div>`
+      );
+
+      // Create child components
+      const childTemplate = compomint.tmpl("ssr-child-component");
+      const listTemplate = compomint.tmpl("ssr-list-item");
+      
+      expect(childTemplate).not.toBeNull();
+      expect(listTemplate).not.toBeNull();
+      
+      const childComponent = childTemplate!({ content: "Child content" });
+      const listItems = [
+        { name: "Item 1", value: "Value 1" },
+        { name: "Item 2", value: "Value 2" }
+      ].map(item => listTemplate!(item));
+
+      const html = await compomint.ssr!.renderToString("ssr-parent-with-elements", {
+        title: "Parent Title",
+        childComponent: childComponent,
+        listItems: listItems
+      });
+
+      // Verify structure (SSR has limitations with ##%## element insertion)
+      expect(html).toMatch(
+        /<div data-co-id="ssr-parent-with-elements\d+" data-co-tmpl-id="ssr-parent-with-elements" class="parent">/
+      );
+      expect(html).toContain("<h1>Parent Title</h1>");
+      
+      // SSR element insertion shows placeholder comments instead of actual content
+      // This demonstrates the current limitation that needs to be addressed
+      expect(html).toContain("<!-- SSR: Element insertion not supported -->");
     });
   });
 
@@ -137,24 +194,32 @@ describe("Compomint SSR (Server-Side Rendering)", () => {
       );
 
       // Test with title shown
-      const htmlWithTitle = await compomint.ssr!.renderToString("ssr-conditional", {
-        showTitle: true,
-        title: "My Title",
-        content: "My Content"
-      });
+      const htmlWithTitle = await compomint.ssr!.renderToString(
+        "ssr-conditional",
+        {
+          showTitle: true,
+          title: "My Title",
+          content: "My Content",
+        }
+      );
 
-      expect(htmlWithTitle).toContain("<h1>My Title</h1>");
-      expect(htmlWithTitle).toContain("<p>My Content</p>");
+      expect(htmlWithTitle).toMatch(
+        /<div data-co-id="ssr-conditional\d+" data-co-tmpl-id="ssr-conditional">\s*<h1>My Title<\/h1>\s*<p>My Content<\/p>\s*<\/div>/
+      );
 
       // Test with title hidden
-      const htmlWithoutTitle = await compomint.ssr!.renderToString("ssr-conditional", {
-        showTitle: false,
-        title: "My Title",
-        content: "My Content"
-      });
+      const htmlWithoutTitle = await compomint.ssr!.renderToString(
+        "ssr-conditional",
+        {
+          showTitle: false,
+          title: "My Title",
+          content: "My Content",
+        }
+      );
 
-      expect(htmlWithoutTitle).not.toContain("<h1>");
-      expect(htmlWithoutTitle).toContain("<p>My Content</p>");
+      expect(htmlWithoutTitle).toMatch(
+        /<div data-co-id="ssr-conditional\d+" data-co-tmpl-id="ssr-conditional">\s*<p>My Content<\/p>\s*<\/div>/
+      );
     });
 
     it("should handle loops in templates", async () => {
@@ -171,13 +236,13 @@ describe("Compomint SSR (Server-Side Rendering)", () => {
         items: [
           { name: "Apple", price: "$1.00" },
           { name: "Banana", price: "$0.50" },
-          { name: "Orange", price: "$0.75" }
-        ]
+          { name: "Orange", price: "$0.75" },
+        ],
       });
 
-      expect(html).toContain("<li>Apple - $1.00</li>");
-      expect(html).toContain("<li>Banana - $0.50</li>");
-      expect(html).toContain("<li>Orange - $0.75</li>");
+      expect(html).toMatch(
+        /<ul data-co-id="ssr-loop\d+" data-co-tmpl-id="ssr-loop">\s*<li>Apple - \$1.00<\/li>\s*<li>Banana - \$0.50<\/li>\s*<li>Orange - \$0.75<\/li>\s*<\/ul>/
+      );
     });
 
     it("should handle escaped content", async () => {
@@ -190,11 +255,12 @@ describe("Compomint SSR (Server-Side Rendering)", () => {
       );
 
       const html = await compomint.ssr!.renderToString("ssr-escape", {
-        html: "<script>alert('xss')</script>"
+        html: "<script>alert('xss')</script>",
       });
 
-      expect(html).toContain("<script>alert('xss')</script>"); // Raw
-      expect(html).toContain("&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;"); // Escaped
+      expect(html).toMatch(
+        /<div data-co-id="ssr-escape\d+" data-co-tmpl-id="ssr-escape">\s*<p>Raw: <script>alert\('xss'\)<\/script><\/p>\s*<p>Escaped: &lt;script&gt;alert\(&#x27;xss&#x27;\)&lt;\/script&gt;<\/p>\s*<\/div>/
+      );
     });
   });
 
@@ -208,21 +274,25 @@ describe("Compomint SSR (Server-Side Rendering)", () => {
         </div>`
       );
 
-      const pageHtml = await compomint.ssr!.renderPage("ssr-page", {
-        title: "My Page",
-        content: "Welcome to my page!"
-      }, {
-        title: "Test Page",
-        meta: [
-          { name: "description", content: "A test page" }
-        ],
-        lang: "en"
-      });
+      const pageHtml = await compomint.ssr!.renderPage(
+        "ssr-page",
+        {
+          title: "My Page",
+          content: "Welcome to my page!",
+        },
+        {
+          title: "Test Page",
+          meta: [{ name: "description", content: "A test page" }],
+          lang: "en",
+        }
+      );
 
       expect(pageHtml).toContain("<!DOCTYPE html>");
-      expect(pageHtml).toContain("<html lang=\"en\">");
+      expect(pageHtml).toContain('<html lang="en">');
       expect(pageHtml).toContain("<title>Test Page</title>");
-      expect(pageHtml).toContain('<meta name="description" content="A test page">');
+      expect(pageHtml).toContain(
+        '<meta name="description" content="A test page">'
+      );
       expect(pageHtml).toContain("<h1>My Page</h1>");
       expect(pageHtml).toContain("<p>Welcome to my page!</p>");
     });
@@ -239,7 +309,7 @@ describe("Compomint SSR (Server-Side Rendering)", () => {
       `);
 
       const pageHtml = await compomint.ssr!.renderPage("ssr-page-with-assets", {
-        title: "Page with Assets"
+        title: "Page with Assets",
       });
 
       expect(pageHtml).toContain(".header { color: blue; }");
@@ -252,7 +322,7 @@ describe("Compomint SSR (Server-Side Rendering)", () => {
     it("should handle non-existent templates", async () => {
       await expect(
         compomint.ssr!.renderToString("non-existent-template", {})
-      ).rejects.toThrow("Template \"non-existent-template\" not found");
+      ).rejects.toThrow('Template "non-existent-template" not found');
     });
 
     it("should handle template compilation errors", async () => {
@@ -263,10 +333,7 @@ describe("Compomint SSR (Server-Side Rendering)", () => {
     });
 
     it("should handle runtime errors in templates", async () => {
-      compomint.addTmpl(
-        "ssr-runtime-error",
-        "##=data.nonexistent.property##"
-      );
+      compomint.addTmpl("ssr-runtime-error", "##=data.nonexistent.property##");
 
       await expect(
         compomint.ssr!.renderToString("ssr-runtime-error", {})
@@ -285,12 +352,12 @@ describe("Compomint SSR (Server-Side Rendering)", () => {
       }
 
       const startTime = Date.now();
-      
+
       const renderer = compomint.ssr!.createRenderer();
       const results = await renderer.renderMultiple(
         Array.from({ length: 10 }, (_, i) => ({
           id: `ssr-perf-${i}`,
-          data: { value: `Value ${i}` }
+          data: { value: `Value ${i}` },
         }))
       );
 
@@ -309,8 +376,8 @@ describe("Compomint SSR (Server-Side Rendering)", () => {
       // Setup i18n
       compomint.addI18n("greeting", {
         en: "Hello",
-        es: "Hola", 
-        fr: "Bonjour"
+        es: "Hola",
+        fr: "Bonjour",
       });
 
       compomint.addTmpl(
@@ -319,11 +386,15 @@ describe("Compomint SSR (Server-Side Rendering)", () => {
       );
 
       // Pass language as option to SSR renderer
-      const html = await compomint.ssr!.renderToString("ssr-i18n", {
-        name: "Mundo"
-      }, {
-        lang: "es"  // Set language for this rendering
-      });
+      const html = await compomint.ssr!.renderToString(
+        "ssr-i18n",
+        {
+          name: "Mundo",
+        },
+        {
+          lang: "es", // Set language for this rendering
+        }
+      );
 
       expect(html).toContain("Hola, Mundo!");
     });

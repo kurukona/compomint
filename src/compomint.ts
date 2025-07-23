@@ -20,6 +20,7 @@ import { applyBuiltInTemplates } from "./built-in-templates";
 import { firstElementChild, childElementCount, cleanNode } from "./utils";
 import { Environment, setupSSREnvironment, SSRDOMPolyfill } from "./ssr";
 import { SSRRenderer, createSSRRenderer } from "./ssr-renderer";
+import { defaultTemplateEngineSSR } from "./default-template-engine-ssr";
 
 // Polyfill for Object.assign
 if (typeof Object.assign != "function") {
@@ -118,7 +119,11 @@ const escapes: Record<string, string> = {
 const escaper = /\>( |\n)+\<|\>( |\n)+|( |\n)+\<|\\|'|\r|\n|\t|\u2028|\u2029/g;
 
 // set default template config
-compomint.templateEngine = defaultTemplateEngine(configs, compomint);
+if (Environment.isServer()) {
+  compomint.templateEngine = defaultTemplateEngineSSR(compomint);
+} else {
+  compomint.templateEngine = defaultTemplateEngine(compomint);
+}
 
 const escapeHtml = (function () {
   const escapeMap: Record<string, string> = {
@@ -368,6 +373,7 @@ return __p;`;
         let wrapperElement: Element | undefined;
         let callback: ((component: ComponentScope) => void) | undefined;
         let baseComponent: Partial<ComponentScope> | undefined;
+        let existingElement: HTMLElement | undefined;
 
         // Argument parsing logic
         const firstArg = params[0];
@@ -376,7 +382,8 @@ return __p;`;
           typeof firstArg === "object" &&
           (firstArg.$wrapperElement ||
             firstArg.$callback ||
-            firstArg.$baseComponent)
+            firstArg.$baseComponent ||
+            firstArg.$existingElement)
         ) {
           data = { ...firstArg }; // Clone data object
           wrapperElement = data.$wrapperElement;
@@ -385,6 +392,8 @@ return __p;`;
           delete data.$callback;
           baseComponent = data.$baseComponent;
           delete data.$baseComponent;
+          existingElement = data.$existingElement;
+          delete data.$existingElement;
         } else {
           data = firstArg;
           if (typeof params[1] === "function") {
@@ -583,7 +592,7 @@ return __p;`;
               `Runtime error during render of "${tmplId}":`,
               e.message
             );
-            console.log("--- Data ---", data, "------------");
+            console.debug("--- Data ---", data, "------------");
             try {
               // Attempt re-run with debugger
               sourceGenFunc!.call(
@@ -753,7 +762,12 @@ return __p;`;
         if (returnTarget instanceof Node) {
           cleanNode(returnTarget);
         }
-        component.element = returnTarget as HTMLElement | TemplateElement; // Assign final element/fragment
+
+        if (existingElement) {
+          component.element = existingElement;
+        } else {
+          component.element = returnTarget as HTMLElement | TemplateElement; // Assign final element/fragment
+        }
 
         // Execute lazyExec functions after element is attached
         const lazyExec = matcher.lazyExec;
@@ -1648,6 +1662,79 @@ compomint.ssr = {
 if (Environment.isServer()) {
   setupSSREnvironment();
 }
+
+compomint.hydrate = function (): void {
+  if (Environment.isServer()) {
+    console.warn("Hydration cannot be run on the server.");
+    return;
+  }
+
+  const ssrData = (window as any).__COMPOMINT_SSR__;
+  if (!ssrData) {
+    if (configs.debug) {
+      console.log("No SSR data found for hydration.");
+    }
+    return;
+  }
+
+  if (configs.debug) {
+    console.log("Starting Compomint hydration...", ssrData);
+  }
+
+  const { componentIds, initialStates } = ssrData;
+
+  componentIds.forEach((componentId: string) => {
+    const element = document.querySelector(
+      `[data-co-id="${componentId}"]`
+    ) as HTMLElement;
+    if (!element) {
+      if (configs.debug) {
+        console.warn(
+          `Element for component ID "${componentId}" not found for hydration.`
+        );
+      }
+      return;
+    }
+
+    const tmplId = element.dataset.coTmplId || componentId.split("_")[0];
+    const tmplFunc = compomint.tmpl(tmplId);
+
+    if (tmplFunc) {
+      const initialState = initialStates ? initialStates[componentId] : {};
+      const data = initialState ? initialState.data : {};
+      const status = initialState ? initialState.status : {};
+
+      const component = tmplFunc({
+        ...initialState.data,
+        ...data,
+        //$existingElement: element,
+        $baseComponent: { status: initialState.status, _id: componentId },
+      });
+
+      const newElement = component.element;
+      newElement.dataset.coId = componentId;
+      newElement.dataset.coTmplId = tmplId;
+      (newElement as any).__compomint_scope__ = component;
+
+      element.parentElement?.replaceChild(newElement, element);
+
+      if (configs.debug) {
+        console.log(
+          `Hydrated component "${componentId}" from template "${tmplId}".`
+        );
+      }
+    } else {
+      if (configs.debug) {
+        console.warn(
+          `Template function for "${tmplId}" not found during hydration.`
+        );
+      }
+    }
+  });
+
+  // Clean up SSR data
+  delete (window as any).__COMPOMINT_SSR__;
+};
 
 // Add built-in template
 applyBuiltInTemplates(addTmpl);

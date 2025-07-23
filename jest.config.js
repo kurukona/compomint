@@ -19,7 +19,7 @@ export default {
     {
       displayName: "node",
       testEnvironment: "node",
-      testMatch: ["**/compomint-ssr.test.ts"],
+      testMatch: ["**/compomint-ssr-rendering.test.ts"],
       transform: {
         "^.+\\.ts$": [
           "ts-jest",
@@ -33,7 +33,10 @@ export default {
     {
       displayName: "jsdom",
       testEnvironment: "jsdom",
-      testMatch: ["**/!(compomint-ssr).test.ts"],
+      testMatch: [
+        "**/!(compomint-ssr-rendering.test.ts).test.ts",
+        "**/compomint-ssr-hydration.test.ts",
+      ],
       transform: {
         "^.+\\.ts$": [
           "ts-jest",
