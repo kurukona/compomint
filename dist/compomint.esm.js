@@ -115,7 +115,7 @@ const defaultTemplateEngine = (configs, compomint) => ({
             exec: function (interpolate) {
                 // Construct JavaScript code to interpolate the value
                 const interpolateSyntax = `typeof (interpolate)=='function' ? (interpolate)() : (interpolate)`;
-                return `';\n(() => {let __t, interpolate=${interpolate};\n__p+=((__t=(${interpolateSyntax}))==null ? '' : String(__t) );})();\n__p+='`; // Ensure string conversion
+                return `';\n{let __t, interpolate=${interpolate};\n__p+=((__t=(${interpolateSyntax}))==null ? '' : String(__t) );};\n__p+='`; // Ensure string conversion
             },
         },
         escape: {
@@ -123,14 +123,14 @@ const defaultTemplateEngine = (configs, compomint) => ({
             exec: function (escape) {
                 const escapeSyntax = `compomint.tools.escapeHtml.escape(typeof (escape)=='function' ? (escape)() : (escape))`;
                 // Construct JavaScript code to escape HTML characters in the value
-                return `';\n(() => {let __t, escape=${escape};\n__p+=((__t=(${escapeSyntax}))==null ? '' : String(__t) );})();\n__p+='`; // Ensure string conversion before escape
+                return `';\n{let __t, escape=${escape};\n__p+=((__t=(${escapeSyntax}))==null ? '' : String(__t) );};\n__p+='`; // Ensure string conversion before escape
             },
         },
         elementProps: {
             pattern: /data-co-props="##:([\s\S]+?)##"/g,
             exec: function (props) {
-                const source = `';\nconst eventId = (__lazyScope.elementPropsArray.length);\n__p+='data-co-props="'+eventId+'"';\n
-__lazyScope.elementPropsArray[eventId] = ${props};\n__p+='`; // Store props in lazy scope
+                const source = `';\n{const eventId = (__lazyScope.elementPropsArray.length);\n__p+='data-co-props="'+eventId+'"';\n
+__lazyScope.elementPropsArray[eventId] = ${props}};\n__p+='`; // Store props in lazy scope
                 return source;
             },
             lazyExec: function (data, lazyScope, component, wrapper) {
@@ -176,8 +176,8 @@ __lazyScope.namedElementArray[eventId] = ${key};\n__p+='`; // Store the key in l
         elementRef: {
             pattern: /data-co-element-ref="##:([\s\S]+?)##"/g,
             exec: function (key) {
-                const source = `';\nvar eventId = (__lazyScope.elementRefArray.length);\n__p+='data-co-element-ref="'+eventId+'"';
-var ${key} = null;\n__lazyScope.elementRefArray[eventId] = function(target) {${key} = target;};\n__p+='`; // Store a function to assign the element
+                const source = `';\n{const eventId = (__lazyScope.elementRefArray.length);\n__p+='data-co-element-ref="'+eventId+'"';
+var ${key} = null;\n__lazyScope.elementRefArray[eventId] = function(target) {${key} = target;}};\n__p+='`; // Store a function to assign the element
                 return source;
             },
             lazyExec: function (data, lazyScope, component, wrapper) {
@@ -201,8 +201,8 @@ var ${key} = null;\n__lazyScope.elementRefArray[eventId] = function(target) {${k
             exec: function (elementLoad) {
                 const elementLoadSplitArray = elementLoad.split("::");
                 // Store the load function and custom data in lazy scope
-                const source = `';\nconst eventId = (__lazyScope.elementLoadArray.length);\n__p+='data-co-load="'+eventId+'"';
-__lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, customData: ${elementLoadSplitArray[1]}};\n__p+='`; // 'customData' is determined when compiled, so it does not change even if refreshed.
+                const source = `';\n{const eventId = (__lazyScope.elementLoadArray.length);\n__p+='data-co-load="'+eventId+'"';
+__lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, customData: ${elementLoadSplitArray[1]}};}\n__p+='`; // 'customData' is determined when compiled, so it does not change even if refreshed.
                 return source;
             },
             lazyExec: function (data, lazyScope, component, wrapper) {
@@ -247,13 +247,13 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
                 const eventStrArray = event.split(":::");
                 // eventStrArray = ["eventFunc::customData", "eventFunc::customData"]
                 // Store event handlers in lazy scope
-                let source = `';\n(() => {const eventId = (__lazyScope.eventArray.length);\n__p+='data-co-event="'+eventId+'"';\n`;
+                let source = `';\n{const eventId = (__lazyScope.eventArray.length);\n__p+='data-co-event="'+eventId+'"';\n`;
                 const eventArray = [];
                 for (let i = 0, size = eventStrArray.length; i < size; i++) {
                     const eventSplitArray = eventStrArray[i].split("::");
                     eventArray.push(`{eventFunc: ${eventSplitArray[0]}, $parent: this, customData: ${eventSplitArray[1]}}`);
                 }
-                source += `__lazyScope.eventArray[eventId] = [${eventArray.join(",")}];})()\n__p+='`;
+                source += `__lazyScope.eventArray[eventId] = [${eventArray.join(",")}];}\n__p+='`;
                 return source;
             },
             lazyExec: function (data, lazyScope, component, wrapper) {
@@ -397,10 +397,10 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
             exec: function (target) {
                 // Store element insertion information in lazy scope
                 const elementSplitArray = target.split("::");
-                const source = `';\n(() => {
+                const source = `';\n{
 const elementId = (__lazyScope.elementArray.length);
 __p+='<template data-co-tmpl-element-id="'+elementId+'"></template>';
-__lazyScope.elementArray[elementId] = {childTarget: ${elementSplitArray[0]}, nonblocking: ${elementSplitArray[1] || false}};})();
+__lazyScope.elementArray[elementId] = {childTarget: ${elementSplitArray[0]}, nonblocking: ${elementSplitArray[1] || false}};};
 __p+='`;
                 return source;
             },
