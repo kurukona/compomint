@@ -1,3 +1,3 @@
-import { TemplateEngine, CompomintConfigs, CompomintGlobal } from "./type";
-declare const defaultTemplateEngine: (configs: CompomintConfigs, compomint: CompomintGlobal) => TemplateEngine;
+import { TemplateEngine, CompomintGlobal } from "./type";
+declare const defaultTemplateEngine: (compomint: CompomintGlobal) => TemplateEngine;
 export { defaultTemplateEngine };
