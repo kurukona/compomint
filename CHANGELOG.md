@@ -1,3 +1,9 @@
+## [1.1.4](https://github.com/kurukona/compomint/compare/v1.1.3...v1.1.4) (2025-07-29)
+
+### Bug Fixes
+
+* resolve CVE-2025-7783 in form-data dependency ([57c2867](https://github.com/kurukona/compomint/commit/57c2867a5e528774a16255148885144c235491d8))
+
 ## [1.1.3](https://github.com/kurukona/compomint/compare/v1.1.2...v1.1.3) (2025-07-21)
 
 ### Bug Fixes
