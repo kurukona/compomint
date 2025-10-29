@@ -1,5 +1,11 @@
 import { CompomintGlobal } from "./type";
 
+/**
+ * @function applyBuiltInTemplates
+ * @description Applies built-in templates to the Compomint instance.
+ * @param {CompomintGlobal["addTmpl"]} addTmpl - The `compomint.addTmpl` function.
+ * @returns {void}
+ */
 const applyBuiltInTemplates = (addTmpl: CompomintGlobal["addTmpl"]): void => {
   // co-Ele is a shorthand for co-Element, it will generate a div element with the given props and event
   addTmpl(

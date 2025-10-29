@@ -1,4 +1,9 @@
-
+/**
+ * @function firstElementChild
+ * @description Returns the first element child of a node.
+ * @param {Element | DocumentFragment} ele - The element to get the first element child from.
+ * @returns {Element | null} The first element child, or null if there is none.
+ */
 const firstElementChild = function (ele: Element | DocumentFragment): Element | null {
   if (ele.firstElementChild) return ele.firstElementChild;
   const children = ele.childNodes;
@@ -10,6 +15,12 @@ const firstElementChild = function (ele: Element | DocumentFragment): Element | 
   return null;
 };
 
+/**
+ * @function childNodeCount
+ * @description Returns the number of child nodes of a node.
+ * @param {Element | DocumentFragment} ele - The element to count the child nodes of.
+ * @returns {number} The number of child nodes.
+ */
 const childNodeCount = function (ele: Element | DocumentFragment): number {
   return (
     ele.childElementCount ||
@@ -19,6 +30,12 @@ const childNodeCount = function (ele: Element | DocumentFragment): number {
   );
 };
 
+/**
+ * @function childElementCount
+ * @description Returns the number of child elements of a node.
+ * @param {Element | DocumentFragment} ele - The element to count the child elements of.
+ * @returns {number} The number of child elements.
+ */
 const childElementCount = function (ele: Element | DocumentFragment): number {
   return (
     ele.childElementCount ||
@@ -28,6 +45,12 @@ const childElementCount = function (ele: Element | DocumentFragment): number {
   );
 };
 
+/**
+ * @function cleanNode
+ * @description Removes comment nodes and empty text nodes from a node.
+ * @param {Node} node - The node to clean.
+ * @returns {void}
+ */
 const cleanNode = function (node: Node): void {
   for (let n = 0; n < node.childNodes.length; n++) {
     const child = node.childNodes[n];
@@ -45,6 +68,12 @@ const cleanNode = function (node: Node): void {
 };
 
 const domParser = new DOMParser();
+/**
+ * @function stringToElement
+ * @description Converts a string to a DOM node.
+ * @param {string | number} str - The string to convert.
+ * @returns {Node} The resulting DOM node.
+ */
 const stringToElement = function (str: string | number): Node {
   if (typeof str === 'number' || !isNaN(Number(str))) {
     return document.createTextNode(String(str));
@@ -69,6 +98,12 @@ const stringToElement = function (str: string | number): Node {
   }
 };
 
+/**
+ * @function isPlainObject
+ * @description Checks if a value is a plain object.
+ * @param {unknown} value - The value to check.
+ * @returns {boolean} True if the value is a plain object, false otherwise.
+ */
 const isPlainObject = function (value: unknown) {
   return Object.prototype.toString.call(value) === '[object Object]';
 }

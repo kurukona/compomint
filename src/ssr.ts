@@ -6,7 +6,8 @@
 import { CompomintGlobal, ComponentScope, TemplateEngine } from "./type";
 
 /**
- * SSR Environment Detection and Configuration
+ * @interface SSROptions
+ * @description Options for server-side rendering.
  */
 export interface SSROptions {
   renderToString?: boolean;
@@ -16,6 +17,10 @@ export interface SSROptions {
   lang?: string;
 }
 
+/**
+ * @interface SSRRenderResult
+ * @description The result of a server-side render.
+ */
 export interface SSRRenderResult {
   html: string;
   css: string;
@@ -28,44 +33,71 @@ export interface SSRRenderResult {
 }
 
 /**
- * Environment detection utilities
+ * @constant {object} Environment
+ * @description Environment detection utilities.
  */
 // Store original window state before SSR setup
 const _originalWindow = typeof window;
 
 export const Environment = {
-  // Check if we're in a server environment
+  /**
+   * @function isServer
+   * @description Check if we're in a server environment.
+   * @returns {boolean} True if in a server environment.
+   */
   isServer(): boolean {
-    return (_originalWindow === 'undefined' || (globalThis as any).__SSR_ENVIRONMENT__) && 
-           typeof globalThis !== 'undefined' &&
-           typeof (globalThis as any).process !== 'undefined' &&
-           typeof ((globalThis as any).process as any).versions !== 'undefined' &&
-           !!((globalThis as any).process as any).versions.node;
+    return (
+      (_originalWindow === "undefined" ||
+        (globalThis as any).__SSR_ENVIRONMENT__) &&
+      typeof globalThis !== "undefined" &&
+      typeof (globalThis as any).process !== "undefined" &&
+      typeof ((globalThis as any).process as any).versions !== "undefined" &&
+      !!((globalThis as any).process as any).versions.node
+    );
   },
 
-  // Check if we're in a browser environment  
+  /**
+   * @function isBrowser
+   * @description Check if we're in a browser environment.
+   * @returns {boolean} True if in a browser environment.
+   */
   isBrowser(): boolean {
-    return _originalWindow !== 'undefined' && 
-           typeof document !== 'undefined' &&
-           !(globalThis as any).__SSR_ENVIRONMENT__;
+    return (
+      _originalWindow !== "undefined" &&
+      typeof document !== "undefined" &&
+      !(globalThis as any).__SSR_ENVIRONMENT__
+    );
   },
 
-  // Check if DOM APIs are available
+  /**
+   * @function hasDOM
+   * @description Check if DOM APIs are available.
+   * @returns {boolean} True if DOM APIs are available.
+   */
   hasDOM(): boolean {
-    return typeof document !== 'undefined' && 
-           typeof document.createElement === 'function';
+    return (
+      typeof document !== "undefined" &&
+      typeof document.createElement === "function"
+    );
   },
 
-  // Check if we're in a Node.js environment
+  /**
+   * @function isNode
+   * @description Check if we're in a Node.js environment.
+   * @returns {boolean} True if in a Node.js environment.
+   */
   isNode(): boolean {
-    return typeof (globalThis as any).process !== 'undefined' && 
-           typeof ((globalThis as any).process as any).versions !== 'undefined' &&
-           !!((globalThis as any).process as any).versions.node;
-  }
+    return (
+      typeof (globalThis as any).process !== "undefined" &&
+      typeof ((globalThis as any).process as any).versions !== "undefined" &&
+      !!((globalThis as any).process as any).versions.node
+    );
+  },
 };
 
 /**
- * DOM Polyfills for Server-Side Rendering
+ * @class SSRDOMPolyfill
+ * @description Provides DOM polyfills for server-side rendering.
  */
 export class SSRDOMPolyfill {
   private static instance: SSRDOMPolyfill;
@@ -81,16 +113,18 @@ export class SSRDOMPolyfill {
   }
 
   /**
-   * Create a minimal DOM-like element for SSR
+   * Create a minimal DOM-like element for SSR.
+   * @param {string} tagName - The tag name of the element to create.
+   * @returns {any} A polyfilled DOM element.
    */
   createElement(tagName: string): any {
     const element = {
       nodeType: 1, // Element nodeType
       tagName: tagName.toUpperCase(),
-      id: '',
-      className: '',
-      textContent: '',
-      _innerHTML: '',
+      id: "",
+      className: "",
+      textContent: "",
+      _innerHTML: "",
       attributes: new Map<string, string>(),
       children: [] as any[],
       parentNode: null as any,
@@ -101,7 +135,7 @@ export class SSRDOMPolyfill {
       childElementCount: 0,
       firstElementChild: null as any,
       content: null as any, // For template elements
-      
+
       // Make childNodes iterable
       get childNodes() {
         return this.children;
@@ -109,8 +143,8 @@ export class SSRDOMPolyfill {
 
       setAttribute(name: string, value: string) {
         this.attributes.set(name, value);
-        if (name === 'id') this.id = value;
-        if (name === 'class') this.className = value;
+        if (name === "id") this.id = value;
+        if (name === "class") this.className = value;
       },
 
       // Override innerHTML setter to parse HTML
@@ -118,7 +152,7 @@ export class SSRDOMPolyfill {
         this._innerHTML = html;
         // Clear existing children
         this.children = [];
-        
+
         // Parse HTML and create child elements
         if (html) {
           this.parseAndCreateChildren(html);
@@ -126,63 +160,77 @@ export class SSRDOMPolyfill {
       },
 
       get innerHTML(): string {
-        return this._innerHTML || '';
+        return this._innerHTML || "";
       },
 
       parseAndCreateChildren(html: string) {
         // Simple HTML parsing for template elements - more flexible regex
-        const templateRegex = /<template[^>]*?id\s*=\s*["']([^"']+)["'][^>]*?>([\s\S]*?)<\/template>/gi;
-        const scriptRegex = /<script[^>]*?type\s*=\s*["']text\/template["'][^>]*?id\s*=\s*["']([^"']+)["'][^>]*?>([\s\S]*?)<\/script>/gi;
-        const scriptCompomintRegex = /<script[^>]*?type\s*=\s*["']text\/compomint["'][^>]*?id\s*=\s*["']([^"']+)["'][^>]*?>([\s\S]*?)<\/script>/gi;
-        
+        const templateRegex =
+          /<template[^>]*?id\s*=\s*["']([^"']+)["'][^>]*?>([\s\S]*?)<\/template>/gi;
+        const scriptRegex =
+          /<script[^>]*?type\s*=\s*["']text\/template["'][^>]*?id\s*=\s*["']([^"']+)["'][^>]*?>([\s\S]*?)<\/script>/gi;
+        const scriptCompomintRegex =
+          /<script[^>]*?type\s*=\s*["']text\/compomint["'][^>]*?id\s*=\s*["']([^"']+)["'][^>]*?>([\s\S]*?)<\/script>/gi;
+
         let match;
-        
+
         // Match template elements
         templateRegex.lastIndex = 0; // Reset regex
         while ((match = templateRegex.exec(html)) !== null) {
-          const templateElement = this.createTemplateElement(match[1], match[2]);
+          const templateElement = this.createTemplateElement(
+            match[1],
+            match[2]
+          );
           this.children.push(templateElement);
         }
-        
+
         // Match script[type="text/template"] elements
         scriptRegex.lastIndex = 0; // Reset regex
         while ((match = scriptRegex.exec(html)) !== null) {
-          const scriptElement = this.createScriptElement(match[1], match[2], 'text/template');
+          const scriptElement = this.createScriptElement(
+            match[1],
+            match[2],
+            "text/template"
+          );
           this.children.push(scriptElement);
         }
-        
+
         // Match script[type="text/compomint"] elements
         scriptCompomintRegex.lastIndex = 0; // Reset regex
         while ((match = scriptCompomintRegex.exec(html)) !== null) {
-          const scriptElement = this.createScriptElement(match[1], match[2], 'text/compomint');
+          const scriptElement = this.createScriptElement(
+            match[1],
+            match[2],
+            "text/compomint"
+          );
           this.children.push(scriptElement);
         }
       },
 
       createTemplateElement(id: string, content: string) {
         const polyfill = SSRDOMPolyfill.getInstance();
-        const template = polyfill.createElement('template');
+        const template = polyfill.createElement("template");
         template.id = id;
-        template.setAttribute('id', id);
-        
+        template.setAttribute("id", id);
+
         // Unescape HTML entities for template content
         const unescapedContent = content
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&amp;/g, "&")
           .replace(/&quot;/g, '"')
           .replace(/&#x27;/g, "'");
-        
+
         template._innerHTML = unescapedContent;
         return template;
       },
 
       createScriptElement(id: string, content: string, type: string) {
         const polyfill = SSRDOMPolyfill.getInstance();
-        const script = polyfill.createElement('script');
+        const script = polyfill.createElement("script");
         script.id = id;
-        script.setAttribute('id', id);
-        script.setAttribute('type', type);
+        script.setAttribute("id", id);
+        script.setAttribute("type", type);
         script._innerHTML = content;
         return script;
       },
@@ -220,11 +268,11 @@ export class SSRDOMPolyfill {
 
       querySelector(selector: string): any {
         // Simple implementation for basic selectors
-        if (selector.startsWith('#')) {
+        if (selector.startsWith("#")) {
           const id = selector.substring(1);
           return this.findById(id);
         }
-        if (selector.startsWith('.')) {
+        if (selector.startsWith(".")) {
           const className = selector.substring(1);
           return this.findByClass(className);
         }
@@ -233,10 +281,10 @@ export class SSRDOMPolyfill {
 
       querySelectorAll(selector: string): any[] {
         const results: any[] = [];
-        
+
         // Handle comma-separated selectors
-        const selectors = selector.split(',').map(s => s.trim());
-        
+        const selectors = selector.split(",").map((s) => s.trim());
+
         for (const sel of selectors) {
           // Check self first
           if (this.matches && this.matches(sel)) {
@@ -244,7 +292,7 @@ export class SSRDOMPolyfill {
               results.push(this);
             }
           }
-          
+
           // Search children recursively
           for (const child of this.children) {
             if (child.querySelectorAll) {
@@ -257,22 +305,22 @@ export class SSRDOMPolyfill {
             }
           }
         }
-        
+
         return results;
       },
 
       matches(selector: string): boolean {
         const trimmedSelector = selector.trim();
-        
-        if (trimmedSelector.startsWith('#')) {
+
+        if (trimmedSelector.startsWith("#")) {
           return this.id === trimmedSelector.substring(1);
         }
-        if (trimmedSelector.startsWith('.')) {
+        if (trimmedSelector.startsWith(".")) {
           return this.className.includes(trimmedSelector.substring(1));
         }
-        
+
         // Handle attribute selectors like template[id], script[type="text/template"][id]
-        if (trimmedSelector.includes('[') && trimmedSelector.includes(']')) {
+        if (trimmedSelector.includes("[") && trimmedSelector.includes("]")) {
           // Extract tag name if present
           const tagMatch = trimmedSelector.match(/^(\w+)(?:\[|$)/);
           if (tagMatch) {
@@ -281,20 +329,20 @@ export class SSRDOMPolyfill {
               return false;
             }
           }
-          
+
           // Extract all attribute selectors
           const attrMatches = trimmedSelector.match(/\[([^\]]+)\]/g);
           if (attrMatches) {
             for (const attrMatch of attrMatches) {
               // Parse individual attribute selector
               const attrContent = attrMatch.slice(1, -1); // Remove [ and ]
-              
-              if (attrContent.includes('=')) {
+
+              if (attrContent.includes("=")) {
                 // Attribute with value like [type="text/template"]
-                const parts = attrContent.split('=');
+                const parts = attrContent.split("=");
                 const attrName = parts[0].trim();
-                const attrValue = parts[1].replace(/['"]/g, '').trim();
-                
+                const attrValue = parts[1].replace(/['"]/g, "").trim();
+
                 if (this.getAttribute(attrName) !== attrValue) {
                   return false;
                 }
@@ -308,10 +356,10 @@ export class SSRDOMPolyfill {
               }
             }
           }
-          
+
           return true;
         }
-        
+
         // Simple tag selector
         return this.tagName.toLowerCase() === trimmedSelector.toLowerCase();
       },
@@ -346,31 +394,41 @@ export class SSRDOMPolyfill {
       // Convert to HTML string
       toHTML(): string {
         // Special handling for template elements - return their content
-        if (this.tagName.toLowerCase() === 'template') {
+        if (this.tagName.toLowerCase() === "template") {
           if (this.innerHTML) {
             return this.innerHTML;
           } else {
             // Return children content
-            return this.children.map((child: any) => 
-              typeof child === 'string' ? child : child.toHTML ? child.toHTML() : ''
-            ).join('');
+            return this.children
+              .map((child: any) =>
+                typeof child === "string"
+                  ? child
+                  : child.toHTML
+                  ? child.toHTML()
+                  : ""
+              )
+              .join("");
           }
         }
 
         let html = `<${this.tagName.toLowerCase()}`;
-        
+
         // Add attributes
         for (const [name, value] of this.attributes) {
           html += ` ${name}="${value}"`;
         }
 
         // Self-closing tags
-        if (['img', 'br', 'hr', 'input', 'meta', 'link'].includes(this.tagName.toLowerCase())) {
-          html += ' />';
+        if (
+          ["img", "br", "hr", "input", "meta", "link"].includes(
+            this.tagName.toLowerCase()
+          )
+        ) {
+          html += " />";
           return html;
         }
 
-        html += '>';
+        html += ">";
 
         // Add content
         if (this.textContent) {
@@ -380,7 +438,7 @@ export class SSRDOMPolyfill {
         } else {
           // Add children
           for (const child of this.children) {
-            if (typeof child === 'string') {
+            if (typeof child === "string") {
               html += child;
             } else if (child.toHTML) {
               html += child.toHTML();
@@ -390,24 +448,24 @@ export class SSRDOMPolyfill {
 
         html += `</${this.tagName.toLowerCase()}>`;
         return html;
-      }
+      },
     };
 
     // Special handling for template elements
-    if (tagName.toLowerCase() === 'template') {
+    if (tagName.toLowerCase() === "template") {
       element.content = this.createDocumentFragment();
-      
+
       // Override innerHTML for template elements to populate content
       const originalSetInnerHTML = element.innerHTML;
-      Object.defineProperty(element, 'innerHTML', {
-        get: function() {
-          return this._innerHTML || '';
+      Object.defineProperty(element, "innerHTML", {
+        get: function () {
+          return this._innerHTML || "";
         },
-        set: function(html: string) {
+        set: function (html: string) {
           this._innerHTML = html;
           // Clear existing content
           this.content.children = [];
-          
+
           // Parse and add to content
           if (html) {
             this.parseAndCreateChildren(html);
@@ -418,13 +476,14 @@ export class SSRDOMPolyfill {
             }
             // Update content fragment properties
             this.content.firstChild = this.content.children[0] || null;
-            this.content.lastChild = this.content.children[this.content.children.length - 1] || null;
+            this.content.lastChild =
+              this.content.children[this.content.children.length - 1] || null;
             this.content.childElementCount = this.content.children.length;
             this.content.firstElementChild = this.content.children[0] || null;
           }
         },
         configurable: true,
-        enumerable: true
+        enumerable: true,
       });
     }
 
@@ -432,7 +491,8 @@ export class SSRDOMPolyfill {
   }
 
   /**
-   * Create a document fragment for SSR
+   * Create a document fragment for SSR.
+   * @returns {any} A polyfilled document fragment.
    */
   createDocumentFragment(): any {
     return {
@@ -442,12 +502,12 @@ export class SSRDOMPolyfill {
       lastChild: null as any,
       childElementCount: 0,
       firstElementChild: null as any,
-      
+
       // Make childNodes iterable
       get childNodes() {
         return this.children;
       },
-      
+
       appendChild(child: any) {
         this.children.push(child);
         child.parentNode = this;
@@ -470,7 +530,7 @@ export class SSRDOMPolyfill {
         }
         return child;
       },
-      
+
       normalize() {
         // Mock normalize function
       },
@@ -487,10 +547,10 @@ export class SSRDOMPolyfill {
 
       querySelectorAll(selector: string): any[] {
         const results: any[] = [];
-        
+
         // Handle comma-separated selectors
-        const selectors = selector.split(',').map(s => s.trim());
-        
+        const selectors = selector.split(",").map((s) => s.trim());
+
         for (const sel of selectors) {
           // Search children
           for (const child of this.children) {
@@ -504,20 +564,24 @@ export class SSRDOMPolyfill {
             }
           }
         }
-        
+
         return results;
       },
 
       toHTML(): string {
-        return this.children.map((child: any) => 
-          typeof child === 'string' ? child : child.toHTML ? child.toHTML() : ''
-        ).join('');
-      }
+        return this.children
+          .map((child: any) =>
+            typeof child === "string" ? child : child.toHTML ? child.toHTML() : ""
+          )
+          .join("");
+      },
     };
   }
 
   /**
-   * Create a text node for SSR
+   * Create a text node for SSR.
+   * @param {string} text - The text content.
+   * @returns {any} A polyfilled text node.
    */
   createTextNode(text: string): any {
     return {
@@ -525,12 +589,14 @@ export class SSRDOMPolyfill {
       textContent: text,
       toHTML(): string {
         return this.textContent;
-      }
+      },
     };
   }
 
   /**
-   * Create a comment node for SSR
+   * Create a comment node for SSR.
+   * @param {string} text - The comment text.
+   * @returns {any} A polyfilled comment node.
    */
   createComment(text: string): any {
     return {
@@ -538,40 +604,44 @@ export class SSRDOMPolyfill {
       textContent: text,
       toHTML(): string {
         return `<!-- ${this.textContent} -->`;
-      }
+      },
     };
   }
 
   /**
-   * Collect styles during SSR
+   * Collect styles during SSR.
+   * @param {string} css - The CSS to collect.
    */
   collectStyle(css: string): void {
     this.styleCollector.push(css);
   }
 
   /**
-   * Collect scripts during SSR
+   * Collect scripts during SSR.
+   * @param {string} script - The script to collect.
    */
   collectScript(script: string): void {
     this.scriptCollector.push(script);
   }
 
   /**
-   * Get collected styles
+   * Get collected styles.
+   * @returns {string} The collected CSS.
    */
   getCollectedStyles(): string {
-    return this.styleCollector.join('\n');
+    return this.styleCollector.join("\n");
   }
 
   /**
-   * Get collected scripts
+   * Get collected scripts.
+   * @returns {string[]} The collected scripts.
    */
   getCollectedScripts(): string[] {
     return [...this.scriptCollector];
   }
 
   /**
-   * Reset collectors
+   * Reset the style and script collectors.
    */
   reset(): void {
     this.styleCollector = [];
@@ -580,127 +650,133 @@ export class SSRDOMPolyfill {
 }
 
 /**
- * SSR Document Mock
+ * Creates a mock document object for SSR.
+ * @returns {object} A mock document object.
  */
 export function createSSRDocument() {
   const polyfill = SSRDOMPolyfill.getInstance();
-  
+
   return {
     createElement: (tagName: string) => polyfill.createElement(tagName),
     createDocumentFragment: () => polyfill.createDocumentFragment(),
     createTextNode: (text: string) => polyfill.createTextNode(text),
     createComment: (text: string) => polyfill.createComment(text),
-    
+
     getElementById: (id: string) => null,
-    
+
     head: {
       appendChild: (element: any) => {
-        if (element.tagName === 'STYLE') {
+        if (element.tagName === "STYLE") {
           polyfill.collectStyle(element.textContent || element.innerHTML);
-        } else if (element.tagName === 'SCRIPT') {
+        } else if (element.tagName === "SCRIPT") {
           polyfill.collectScript(element.textContent || element.innerHTML);
         }
       },
       removeChild: () => {},
-      innerHTML: ''
+      innerHTML: "",
     },
-    
+
     body: {
       appendChild: () => {},
       removeChild: () => {},
-      innerHTML: '',
-      contains: () => false
+      innerHTML: "",
+      contains: () => false,
     },
-    
+
     documentElement: {
-      lang: 'en',
-      getAttribute: function(name: string) {
-        if (name === 'lang') return this.lang;
+      lang: "en",
+      getAttribute: function (name: string) {
+        if (name === "lang") return this.lang;
         return null;
       },
-      setAttribute: function(name: string, value: string) {
-        if (name === 'lang') this.lang = value;
-      }
-    }
+      setAttribute: function (name: string, value: string) {
+        if (name === "lang") this.lang = value;
+      },
+    },
   };
 }
 
 /**
- * SSR Window Mock
+ * Creates a mock window object for SSR.
+ * @returns {object} A mock window object.
  */
 export function createSSRWindow() {
   return {
     Node: {
-      prototype: {}
+      prototype: {},
     },
     Element: {
-      prototype: {}
+      prototype: {},
     },
     CharacterData: {
-      prototype: {}
+      prototype: {},
     },
     DocumentType: {
-      prototype: {}
+      prototype: {},
     },
-    XMLHttpRequest: function() {
-      throw new Error('XMLHttpRequest is not available in SSR environment');
-    }
+    XMLHttpRequest: function () {
+      throw new Error("XMLHttpRequest is not available in SSR environment");
+    },
   };
 }
 
 /**
- * SSR Element Mock for global scope
+ * Creates a mock Element class for the global scope in SSR.
+ * @returns {any} A mock Element class.
  */
 export function createSSRElementClass() {
   const SSRElement = class {
-    tagName: string = '';
-    innerHTML: string = '';
-    textContent: string = '';
-    id: string = '';
-    className: string = '';
+    tagName: string = "";
+    innerHTML: string = "";
+    textContent: string = "";
+    id: string = "";
+    className: string = "";
     children: any[] = [];
     parentNode: any = null;
-    
+
     constructor(tagName?: string) {
       if (tagName) this.tagName = tagName.toUpperCase();
     }
   };
-  
+
   return SSRElement;
 }
 
 /**
- * Setup SSR environment
+ * Sets up the SSR environment by polyfilling global DOM objects.
+ * @returns {boolean} True if the SSR environment was set up, false otherwise.
  */
 export function setupSSREnvironment() {
   if (Environment.isNode()) {
     // Mark as SSR environment
     (globalThis as any).__SSR_ENVIRONMENT__ = true;
-    
+
     // Setup global DOM polyfills
     const ssrDocument = createSSRDocument();
     const ssrWindow = createSSRWindow();
-    
+
     (globalThis as any).document = ssrDocument;
     (globalThis as any).window = ssrWindow;
-    
+
     // Also set on global for Node.js compatibility
-    if (typeof (globalThis as any).global !== 'undefined') {
+    if (typeof (globalThis as any).global !== "undefined") {
       ((globalThis as any).global as any).document = ssrDocument;
       ((globalThis as any).global as any).window = ssrWindow;
     }
-    
+
     // Setup global Element, Node classes
     (globalThis as any).Element = createSSRElementClass();
     (globalThis as any).Node = class SSRNode {};
     (globalThis as any).CharacterData = class SSRCharacterData {};
     (globalThis as any).DocumentType = class SSRDocumentType {};
-    
+
     // Mock XMLHttpRequest to prevent errors
-    (globalThis as any).XMLHttpRequest = function() {
-      throw new Error('XMLHttpRequest is not available in SSR environment. Use static template rendering instead.');
+    (globalThis as any).XMLHttpRequest = function () {
+      throw new Error(
+        "XMLHttpRequest is not available in SSR environment. Use static template rendering instead."
+      );
     };
-    
+
     return true;
   }
   return false;

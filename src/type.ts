@@ -1,19 +1,30 @@
-// Define interfaces for better type safety
+/**
+ * @interface CompomintConfigs
+ * @description Configuration options for Compomint.
+ */
 interface CompomintConfigs {
   printExecTime?: boolean;
   debug?: boolean;
   throwError?: boolean;
 }
 
+/**
+ * @interface TemplateMeta
+ * @description Metadata associated with a compiled template.
+ */
 interface TemplateMeta {
   renderingFunc: RenderingFunction;
   source?: string;
   templateText?: string;
-  elements?: Set<any>; // Assuming elements is a Set, adjust type as needed
+  elements?: Set<any>;
 }
 
+/**
+ * @interface LazyScope
+ * @description Scope for lazy evaluation of template directives.
+ */
 interface LazyScope {
-  [key: string]: any[]; // General structure for lazy scope arrays
+  [key: string]: any[];
   elementPropsArray: any[];
   namedElementArray: string[];
   elementRefArray: ((target: Element) => void)[];
@@ -28,6 +39,10 @@ interface LazyScope {
   lazyEvaluateArray: ((data: Record<string, any>) => void)[];
 }
 
+/**
+ * @interface TemplateRule
+ * @description A rule for processing a specific template directive.
+ */
 interface TemplateRule {
   pattern: RegExp;
   exec: (...args: any[]) => string;
@@ -50,6 +65,10 @@ interface TemplateRule {
   trigger?: (target: Element, eventName: string) => void;
 }
 
+/**
+ * @interface TemplateEngine
+ * @description Defines the structure of a template engine.
+ */
 interface TemplateEngine {
   rules: Record<string, TemplateRule>;
   keys: {
@@ -60,6 +79,10 @@ interface TemplateEngine {
   };
 }
 
+/**
+ * @interface ComponentScope
+ * @description The scope of a rendered component instance.
+ */
 interface ComponentScope {
   tmplId: string;
   _id: string;
@@ -69,7 +92,7 @@ interface ComponentScope {
   status: Record<string, any>;
   data: Record<string, any>;
   trigger?: Record<string, Record<string, () => void>>;
-  [key: string]: any; // Allow arbitrary properties for named elements etc.
+  [key: string]: any;
 
   replace(newComponent: ComponentScope | Element): void;
   remove(spacer?: boolean): Element | TemplateElement | Comment;
@@ -88,6 +111,15 @@ interface ComponentScope {
   afterRefresh?(): void;
 }
 
+/**
+ * @typedef {function} RenderingFunction
+ * @description A function that renders a template.
+ * @param {any} [data] - The data to render the template with.
+ * @param {Element | ((component: ComponentScope) => void)} [wrapperElement] - The element to render the template into, or a callback function.
+ * @param {(component: ComponentScope) => void} [callback] - A callback function to execute after rendering.
+ * @param {Partial<ComponentScope>} [baseComponent] - A base component to extend.
+ * @returns {ComponentScope} The scope of the rendered component.
+ */
 type RenderingFunction = (
   data?: any,
   wrapperElement?: Element | ((component: ComponentScope) => void),
@@ -95,6 +127,10 @@ type RenderingFunction = (
   baseComponent?: Partial<ComponentScope>
 ) => ComponentScope;
 
+/**
+ * @interface Tools
+ * @description A collection of utility functions.
+ */
 interface Tools {
   escapeHtml: {
     escape: (str: string) => string;
@@ -114,6 +150,10 @@ interface Tools {
   liveReloadSupport?: (component: ComponentScope) => void;
 }
 
+/**
+ * @interface CompomintGlobal
+ * @description The global Compomint instance.
+ */
 interface CompomintGlobal {
   configs: CompomintConfigs;
   tmplCache: Map<string, TemplateMeta>;
@@ -146,7 +186,10 @@ interface CompomintGlobal {
   addI18ns: (i18nObjs: Record<string, any>) => void;
 }
 
-// Ensure TemplateElement is defined for environments like older JSDOM
+/**
+ * @interface TemplateElement
+ * @description Represents a `<template>` element.
+ */
 interface TemplateElement extends HTMLTemplateElement {}
 
 export {

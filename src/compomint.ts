@@ -149,6 +149,13 @@ const escapeHtml = (function () {
 })();
 tools.escapeHtml = escapeHtml;
 
+/**
+ * @function matcherFunc
+ * @private
+ * @description Creates a matcher object from a set of template rules.
+ * @param {Record<string, TemplateRule>} templateRules - An object containing template rules.
+ * @returns {{templateRules: Record<string, TemplateRule>, pattern: RegExp, exec: ((...args: any[]) => string)[], lazyExecKeys: string[], lazyExec: Record<string, (data: Record<string, any>, lazyScope: LazyScope, component: ComponentScope, wrapper: DocumentFragment | Element) => void>, lazyScopeSeed: string}} A matcher object.
+ */
 const matcherFunc = function (templateRules: Record<string, TemplateRule>): {
   templateRules: Record<string, TemplateRule>;
   pattern: RegExp;
@@ -215,6 +222,15 @@ const escapeFunc = function (match: string): string {
 
 const defaultMatcher = matcherFunc(compomint.templateEngine.rules);
 
+/**
+ * @function templateParser
+ * @private
+ * @description Parses a template string and converts it into a JavaScript source string.
+ * @param {string} tmplId - The ID of the template being parsed.
+ * @param {string} text - The template string to parse.
+ * @param {ReturnType<typeof matcherFunc>} matcher - The matcher object to use for parsing.
+ * @returns {string} The parsed JavaScript source string.
+ */
 const templateParser = function (
   tmplId: string,
   text: string,
@@ -272,6 +288,15 @@ const templateParser = function (
   return source;
 };
 
+/**
+ * @function template
+ * @memberof compomint
+ * @description Compiles a template string into a rendering function.
+ * @param {string} tmplId - A unique identifier for the template.
+ * @param {string} templateText - The raw template string.
+ * @param {Partial<TemplateEngine>} [customTemplateEngine] - Optional custom template engine settings to override the defaults for this template.
+ * @returns {RenderingFunction} A function that, when called with data, renders the template and returns a component scope object.
+ */
 const templateBuilder = (compomint.template =
   function compomint_templateBuilder(
     tmplId: string,
@@ -940,6 +965,13 @@ return __p;`;
     return renderingFunc;
   }); // End of templateBuilder
 
+/**
+ * @function remapTmpl
+ * @memberof compomint
+ * @description Remaps template IDs, allowing for aliasing or versioning of templates.
+ * @param {Record<string, string>} json - An object where keys are the old template IDs and values are the new template IDs.
+ * @returns {void}
+ */
 compomint.remapTmpl = function (json: Record<string, string>): void {
   Object.keys(json).forEach(function (oldKey: string) {
     const newKey = json[oldKey];
@@ -956,11 +988,25 @@ compomint.remapTmpl = function (json: Record<string, string>): void {
   });
 };
 
+/**
+ * @function tmpl
+ * @memberof compomint
+ * @description Retrieves a cached rendering function by its template ID.
+ * @param {string} tmplId - The ID of the template to retrieve.
+ * @returns {RenderingFunction | null} The rendering function if found, otherwise null.
+ */
 compomint.tmpl = function (tmplId: string): RenderingFunction | null {
   const tmplMeta = cachedTmpl.get(tmplId);
   return tmplMeta ? tmplMeta.renderingFunc : null;
 };
 
+/**
+ * @function safeTemplate
+ * @private
+ * @description Safely creates a `<template>` element from a string or an existing element.
+ * @param {Element | string} source - The source to create the template from.
+ * @returns {Element | TemplateElement} A `<template>` element.
+ */
 const safeTemplate = function (
   source: Element | string
 ): Element | TemplateElement {
@@ -997,6 +1043,15 @@ const safeTemplate = function (
   return template;
 };
 
+/**
+ * @function addTmpl
+ * @memberof compomint
+ * @description Adds a single template to the cache.
+ * @param {string} tmplId - The ID for the template.
+ * @param {Element | string} element - The template content, either as a DOM element or a string.
+ * @param {Partial<TemplateEngine>} [templateEngine] - Optional custom template engine settings.
+ * @returns {RenderingFunction} The compiled rendering function.
+ */
 const addTmpl: CompomintGlobal["addTmpl"] = (compomint.addTmpl = function (
   tmplId,
   element,
@@ -1008,6 +1063,15 @@ const addTmpl: CompomintGlobal["addTmpl"] = (compomint.addTmpl = function (
   return templateBuilder(tmplId, templateText, templateEngine);
 });
 
+/**
+ * @function addTmpls
+ * @memberof compomint
+ * @description Adds multiple templates from a source string or element.
+ * @param {Element | string} source - The source containing `<template>` or `<script type="text/template">` elements with IDs.
+ * @param {boolean | Partial<TemplateEngine>} [removeInnerTemplate=false] - If true, removes the template elements from the source after processing. Can also be a template engine object if the third argument is omitted.
+ * @param {Partial<TemplateEngine>} [templateEngine] - Optional custom template engine settings.
+ * @returns {Element | TemplateElement} The container element with the templates.
+ */
 const addTmpls: CompomintGlobal["addTmpls"] = (compomint.addTmpls = function (
   source,
   removeInnerTemplate,
@@ -1043,6 +1107,15 @@ const addTmpls: CompomintGlobal["addTmpls"] = (compomint.addTmpls = function (
   return container;
 });
 
+/**
+ * @function addTmplByUrl
+ * @memberof compomint
+ * @description Loads templates from an external URL.
+ * @param {string | any[] | { url: string; option?: Record<string, any> }} importData - The URL or an array of URLs to load templates from.
+ * @param {Record<string, any> | (() => void)} [option] - Options for loading, or a callback function.
+ * @param {Function | (() => void)} [callback] - A callback function to execute after the templates are loaded.
+ * @returns {void | Promise<void>} A promise is returned if no callback is provided.
+ */
 const addTmplByUrl: CompomintGlobal["addTmplByUrl"] = (compomint.addTmplByUrl =
   function compomint_addTmplByUrl(importData, option, callback) {
     if (!callback && typeof option === "function") {
@@ -1250,6 +1323,15 @@ const addTmplByUrl: CompomintGlobal["addTmplByUrl"] = (compomint.addTmplByUrl =
     }
   });
 
+/**
+ * @function requestFunc
+ * @private
+ * @description A simple AJAX request function.
+ * @param {string} url - The URL to request.
+ * @param {RequestInit | null} option - Options for the request.
+ * @param {(responseText: string | null, status: number, xhr: XMLHttpRequest) => void} callback - The callback function.
+ * @returns {void}
+ */
 const requestFunc = function (
   url: string,
   option: RequestInit | null,
@@ -1309,6 +1391,14 @@ const requestFunc = function (
 
 compomint.i18n = {};
 
+/**
+ * @function addI18n
+ * @memberof compomint
+ * @description Adds a set of i18n translations for a given key.
+ * @param {string} fullKey - The key for the translations, using dot notation for nesting (e.g., 'user.profile.title').
+ * @param {Record<string, any>} i18nObj - An object where keys are language codes (e.g., 'en', 'fr') and values are the translated strings.
+ * @returns {void}
+ */
 compomint.addI18n = function (
   fullKey: string,
   i18nObj: Record<string, any>
@@ -1397,6 +1487,13 @@ compomint.addI18n = function (
   });
 };
 
+/**
+ * @function addI18ns
+ * @memberof compomint
+ * @description Adds multiple i18n translations from a nested object.
+ * @param {Record<string, any>} i18nObjs - A nested object representing the i18n structure.
+ * @returns {void}
+ */
 compomint.addI18ns = function (i18nObjs: Record<string, any>): void {
   // Cache for target path resolution to avoid repeated splits
   const targetCache = new Map<string, any>();
@@ -1483,11 +1580,26 @@ compomint.addI18ns = function (i18nObjs: Record<string, any>): void {
 };
 
 let elementCount = 0;
+/**
+ * @function genId
+ * @memberof compomint.tools
+ * @description Generates a unique ID for a component instance.
+ * @param {string} tmplId - The template ID to use as a prefix.
+ * @returns {string} A unique ID.
+ */
 tools.genId = function (tmplId: string): string {
   elementCount++;
   return tmplId + elementCount;
 };
 
+/**
+ * @function applyElementProps
+ * @memberof compomint.tools
+ * @description Applies attributes and properties to a DOM element.
+ * @param {HTMLElement} element - The element to apply the properties to.
+ * @param {Record<string, any>} attrs - An object of attributes and properties to apply.
+ * @returns {Element} The modified element.
+ */
 const applyElementProps = (tools.applyElementProps = function (
   element: HTMLElement,
   attrs: Record<string, any>
@@ -1523,6 +1635,15 @@ const applyElementProps = (tools.applyElementProps = function (
   return element;
 });
 
+/**
+ * @function genElement
+ * @memberof compomint.tools
+ * @description Creates a DOM element with attributes and children.
+ * @param {string} tagName - The tag name of the element to create.
+ * @param {Record<string, any> | string | Node | (string | Node)[]} [attrs={}] - Attributes for the element, or a child node.
+ * @param {...(string | Node)} children - Child nodes to append to the element.
+ * @returns {Element} The created element.
+ */
 const genElement = (tools.genElement = function (
   tagName: string,
   attrs: Record<string, any> | string | Node | (string | Node)[] = {},
@@ -1555,6 +1676,13 @@ const genElement = (tools.genElement = function (
   return element;
 });
 
+/**
+ * @function props
+ * @memberof compomint.tools
+ * @description Converts an object of properties into an HTML attribute string.
+ * @param {...Record<string, any>} propsObjects - One or more objects of properties.
+ * @returns {string} An HTML attribute string.
+ */
 tools.props = function (...propsObjects: Record<string, any>[]): string {
   if (!propsObjects || propsObjects.length === 0) return "";
   const mergedProps = Object.assign({}, ...propsObjects);

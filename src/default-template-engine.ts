@@ -15,9 +15,13 @@ import {
   isPlainObject,
 } from "./utils";
 
-//
-// Default template settings
-//
+/**
+ * @function defaultTemplateEngine
+ * @description Creates the default template engine for Compomint.
+ * @param {CompomintConfigs} configs - The Compomint configuration object.
+ * @param {CompomintGlobal} compomint - The global Compomint instance.
+ * @returns {TemplateEngine} The default template engine.
+ */
 const defaultTemplateEngine = (
   configs: CompomintConfigs,
   compomint: CompomintGlobal

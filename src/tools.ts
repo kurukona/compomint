@@ -1,3 +1,8 @@
+/**
+ * @function escapeHtml
+ * @description A utility for escaping and unescaping HTML entities.
+ * @returns {{escape: (str: string) => string, unescape: (str: string) => string}} An object with `escape` and `unescape` functions.
+ */
 const escapeHtml = (function () {
   const escapeMap: Record<string, string> = {
     "&": "&amp;",

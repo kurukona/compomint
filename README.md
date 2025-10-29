@@ -73,7 +73,7 @@ You can add Compomint to your project using several methods:
 
 ### Option 1: Include via Script Tag (Manual Download)
 
-1. Download the latest `compomint.umd.js` (UMD build) or `compomint.esm.js` (ESM build) file from the [Compomint GitHub releases page](https://github.com/kurukona/compomint/dist).
+1. Download the latest `compomint.umd.js` (UMD build) or `compomint.esm.js` (ESM build) file from the [Compomint GitHub releases page](https://github.com/kurukona/compomint/releases).
 2. Place the downloaded file in your project directory.
 3. Add a script tag to your HTML file, pointing to the downloaded file.
 
