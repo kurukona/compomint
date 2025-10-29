@@ -936,6 +936,7 @@ return __p;`;
       const tmplMeta: TemplateMeta = configs.debug
         ? {
             renderingFunc: renderingFunc,
+            sourceGenFunc: sourceGenFunc,
             source: escapeHtml.escape(
               `function ${tmplId}_source (${templateEngine.keys.dataKeyName}, ${templateEngine.keys.statusKeyName}, ${templateEngine.keys.componentKeyName}, ${templateEngine.keys.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`
             ),
@@ -943,6 +944,7 @@ return __p;`;
           }
         : {
             renderingFunc: renderingFunc,
+            sourceGenFunc: sourceGenFunc,
           };
       cachedTmpl.set(tmplId, tmplMeta);
 

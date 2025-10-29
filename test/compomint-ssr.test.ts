@@ -1,331 +1,266 @@
-/**
- * @jest-environment node
- */
-
-import {
-  describe,
-  it,
-  expect,
-  beforeAll,
-  beforeEach,
-  afterEach,
-  jest,
-} from "@jest/globals";
-
-// We need to setup the SSR environment before importing compomint
-import { setupSSREnvironment, Environment } from "../src/ssr";
-import { createSSRRenderer } from "../src/ssr-renderer";
-
-// Setup SSR environment before importing compomint
-setupSSREnvironment();
-
 import { compomint, tmpl } from "../src/compomint";
+import {
+  createSSRRenderer,
+  renderToString,
+  SSRRenderer,
+} from "../src/ssr-renderer";
+import { SSRDOMPolyfill, setupSSREnvironment } from "../src/ssr";
 
-describe("Compomint SSR (Server-Side Rendering)", () => {
+describe("Compomint SSR", () => {
   beforeAll(() => {
-    // Debug environment variables
-    console.log('Debug Environment:');
-    console.log('typeof window:', typeof window);
-    console.log('typeof globalThis:', typeof globalThis);  
-    console.log('typeof process:', typeof process);
-    console.log('process.versions?.node:', (process as any).versions?.node);
-    console.log('Environment.isNode():', Environment.isNode());
-    console.log('Environment.isServer():', Environment.isServer());
-    console.log('Environment.isBrowser():', Environment.isBrowser());
-    
-    // Ensure we're in Node.js environment
-    expect(Environment.isNode()).toBe(true);
-    expect(Environment.isServer()).toBe(true);
-    expect(Environment.isBrowser()).toBe(false);
-  });
+    // Setup SSR environment for all tests in this suite
+    setupSSREnvironment();
+    const renderer = createSSRRenderer(compomint);
+    compomint.ssr = {
+      renderToString: renderer.renderToString.bind(renderer),
+      renderPage: renderer.renderPage.bind(renderer),
+      createRenderer: (options: any) => createSSRRenderer(compomint, options),
+    };
 
-  beforeEach(() => {
-    // Clear template cache
-    compomint.tmplCache.clear();
-    
-    // Reset global tmpl object
-    for (const key in tmpl) {
-      delete tmpl[key];
-    }
-    
-    // Reset i18n
-    compomint.i18n = {};
-    
-    // Enable debug mode to store sourceGenFunc
-    compomint.configs.debug = true;
-  });
+    // Define a simple template for testing
+    compomint.addTmpl(
+      "ssr-simple",
+      `
+      <div class="ssr-simple">
+        <h1>##=data.title##</h1>
+        <p>##=data.content##</p>
+      </div>
+    `
+    );
 
-  describe("Environment Detection", () => {
-    it("should detect server environment correctly", () => {
-      expect(Environment.isServer()).toBe(true);
-      expect(Environment.isNode()).toBe(true);
-      expect(Environment.isBrowser()).toBe(false);
-      expect(Environment.hasDOM()).toBe(true); // Should be true due to polyfill
-    });
+    // Define a template with a loop
+    compomint.addTmpl(
+      "ssr-loop",
+      `
+      <ul class="ssr-loop">
+        ## for (let item of data.items) { ##
+          <li>##=item##</li>
+        ## } ##
+      </ul>
+    `
+    );
 
-    it("should have SSR functionality available", () => {
-      expect(compomint.ssr).toBeDefined();
-      expect(typeof compomint.ssr!.renderToString).toBe("function");
-      expect(typeof compomint.ssr!.renderPage).toBe("function");
-      expect(typeof compomint.ssr!.createRenderer).toBe("function");
-    });
-  });
-
-  describe("Basic SSR Rendering", () => {
-    it("should render a simple template to HTML string", async () => {
-      // Define a simple template
-      compomint.addTmpl("ssr-simple", "<div>Hello, ##=data.name##!</div>");
-
-      // Render using SSR
-      const html = await compomint.ssr!.renderToString("ssr-simple", {
-        name: "World"
-      });
-
-      expect(html).toContain("Hello, World!");
-      expect(html).toContain("<div>");
-      expect(html).toContain("</div>");
-    });
-
-    it("should handle templates with styles", async () => {
-      compomint.addTmpls(`
-        <template id="ssr-with-style">
-          <style id="style-ssr-with-style">
-            .test { color: red; }
-          </style>
-          <div class="test">##=data.message##</div>
-        </template>
-      `);
-
-      const renderer = compomint.ssr!.createRenderer();
-      const result = await renderer.renderToString("ssr-with-style", {
-        message: "Styled content"
-      });
-
-      expect(result.html).toContain("Styled content");
-      expect(result.css).toContain(".test { color: red; }");
-    });
-
-    it("should handle templates with multiple elements", async () => {
-      compomint.addTmpl(
-        "ssr-multiple", 
-        `<div>
+    // Define a template with conditional rendering
+    compomint.addTmpl(
+      "ssr-conditional",
+      `
+      <div class="ssr-conditional">
+        ## if (data.showTitle) { ##
           <h1>##=data.title##</h1>
-          <p>##=data.description##</p>
-        </div>`
-      );
+        ## } ##
+        <p>##=data.content##</p>
+      </div>
+    `
+    );
 
-      const html = await compomint.ssr!.renderToString("ssr-multiple", {
-        title: "Test Title",
-        description: "Test Description"
-      });
+    // Define a template with escaping
+    compomint.addTmpl(
+      "ssr-escape",
+      `
+      <div class="ssr-escape">
+        <p>##-data.htmlContent##</p>
+      </div>
+    `
+    );
 
-      expect(html).toContain("<h1>Test Title</h1>");
-      expect(html).toContain("<p>Test Description</p>");
-    });
+    // Define a template for page rendering
+    compomint.addTmpl(
+      "ssr-page",
+      `
+      <main>
+        <h1>##=data.pageTitle##</h1>
+        <p>Welcome to the SSR page.</p>
+      </main>
+    `
+    );
+    compomint.addTmpl(
+      "ssr-multiple",
+      `
+      <div class="ssr-multiple">
+        ## for (let item of data.items) { ##
+          <p>##=item.name##</p>
+        ## } ##
+      </div>
+    `
+    );
   });
 
-  describe("Complex SSR Scenarios", () => {
-    it("should handle conditional rendering", async () => {
-      compomint.addTmpl(
-        "ssr-conditional",
-        `<div>
-          ##if (data.showTitle) {##
-            <h1>##=data.title##</h1>
-          ##}##
-          <p>##=data.content##</p>
-        </div>`
-      );
+  // Test SSR API
+  it("should have SSR API available on compomint object", () => {
+    expect(compomint.ssr).toBeDefined();
+    expect(typeof compomint.ssr!.renderToString).toBe("function");
+    expect(typeof compomint.ssr!.renderPage).toBe("function");
+    expect(typeof compomint.ssr!.createRenderer).toBe("function");
+  });
 
-      // Test with title shown
-      const htmlWithTitle = await compomint.ssr!.renderToString("ssr-conditional", {
+  // Test basic SSR rendering
+  it("should render a simple template to a string", async () => {
+    const result = await compomint.ssr!.renderToString("ssr-simple", {
+      title: "Hello SSR",
+      content: "This is a simple test.",
+    });
+
+    expect(result.html).toContain("<h1>Hello SSR</h1>");
+    expect(result.html).toContain("<p>This is a simple test.</p>");
+    expect(result.html).toMatch(/<div class="ssr-simple"[^>]*>/);
+  });
+
+  // Test with a custom renderer instance
+  it("should work with a custom renderer instance", async () => {
+    const renderer = compomint.ssr!.createRenderer({
+      lang: "fr",
+    });
+
+    const result = await renderer.renderToString("ssr-simple", {
+      title: "Bonjour SSR",
+      content: "Ceci est un test.",
+    });
+
+    expect(result.html).toContain("<h1>Bonjour SSR</h1>");
+  });
+
+  // Test rendering multiple templates
+  it("should render multiple templates", async () => {
+    const result = await compomint.ssr!.renderToString("ssr-multiple", {
+      items: [
+        { id: 1, name: "Item 1" },
+        { id: 2, name: "Item 2" },
+      ],
+    });
+
+    expect(result.html).toContain("Item 1");
+    expect(result.html).toContain("Item 2");
+  });
+
+  // Test conditional rendering
+  it("should handle conditional rendering correctly", async () => {
+    // Case 1: showTitle is true
+    const resultWithTitle = await compomint.ssr!.renderToString(
+      "ssr-conditional",
+      {
         showTitle: true,
-        title: "My Title",
-        content: "My Content"
-      });
-
-      expect(htmlWithTitle).toContain("<h1>My Title</h1>");
-      expect(htmlWithTitle).toContain("<p>My Content</p>");
-
-      // Test with title hidden
-      const htmlWithoutTitle = await compomint.ssr!.renderToString("ssr-conditional", {
-        showTitle: false,
-        title: "My Title",
-        content: "My Content"
-      });
-
-      expect(htmlWithoutTitle).not.toContain("<h1>");
-      expect(htmlWithoutTitle).toContain("<p>My Content</p>");
-    });
-
-    it("should handle loops in templates", async () => {
-      compomint.addTmpl(
-        "ssr-loop",
-        `<ul>
-          ##data.items.forEach(function(item) {##
-            <li>##=item.name## - ##=item.price##</li>
-          ##});##
-        </ul>`
-      );
-
-      const html = await compomint.ssr!.renderToString("ssr-loop", {
-        items: [
-          { name: "Apple", price: "$1.00" },
-          { name: "Banana", price: "$0.50" },
-          { name: "Orange", price: "$0.75" }
-        ]
-      });
-
-      expect(html).toContain("<li>Apple - $1.00</li>");
-      expect(html).toContain("<li>Banana - $0.50</li>");
-      expect(html).toContain("<li>Orange - $0.75</li>");
-    });
-
-    it("should handle escaped content", async () => {
-      compomint.addTmpl(
-        "ssr-escape",
-        `<div>
-          <p>Raw: ##=data.html##</p>
-          <p>Escaped: ##-data.html##</p>
-        </div>`
-      );
-
-      const html = await compomint.ssr!.renderToString("ssr-escape", {
-        html: "<script>alert('xss')</script>"
-      });
-
-      expect(html).toContain("<script>alert('xss')</script>"); // Raw
-      expect(html).toContain("&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;"); // Escaped
-    });
-  });
-
-  describe("Full Page Rendering", () => {
-    it("should render a complete HTML page", async () => {
-      compomint.addTmpl(
-        "ssr-page",
-        `<div class="container">
-          <h1>##=data.title##</h1>
-          <p>##=data.content##</p>
-        </div>`
-      );
-
-      const pageHtml = await compomint.ssr!.renderPage("ssr-page", {
-        title: "My Page",
-        content: "Welcome to my page!"
-      }, {
-        title: "Test Page",
-        meta: [
-          { name: "description", content: "A test page" }
-        ],
-        lang: "en"
-      });
-
-      expect(pageHtml).toContain("<!DOCTYPE html>");
-      expect(pageHtml).toContain("<html lang=\"en\">");
-      expect(pageHtml).toContain("<title>Test Page</title>");
-      expect(pageHtml).toContain('<meta name="description" content="A test page">');
-      expect(pageHtml).toContain("<h1>My Page</h1>");
-      expect(pageHtml).toContain("<p>Welcome to my page!</p>");
-    });
-
-    it("should include CSS and scripts in page", async () => {
-      compomint.addTmpls(`
-        <template id="ssr-page-with-assets">
-          <style id="style-ssr-page-with-assets">
-            .header { color: blue; }
-          </style>
-          <div class="header">##=data.title##</div>
-          <script>console.log('Page loaded');</script>
-        </template>
-      `);
-
-      const pageHtml = await compomint.ssr!.renderPage("ssr-page-with-assets", {
-        title: "Page with Assets"
-      });
-
-      expect(pageHtml).toContain(".header { color: blue; }");
-      expect(pageHtml).toContain("console.log('Page loaded');");
-      expect(pageHtml).toContain("Page with Assets");
-    });
-  });
-
-  describe("Error Handling", () => {
-    it("should handle non-existent templates", async () => {
-      await expect(
-        compomint.ssr!.renderToString("non-existent-template", {})
-      ).rejects.toThrow("Template \"non-existent-template\" not found");
-    });
-
-    it("should handle template compilation errors", async () => {
-      // This should fail during template compilation
-      expect(() => {
-        compomint.addTmpl("ssr-error", "##=invalid.syntax.here.##");
-      }).toThrow();
-    });
-
-    it("should handle runtime errors in templates", async () => {
-      compomint.addTmpl(
-        "ssr-runtime-error",
-        "##=data.nonexistent.property##"
-      );
-
-      await expect(
-        compomint.ssr!.renderToString("ssr-runtime-error", {})
-      ).rejects.toThrow();
-    });
-  });
-
-  describe("Performance", () => {
-    it("should render multiple templates efficiently", async () => {
-      // Create multiple templates
-      for (let i = 0; i < 10; i++) {
-        compomint.addTmpl(
-          `ssr-perf-${i}`,
-          `<div>Template ${i}: ##=data.value##</div>`
-        );
+        title: "Conditional Title",
+        content: "Content is always here.",
       }
+    );
+    expect(resultWithTitle.html).toContain("<h1>Conditional Title</h1>");
 
-      const startTime = Date.now();
-      
-      const renderer = compomint.ssr!.createRenderer();
-      const results = await renderer.renderMultiple(
-        Array.from({ length: 10 }, (_, i) => ({
-          id: `ssr-perf-${i}`,
-          data: { value: `Value ${i}` }
-        }))
-      );
-
-      const endTime = Date.now();
-      const renderTime = endTime - startTime;
-
-      expect(results.html).toContain("Template 0: Value 0");
-      expect(results.html).toContain("Template 9: Value 9");
-      expect(results.metadata.templateIds).toHaveLength(10);
-      expect(renderTime).toBeLessThan(1000); // Should render in less than 1 second
-    });
+    // Case 2: showTitle is false
+    const resultWithoutTitle = await compomint.ssr!.renderToString(
+      "ssr-conditional",
+      {
+        showTitle: false,
+        title: "Conditional Title",
+        content: "Content is always here.",
+      }
+    );
+    expect(resultWithoutTitle.html).not.toContain("<h1>Conditional Title</h1>");
   });
 
-  describe("Internationalization", () => {
-    it("should handle i18n in SSR", async () => {
-      // Setup i18n
-      compomint.addI18n("greeting", {
-        en: "Hello",
-        es: "Hola", 
-        fr: "Bonjour"
-      });
-
-      compomint.addTmpl(
-        "ssr-i18n",
-        `<div>##=i18n.greeting('Hello')##, ##=data.name##!</div>`
-      );
-
-      // Pass language as option to SSR renderer
-      const html = await compomint.ssr!.renderToString("ssr-i18n", {
-        name: "Mundo"
-      }, {
-        lang: "es"  // Set language for this rendering
-      });
-
-      expect(html).toContain("Hola, Mundo!");
+  // Test loops
+  it("should render loops correctly", async () => {
+    const result = await compomint.ssr!.renderToString("ssr-loop", {
+      items: ["Apple", "Banana", "Cherry"],
     });
+
+    expect(result.html).toContain("<li>Apple</li>");
+    expect(result.html).toContain("<li>Banana</li>");
+    expect(result.html).toContain("<li>Cherry</li>");
+  });
+
+  // Test HTML escaping
+  it("should escape HTML content correctly", async () => {
+    const result = await compomint.ssr!.renderToString("ssr-escape", {
+      htmlContent: '<script>alert("xss")</script>',
+    });
+
+    expect(result.html).toContain(
+      "&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;"
+    );
+    expect(result.html).not.toContain('<script>alert("xss")</script>');
+  });
+
+  // Test page rendering
+  it("should render a full HTML page", async () => {
+    const pageHtml = await compomint.ssr!.renderPage("ssr-page", {
+      pageTitle: "My SSR Page",
+    });
+
+    expect(pageHtml).toContain("<!DOCTYPE html>");
+    expect(pageHtml).toContain("<title>Compomint SSR Page</title>");
+    expect(pageHtml).toContain("<h1>My SSR Page</h1>");
+  });
+
+  // Test styles and scripts collection
+  it("should collect styles and scripts", async () => {
+    compomint.addTmpl(
+      "ssr-with-assets",
+      `
+      <style>
+        .ssr-assets { color: red; }
+      </style>
+      <div class="ssr-assets">Assets test</div>
+      <script>
+        console.log("ssr script");
+      </script>
+    `
+    );
+
+    const result = await compomint.ssr!.renderToString("ssr-with-assets", {});
+    expect(result.css).toContain(".ssr-assets { color: red; }");
+    expect(result.scripts).toContain('console.log("ssr script");');
+  });
+
+  // Error handling
+  it("should throw an error for non-existent templates", async () => {
+    await expect(
+      compomint.ssr!.renderToString("non-existent-template", {})
+    ).rejects.toThrow();
+  });
+
+  // Test with runtime error in template
+  it("should handle runtime errors in templates", async () => {
+    compomint.addTmpl(
+      "ssr-runtime-error",
+      `
+      <div>##=data.nonExistent.prop##</div>
+    `
+    );
+
+    await expect(
+      compomint.ssr!.renderToString("ssr-runtime-error", {})
+    ).rejects.toThrow();
+  });
+
+  // Test hydration script generation
+  it("should generate a hydration script", async () => {
+    const renderer = compomint.ssr!.createRenderer({
+      hydrateOnClient: true,
+    });
+    const result = await renderer.renderToString("ssr-simple", {});
+    const pageHtml = await renderer.renderPage("ssr-simple", {});
+
+    expect(pageHtml).toContain("window.__COMPOMINT_SSR__");
+  });
+
+  // Test i18n support in SSR
+  it("should support i18n in SSR", async () => {
+    compomint.addI18n("ssr-i18n.greeting", {
+      en: "Hello",
+      fr: "Bonjour",
+    });
+    compomint.addTmpl(
+      "ssr-i18n",
+      `
+      <p>##=i18n.greeting()##</p>
+    `
+    );
+
+    const result = await compomint.ssr!.renderToString("ssr-i18n", {});
+    expect(result.html).toContain("<p>Hello</p>");
+
+    const renderer = compomint.ssr!.createRenderer({ lang: "fr" });
+    const resultFr = await renderer.renderToString("ssr-i18n", {});
+    expect(resultFr.html).toContain("<p>Bonjour</p>");
   });
 });

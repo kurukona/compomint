@@ -83,10 +83,10 @@ export class SSRRenderer {
     this.polyfill.reset();
 
     // Set language for i18n if provided
-    if (options.lang) {
+    if (mergedOptions.lang) {
       const doc = (globalThis as any).document;
       if (doc && doc.documentElement) {
-        doc.documentElement.lang = options.lang;
+        doc.documentElement.lang = mergedOptions.lang;
       }
     }
 
@@ -118,7 +118,7 @@ export class SSRRenderer {
           ssrData, // data
           {}, // status (empty for SSR)
           { tmplId: templateId }, // component
-          this.compomint.i18n, // i18n (pass full i18n object, not just template-specific)
+          this.compomint.i18n[templateId], // i18n (pass full i18n object, not just template-specific)
           this.compomint, // compomint
           this.compomint.tmpl || {}, // tmpl
           {}, // lazyScope (empty for SSR)
@@ -152,8 +152,8 @@ export class SSRRenderer {
 
       return {
         html: html || "",
-        css,
-        scripts,
+        css: this.polyfill.getCollectedStyles() || '',
+        scripts: this.polyfill.getCollectedScripts() || [],
         metadata,
       };
     } catch (error) {

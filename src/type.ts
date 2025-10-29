@@ -17,6 +17,7 @@ interface TemplateMeta {
   source?: string;
   templateText?: string;
   elements?: Set<any>;
+  sourceGenFunc?: Function;
 }
 
 /**
@@ -184,6 +185,7 @@ interface CompomintGlobal {
   ) => void | Promise<void>;
   addI18n: (fullKey: string, i18nObj: Record<string, any>) => void;
   addI18ns: (i18nObjs: Record<string, any>) => void;
+  ssr?: any;
 }
 
 /**
