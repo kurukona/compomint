@@ -662,6 +662,9 @@ return __p;`;
                 // Use SSR polyfill to collect styles
                 const polyfill = SSRDOMPolyfill.getInstance();
                 polyfill.collectStyle(css);
+
+                // Remove style from the fragment so it doesn't appear in the rendered HTML
+                style.remove();
               }
             });
             // Don't create shadow DOM in SSR, leave styles in place for extraction
@@ -1663,7 +1666,6 @@ if (Environment.isServer()) {
   setupSSREnvironment();
 }
 
-<<<<<<< HEAD
 compomint.hydrate = function (): void {
   if (Environment.isServer()) {
     console.warn("Hydration cannot be run on the server.");
@@ -1737,8 +1739,6 @@ compomint.hydrate = function (): void {
   delete (window as any).__COMPOMINT_SSR__;
 };
 
-=======
->>>>>>> 1891c2d (feat: Add initial SSR support and documentation)
 // Add built-in template
 applyBuiltInTemplates(addTmpl);
 

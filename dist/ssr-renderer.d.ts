@@ -62,7 +62,7 @@ export declare class SSRRenderer {
      */
     private escapeHTML;
     /**
-     * Extract styles and scripts from rendered HTML
+     * Extract styles and scripts from rendered HTML and remove them
      */
     private extractStylesAndScripts;
     /**

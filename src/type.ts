@@ -137,8 +137,8 @@ interface SSRRenderResult {
 interface SSRPageOptions {
   title?: string;
   meta?: Array<{ name?: string; property?: string; content: string }>;
-  links?: Array<{ rel: string; href: string; [key: string]: string }>;
-  scripts?: Array<{ src?: string; content?: string; [key: string]: any }>;
+  links?: Array<{ rel: string; href: string;[key: string]: string }>;
+  scripts?: Array<{ src?: string; content?: string;[key: string]: any }>;
   bodyClass?: string;
   lang?: string;
 }
@@ -173,10 +173,7 @@ interface CompomintGlobal {
   ) => void | Promise<void>;
   addI18n: (fullKey: string, i18nObj: Record<string, any>) => void;
   addI18ns: (i18nObjs: Record<string, any>) => void;
-<<<<<<< HEAD
   hydrate: () => void;
-=======
->>>>>>> 1891c2d (feat: Add initial SSR support and documentation)
   ssr?: {
     isSupported(): boolean;
     setupEnvironment(): boolean;
@@ -187,7 +184,7 @@ interface CompomintGlobal {
 }
 
 // Ensure TemplateElement is defined for environments like older JSDOM
-interface TemplateElement extends HTMLTemplateElement {}
+interface TemplateElement extends HTMLTemplateElement { }
 
 export {
   CompomintConfigs,

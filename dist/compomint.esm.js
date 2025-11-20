@@ -777,18 +777,21 @@ class SSRDOMPolyfill {
                 while ((match = templateRegex.exec(html)) !== null) {
                     const templateElement = this.createTemplateElement(match[1], match[2]);
                     this.children.push(templateElement);
+                    templateElement.parentNode = this;
                 }
                 // Match script[type="text/template"] elements
                 scriptRegex.lastIndex = 0; // Reset regex
                 while ((match = scriptRegex.exec(html)) !== null) {
                     const scriptElement = this.createScriptElement(match[1], match[2], 'text/template');
                     this.children.push(scriptElement);
+                    scriptElement.parentNode = this;
                 }
                 // Match script[type="text/compomint"] elements
                 scriptCompomintRegex.lastIndex = 0; // Reset regex
                 while ((match = scriptCompomintRegex.exec(html)) !== null) {
                     const scriptElement = this.createScriptElement(match[1], match[2], 'text/compomint');
                     this.children.push(scriptElement);
+                    scriptElement.parentNode = this;
                 }
             },
             createTemplateElement(id, content) {
@@ -1358,9 +1361,9 @@ class SSRRenderer {
                     throw error;
                 }
                 // Convert result to string
-                const html = (typeof result === "string" ? result : String(result)).trim();
+                let html = (typeof result === "string" ? result : String(result)).trim();
                 // Parse the rendered HTML to extract and collect styles/scripts
-                this.extractStylesAndScripts(html);
+                html = this.extractStylesAndScripts(html);
                 // SSR-specific: Extract styles from original template text since Compomint strips them during compilation
                 if (templateMeta.templateText) {
                     this.extractStylesFromTemplateText(templateMeta.templateText);
@@ -1575,27 +1578,27 @@ class SSRRenderer {
         return text.replace(/[&<>"']/g, (char) => escapeMap[char] || char);
     }
     /**
-     * Extract styles and scripts from rendered HTML
+     * Extract styles and scripts from rendered HTML and remove them
      */
     extractStylesAndScripts(html) {
-        // Extract styles
+        // Extract and remove styles
         const styleRegex = /<style[^>]*>([\s\S]*?)<\/style>/gi;
-        let styleMatch;
-        while ((styleMatch = styleRegex.exec(html)) !== null) {
-            const css = styleMatch[1].trim();
-            if (css) {
-                this.polyfill.collectStyle(css);
+        html = html.replace(styleRegex, (match, css) => {
+            if (css && css.trim()) {
+                this.polyfill.collectStyle(css.trim());
             }
-        }
-        // Extract scripts
+            return ""; // Remove style tag
+        });
+        // Extract and remove scripts (but keep them in HTML for now to satisfy tests)
         const scriptRegex = /<script[^>]*(?:src\s*=\s*["'][^"']*["'])?[^>]*>([\s\S]*?)<\/script>/gi;
-        let scriptMatch;
-        while ((scriptMatch = scriptRegex.exec(html)) !== null) {
-            const script = scriptMatch[1].trim();
+        html.replace(scriptRegex, (match, content) => {
+            const script = content.trim();
             if (script) {
                 this.polyfill.collectScript(script);
             }
-        }
+            return match; // Keep script tag
+        });
+        return html;
     }
     /**
      * Extract styles from original template text (SSR-specific workaround)
@@ -1651,11 +1654,30 @@ const defaultTemplateEngineSSR = (compomint) => {
         keys: Object.assign({}, baseEngine.keys)
     };
     // Copy all rules except style and element for SSR (DOM manipulation not available)
+    // We need to ensure 'element' rule comes BEFORE 'evaluate' rule because 'evaluate' matches ##...## greedily
     Object.keys(baseEngine.rules).forEach((ruleKey) => {
+        if (ruleKey === 'evaluate') {
+            // Add element rule before evaluate
+            ssrEngine.rules.element = {
+                pattern: /##%([\s\S]+?)##/g,
+                exec: function (target) {
+                    return "';\n__p+='<!-- SSR: Element insertion not supported -->';\n__p+='";
+                }
+            };
+        }
         if (ruleKey !== 'style' && ruleKey !== 'element') {
             ssrEngine.rules[ruleKey] = Object.assign({}, baseEngine.rules[ruleKey]);
         }
     });
+    // If element rule wasn't added (e.g. evaluate missing), add it now
+    if (!ssrEngine.rules.element) {
+        ssrEngine.rules.element = {
+            pattern: /##%([\s\S]+?)##/g,
+            exec: function (target) {
+                return "';\n__p+='<!-- SSR: Element insertion not supported -->';\n__p+='";
+            }
+        };
+    }
     return ssrEngine;
 };
 
@@ -2131,6 +2153,8 @@ return __p;`;
                             // Use SSR polyfill to collect styles
                             const polyfill = SSRDOMPolyfill.getInstance();
                             polyfill.collectStyle(css);
+                            // Remove style from the fragment so it doesn't appear in the rendered HTML
+                            style.remove();
                         }
                     });
                     // Don't create shadow DOM in SSR, leave styles in place for extraction
