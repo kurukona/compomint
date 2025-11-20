@@ -16,13 +16,19 @@ import {
 import { setupSSREnvironment, Environment } from "../src/ssr";
 import { createSSRRenderer } from "../src/ssr-renderer";
 
-// Setup SSR environment before importing compomint
-setupSSREnvironment();
-
-import { compomint, tmpl } from "../src/compomint";
+let compomint: any;
+let tmpl: any;
 
 describe("Compomint SSR (Server-Side Rendering)", () => {
-  beforeAll(() => {
+  beforeAll(async () => {
+    // Setup SSR environment before importing compomint
+    setupSSREnvironment();
+
+    // Dynamically import compomint to ensure it picks up the SSR environment
+    const module = await import("../src/compomint");
+    compomint = module.compomint;
+    tmpl = module.tmpl;
+
     // Debug environment variables
     console.log("Debug Environment:");
     console.log("typeof window:", typeof window);
@@ -153,10 +159,10 @@ describe("Compomint SSR (Server-Side Rendering)", () => {
       // Create child components
       const childTemplate = compomint.tmpl("ssr-child-component");
       const listTemplate = compomint.tmpl("ssr-list-item");
-      
+
       expect(childTemplate).not.toBeNull();
       expect(listTemplate).not.toBeNull();
-      
+
       const childComponent = childTemplate!({ content: "Child content" });
       const listItems = [
         { name: "Item 1", value: "Value 1" },
@@ -174,7 +180,7 @@ describe("Compomint SSR (Server-Side Rendering)", () => {
         /<div data-co-id="ssr-parent-with-elements\d+" data-co-tmpl-id="ssr-parent-with-elements" class="parent">/
       );
       expect(html).toContain("<h1>Parent Title</h1>");
-      
+
       // SSR element insertion shows placeholder comments instead of actual content
       // This demonstrates the current limitation that needs to be addressed
       expect(html).toContain("<!-- SSR: Element insertion not supported -->");

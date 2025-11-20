@@ -36,31 +36,31 @@ const _originalWindow = typeof window;
 export const Environment = {
   // Check if we're in a server environment
   isServer(): boolean {
-    return (_originalWindow === 'undefined' || (globalThis as any).__SSR_ENVIRONMENT__) && 
-           typeof globalThis !== 'undefined' &&
-           typeof (globalThis as any).process !== 'undefined' &&
-           typeof ((globalThis as any).process as any).versions !== 'undefined' &&
-           !!((globalThis as any).process as any).versions.node;
+    return (_originalWindow === 'undefined' || (globalThis as any).__SSR_ENVIRONMENT__) &&
+      typeof globalThis !== 'undefined' &&
+      typeof (globalThis as any).process !== 'undefined' &&
+      typeof ((globalThis as any).process as any).versions !== 'undefined' &&
+      !!((globalThis as any).process as any).versions.node;
   },
 
   // Check if we're in a browser environment  
   isBrowser(): boolean {
-    return _originalWindow !== 'undefined' && 
-           typeof document !== 'undefined' &&
-           !(globalThis as any).__SSR_ENVIRONMENT__;
+    return _originalWindow !== 'undefined' &&
+      typeof document !== 'undefined' &&
+      !(globalThis as any).__SSR_ENVIRONMENT__;
   },
 
   // Check if DOM APIs are available
   hasDOM(): boolean {
-    return typeof document !== 'undefined' && 
-           typeof document.createElement === 'function';
+    return typeof document !== 'undefined' &&
+      typeof document.createElement === 'function';
   },
 
   // Check if we're in a Node.js environment
   isNode(): boolean {
-    return typeof (globalThis as any).process !== 'undefined' && 
-           typeof ((globalThis as any).process as any).versions !== 'undefined' &&
-           !!((globalThis as any).process as any).versions.node;
+    return typeof (globalThis as any).process !== 'undefined' &&
+      typeof ((globalThis as any).process as any).versions !== 'undefined' &&
+      !!((globalThis as any).process as any).versions.node;
   }
 };
 
@@ -101,7 +101,7 @@ export class SSRDOMPolyfill {
       childElementCount: 0,
       firstElementChild: null as any,
       content: null as any, // For template elements
-      
+
       // Make childNodes iterable
       get childNodes() {
         return this.children;
@@ -118,7 +118,7 @@ export class SSRDOMPolyfill {
         this._innerHTML = html;
         // Clear existing children
         this.children = [];
-        
+
         // Parse HTML and create child elements
         if (html) {
           this.parseAndCreateChildren(html);
@@ -134,28 +134,31 @@ export class SSRDOMPolyfill {
         const templateRegex = /<template[^>]*?id\s*=\s*["']([^"']+)["'][^>]*?>([\s\S]*?)<\/template>/gi;
         const scriptRegex = /<script[^>]*?type\s*=\s*["']text\/template["'][^>]*?id\s*=\s*["']([^"']+)["'][^>]*?>([\s\S]*?)<\/script>/gi;
         const scriptCompomintRegex = /<script[^>]*?type\s*=\s*["']text\/compomint["'][^>]*?id\s*=\s*["']([^"']+)["'][^>]*?>([\s\S]*?)<\/script>/gi;
-        
+
         let match;
-        
+
         // Match template elements
         templateRegex.lastIndex = 0; // Reset regex
         while ((match = templateRegex.exec(html)) !== null) {
           const templateElement = this.createTemplateElement(match[1], match[2]);
           this.children.push(templateElement);
+          templateElement.parentNode = this;
         }
-        
+
         // Match script[type="text/template"] elements
         scriptRegex.lastIndex = 0; // Reset regex
         while ((match = scriptRegex.exec(html)) !== null) {
           const scriptElement = this.createScriptElement(match[1], match[2], 'text/template');
           this.children.push(scriptElement);
+          scriptElement.parentNode = this;
         }
-        
+
         // Match script[type="text/compomint"] elements
         scriptCompomintRegex.lastIndex = 0; // Reset regex
         while ((match = scriptCompomintRegex.exec(html)) !== null) {
           const scriptElement = this.createScriptElement(match[1], match[2], 'text/compomint');
           this.children.push(scriptElement);
+          scriptElement.parentNode = this;
         }
       },
 
@@ -164,7 +167,7 @@ export class SSRDOMPolyfill {
         const template = polyfill.createElement('template');
         template.id = id;
         template.setAttribute('id', id);
-        
+
         // Unescape HTML entities for template content
         const unescapedContent = content
           .replace(/&lt;/g, '<')
@@ -172,7 +175,7 @@ export class SSRDOMPolyfill {
           .replace(/&amp;/g, '&')
           .replace(/&quot;/g, '"')
           .replace(/&#x27;/g, "'");
-        
+
         template._innerHTML = unescapedContent;
         return template;
       },
@@ -233,10 +236,10 @@ export class SSRDOMPolyfill {
 
       querySelectorAll(selector: string): any[] {
         const results: any[] = [];
-        
+
         // Handle comma-separated selectors
         const selectors = selector.split(',').map(s => s.trim());
-        
+
         for (const sel of selectors) {
           // Check self first
           if (this.matches && this.matches(sel)) {
@@ -244,7 +247,7 @@ export class SSRDOMPolyfill {
               results.push(this);
             }
           }
-          
+
           // Search children recursively
           for (const child of this.children) {
             if (child.querySelectorAll) {
@@ -257,20 +260,20 @@ export class SSRDOMPolyfill {
             }
           }
         }
-        
+
         return results;
       },
 
       matches(selector: string): boolean {
         const trimmedSelector = selector.trim();
-        
+
         if (trimmedSelector.startsWith('#')) {
           return this.id === trimmedSelector.substring(1);
         }
         if (trimmedSelector.startsWith('.')) {
           return this.className.includes(trimmedSelector.substring(1));
         }
-        
+
         // Handle attribute selectors like template[id], script[type="text/template"][id]
         if (trimmedSelector.includes('[') && trimmedSelector.includes(']')) {
           // Extract tag name if present
@@ -281,20 +284,20 @@ export class SSRDOMPolyfill {
               return false;
             }
           }
-          
+
           // Extract all attribute selectors
           const attrMatches = trimmedSelector.match(/\[([^\]]+)\]/g);
           if (attrMatches) {
             for (const attrMatch of attrMatches) {
               // Parse individual attribute selector
               const attrContent = attrMatch.slice(1, -1); // Remove [ and ]
-              
+
               if (attrContent.includes('=')) {
                 // Attribute with value like [type="text/template"]
                 const parts = attrContent.split('=');
                 const attrName = parts[0].trim();
                 const attrValue = parts[1].replace(/['"]/g, '').trim();
-                
+
                 if (this.getAttribute(attrName) !== attrValue) {
                   return false;
                 }
@@ -308,10 +311,10 @@ export class SSRDOMPolyfill {
               }
             }
           }
-          
+
           return true;
         }
-        
+
         // Simple tag selector
         return this.tagName.toLowerCase() === trimmedSelector.toLowerCase();
       },
@@ -351,14 +354,14 @@ export class SSRDOMPolyfill {
             return this.innerHTML;
           } else {
             // Return children content
-            return this.children.map((child: any) => 
+            return this.children.map((child: any) =>
               typeof child === 'string' ? child : child.toHTML ? child.toHTML() : ''
             ).join('');
           }
         }
 
         let html = `<${this.tagName.toLowerCase()}`;
-        
+
         // Add attributes
         for (const [name, value] of this.attributes) {
           html += ` ${name}="${value}"`;
@@ -396,18 +399,18 @@ export class SSRDOMPolyfill {
     // Special handling for template elements
     if (tagName.toLowerCase() === 'template') {
       element.content = this.createDocumentFragment();
-      
+
       // Override innerHTML for template elements to populate content
       const originalSetInnerHTML = element.innerHTML;
       Object.defineProperty(element, 'innerHTML', {
-        get: function() {
+        get: function () {
           return this._innerHTML || '';
         },
-        set: function(html: string) {
+        set: function (html: string) {
           this._innerHTML = html;
           // Clear existing content
           this.content.children = [];
-          
+
           // Parse and add to content
           if (html) {
             this.parseAndCreateChildren(html);
@@ -442,12 +445,12 @@ export class SSRDOMPolyfill {
       lastChild: null as any,
       childElementCount: 0,
       firstElementChild: null as any,
-      
+
       // Make childNodes iterable
       get childNodes() {
         return this.children;
       },
-      
+
       appendChild(child: any) {
         this.children.push(child);
         child.parentNode = this;
@@ -470,7 +473,7 @@ export class SSRDOMPolyfill {
         }
         return child;
       },
-      
+
       normalize() {
         // Mock normalize function
       },
@@ -487,10 +490,10 @@ export class SSRDOMPolyfill {
 
       querySelectorAll(selector: string): any[] {
         const results: any[] = [];
-        
+
         // Handle comma-separated selectors
         const selectors = selector.split(',').map(s => s.trim());
-        
+
         for (const sel of selectors) {
           // Search children
           for (const child of this.children) {
@@ -504,12 +507,12 @@ export class SSRDOMPolyfill {
             }
           }
         }
-        
+
         return results;
       },
 
       toHTML(): string {
-        return this.children.map((child: any) => 
+        return this.children.map((child: any) =>
           typeof child === 'string' ? child : child.toHTML ? child.toHTML() : ''
         ).join('');
       }
@@ -584,15 +587,15 @@ export class SSRDOMPolyfill {
  */
 export function createSSRDocument() {
   const polyfill = SSRDOMPolyfill.getInstance();
-  
+
   return {
     createElement: (tagName: string) => polyfill.createElement(tagName),
     createDocumentFragment: () => polyfill.createDocumentFragment(),
     createTextNode: (text: string) => polyfill.createTextNode(text),
     createComment: (text: string) => polyfill.createComment(text),
-    
+
     getElementById: (id: string) => null,
-    
+
     head: {
       appendChild: (element: any) => {
         if (element.tagName === 'STYLE') {
@@ -601,24 +604,24 @@ export function createSSRDocument() {
           polyfill.collectScript(element.textContent || element.innerHTML);
         }
       },
-      removeChild: () => {},
+      removeChild: () => { },
       innerHTML: ''
     },
-    
+
     body: {
-      appendChild: () => {},
-      removeChild: () => {},
+      appendChild: () => { },
+      removeChild: () => { },
       innerHTML: '',
       contains: () => false
     },
-    
+
     documentElement: {
       lang: 'en',
-      getAttribute: function(name: string) {
+      getAttribute: function (name: string) {
         if (name === 'lang') return this.lang;
         return null;
       },
-      setAttribute: function(name: string, value: string) {
+      setAttribute: function (name: string, value: string) {
         if (name === 'lang') this.lang = value;
       }
     }
@@ -642,7 +645,7 @@ export function createSSRWindow() {
     DocumentType: {
       prototype: {}
     },
-    XMLHttpRequest: function() {
+    XMLHttpRequest: function () {
       throw new Error('XMLHttpRequest is not available in SSR environment');
     }
   };
@@ -660,12 +663,12 @@ export function createSSRElementClass() {
     className: string = '';
     children: any[] = [];
     parentNode: any = null;
-    
+
     constructor(tagName?: string) {
       if (tagName) this.tagName = tagName.toUpperCase();
     }
   };
-  
+
   return SSRElement;
 }
 
@@ -676,31 +679,31 @@ export function setupSSREnvironment() {
   if (Environment.isNode()) {
     // Mark as SSR environment
     (globalThis as any).__SSR_ENVIRONMENT__ = true;
-    
+
     // Setup global DOM polyfills
     const ssrDocument = createSSRDocument();
     const ssrWindow = createSSRWindow();
-    
+
     (globalThis as any).document = ssrDocument;
     (globalThis as any).window = ssrWindow;
-    
+
     // Also set on global for Node.js compatibility
     if (typeof (globalThis as any).global !== 'undefined') {
       ((globalThis as any).global as any).document = ssrDocument;
       ((globalThis as any).global as any).window = ssrWindow;
     }
-    
+
     // Setup global Element, Node classes
     (globalThis as any).Element = createSSRElementClass();
-    (globalThis as any).Node = class SSRNode {};
-    (globalThis as any).CharacterData = class SSRCharacterData {};
-    (globalThis as any).DocumentType = class SSRDocumentType {};
-    
+    (globalThis as any).Node = class SSRNode { };
+    (globalThis as any).CharacterData = class SSRCharacterData { };
+    (globalThis as any).DocumentType = class SSRDocumentType { };
+
     // Mock XMLHttpRequest to prevent errors
-    (globalThis as any).XMLHttpRequest = function() {
+    (globalThis as any).XMLHttpRequest = function () {
       throw new Error('XMLHttpRequest is not available in SSR environment. Use static template rendering instead.');
     };
-    
+
     return true;
   }
   return false;
