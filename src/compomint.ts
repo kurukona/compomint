@@ -18,6 +18,9 @@ import {
 import { defaultTemplateEngine } from "./default-template-engine";
 import { applyBuiltInTemplates } from "./built-in-templates";
 import { firstElementChild, childElementCount, cleanNode } from "./utils";
+import { Environment, setupSSREnvironment, SSRDOMPolyfill } from "./ssr";
+import { SSRRenderer, createSSRRenderer } from "./ssr-renderer";
+import { defaultTemplateEngineSSR } from "./default-template-engine-ssr";
 
 // Polyfill for Object.assign
 if (typeof Object.assign != "function") {
@@ -61,17 +64,27 @@ if (typeof Object.assign != "function") {
       },
     });
   });
-})([Element.prototype, CharacterData.prototype, DocumentType.prototype]);
+})(
+  [
+    typeof Element !== "undefined" ? Element.prototype : {},
+    typeof CharacterData !== "undefined" ? CharacterData.prototype : {},
+    typeof DocumentType !== "undefined" ? DocumentType.prototype : {},
+  ].filter(Boolean)
+);
 
 // Polyfill for Node.isConnected
 (function (supported: boolean) {
-  if (supported) return;
+  if (supported || typeof window === "undefined" || !window.Node) return;
   Object.defineProperty(window.Node.prototype, "isConnected", {
     get: function (): boolean {
       return document.body.contains(this);
     },
   });
-})("isConnected" in window.Node.prototype);
+})(
+  typeof window !== "undefined" &&
+  window.Node &&
+  "isConnected" in window.Node.prototype
+);
 
 const compomint = {} as CompomintGlobal;
 const tmpl = {} as Record<string, any>;
@@ -85,7 +98,9 @@ const cachedTmpl = (compomint.tmplCache =
 if (!cachedTmpl.has("anonymous")) {
   cachedTmpl.set("anonymous", { elements: new Set() } as TemplateMeta); // Cast to TemplateMeta
 }
-const isSupportTemplateTag = "content" in document.createElement("template");
+const isSupportTemplateTag =
+  typeof document !== "undefined" &&
+  "content" in document.createElement("template");
 
 const noMatch = /(.)^/;
 const escapes: Record<string, string> = {
@@ -104,7 +119,11 @@ const escapes: Record<string, string> = {
 const escaper = /\>( |\n)+\<|\>( |\n)+|( |\n)+\<|\\|'|\r|\n|\t|\u2028|\u2029/g;
 
 // set default template config
-compomint.templateEngine = defaultTemplateEngine(configs, compomint);
+if (Environment.isServer()) {
+  compomint.templateEngine = defaultTemplateEngineSSR(compomint);
+} else {
+  compomint.templateEngine = defaultTemplateEngine(compomint);
+}
 
 const escapeHtml = (function () {
   const escapeMap: Record<string, string> = {
@@ -354,6 +373,7 @@ return __p;`;
         let wrapperElement: Element | undefined;
         let callback: ((component: ComponentScope) => void) | undefined;
         let baseComponent: Partial<ComponentScope> | undefined;
+        let existingElement: HTMLElement | undefined;
 
         // Argument parsing logic
         const firstArg = params[0];
@@ -362,7 +382,8 @@ return __p;`;
           typeof firstArg === "object" &&
           (firstArg.$wrapperElement ||
             firstArg.$callback ||
-            firstArg.$baseComponent)
+            firstArg.$baseComponent ||
+            firstArg.$existingElement)
         ) {
           data = { ...firstArg }; // Clone data object
           wrapperElement = data.$wrapperElement;
@@ -371,6 +392,8 @@ return __p;`;
           delete data.$callback;
           baseComponent = data.$baseComponent;
           delete data.$baseComponent;
+          existingElement = data.$existingElement;
+          delete data.$existingElement;
         } else {
           data = firstArg;
           if (typeof params[1] === "function") {
@@ -407,7 +430,7 @@ return __p;`;
             }
             self.element.parentElement.replaceChild(
               (newComponent as ComponentScope).element ||
-                (newComponent as Element),
+              (newComponent as Element),
               self.element as Node
             );
           },
@@ -552,24 +575,24 @@ return __p;`;
           renderedHTML = !data
             ? `<template data-co-empty-template="${tmplId}"></template>`
             : sourceGenFunc!.call(
-                // Use non-null assertion
-                wrapperElement || null,
-                data,
-                component[statusKeyName],
-                component,
-                compomint.i18n[tmplId],
-                compomint,
-                tmpl,
-                lazyScope,
-                configs.debug // Pass debug flag for __debugger
-              );
+              // Use non-null assertion
+              wrapperElement || null,
+              data,
+              component[statusKeyName],
+              component,
+              compomint.i18n[tmplId],
+              compomint,
+              tmpl,
+              lazyScope,
+              configs.debug // Pass debug flag for __debugger
+            );
         } catch (e: any) {
           if (configs.throwError) {
             console.error(
               `Runtime error during render of "${tmplId}":`,
               e.message
             );
-            console.log("--- Data ---", data, "------------");
+            console.debug("--- Data ---", data, "------------");
             try {
               // Attempt re-run with debugger
               sourceGenFunc!.call(
@@ -624,19 +647,43 @@ return __p;`;
           : null;
         if (shadowStyle && (docFragment as any).querySelector) {
           // Check if querySelector exists
-          const host = document.createElement(tmplId); // Use tmplId as host tag name
-          try {
-            const shadow = host.attachShadow({ mode: "open" });
-            while (docFragment.firstChild) {
-              shadow.appendChild(docFragment.firstChild);
+
+          // In SSR environment, collect styles instead of creating shadow DOM
+          if (Environment.isServer()) {
+            // Extract and collect all styles for SSR
+            const styles = (docFragment as any).querySelectorAll("style");
+            styles.forEach((style: any) => {
+              const css = style.textContent || style.innerHTML;
+              if (
+                css &&
+                (globalThis as any).document &&
+                (globalThis as any).document.head
+              ) {
+                // Use SSR polyfill to collect styles
+                const polyfill = SSRDOMPolyfill.getInstance();
+                polyfill.collectStyle(css);
+
+                // Remove style from the fragment so it doesn't appear in the rendered HTML
+                style.remove();
+              }
+            });
+            // Don't create shadow DOM in SSR, leave styles in place for extraction
+          } else {
+            // Browser environment - create shadow DOM as usual
+            const host = document.createElement(tmplId); // Use tmplId as host tag name
+            try {
+              const shadow = host.attachShadow({ mode: "open" });
+              while (docFragment.firstChild) {
+                shadow.appendChild(docFragment.firstChild);
+              }
+              docFragment = host; // Replace fragment with the host element
+            } catch (e) {
+              console.error(
+                `Failed to attach shadow DOM for template "${tmplId}":`,
+                e
+              );
+              // Proceed without shadow DOM if attachShadow fails
             }
-            docFragment = host; // Replace fragment with the host element
-          } catch (e) {
-            console.error(
-              `Failed to attach shadow DOM for template "${tmplId}":`,
-              e
-            );
-            // Proceed without shadow DOM if attachShadow fails
           }
         }
 
@@ -718,7 +765,12 @@ return __p;`;
         if (returnTarget instanceof Node) {
           cleanNode(returnTarget);
         }
-        component.element = returnTarget as HTMLElement | TemplateElement; // Assign final element/fragment
+
+        if (existingElement) {
+          component.element = existingElement;
+        } else {
+          component.element = returnTarget as HTMLElement | TemplateElement; // Assign final element/fragment
+        }
 
         // Execute lazyExec functions after element is attached
         const lazyExec = matcher.lazyExec;
@@ -910,15 +962,17 @@ return __p;`;
     if (tmplId) {
       const tmplMeta: TemplateMeta = configs.debug
         ? {
-            renderingFunc: renderingFunc,
-            source: escapeHtml.escape(
-              `function ${tmplId}_source (${templateEngine.keys.dataKeyName}, ${templateEngine.keys.statusKeyName}, ${templateEngine.keys.componentKeyName}, ${templateEngine.keys.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`
-            ),
-            templateText: escapeHtml.escape(templateText),
-          }
+          renderingFunc: renderingFunc,
+          sourceGenFunc: sourceGenFunc,
+          source: escapeHtml.escape(
+            `function ${tmplId}_source (${templateEngine.keys.dataKeyName}, ${templateEngine.keys.statusKeyName}, ${templateEngine.keys.componentKeyName}, ${templateEngine.keys.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`
+          ),
+          templateText: escapeHtml.escape(templateText),
+        }
         : {
-            renderingFunc: renderingFunc,
-          };
+          renderingFunc: renderingFunc,
+          sourceGenFunc: sourceGenFunc,
+        };
       cachedTmpl.set(tmplId, tmplMeta);
 
       const tmplIdNames = tmplId.split("-");
@@ -965,7 +1019,7 @@ const safeTemplate = function (
   source: Element | string
 ): Element | TemplateElement {
   let template: TemplateElement;
-  if (source instanceof Element) {
+  if (typeof source !== "undefined" && source instanceof Element) {
     if (source.tagName === "TEMPLATE") return source as TemplateElement;
     return source; // Assume it's a container element
   } else if (typeof source !== "string") {
@@ -1002,8 +1056,25 @@ const addTmpl: CompomintGlobal["addTmpl"] = (compomint.addTmpl = function (
   element,
   templateEngine
 ) {
-  let templateText =
-    element instanceof Element ? element.innerHTML : String(element);
+  let templateText;
+
+  // Check for Element or SSR polyfill objects
+  if (
+    typeof element !== "undefined" &&
+    element &&
+    typeof element === "object"
+  ) {
+    // Try to get template content from SSR polyfill object or real Element
+    if ("_innerHTML" in element) {
+      templateText = (element as any)._innerHTML;
+    } else if ("innerHTML" in element) {
+      templateText = element.innerHTML;
+    } else {
+      templateText = String(element);
+    }
+  } else {
+    templateText = String(element);
+  }
   templateText = escapeHtml.unescape(templateText.replace(/<!---|--->/gi, ""));
   return templateBuilder(tmplId, templateText, templateEngine);
 });
@@ -1018,6 +1089,11 @@ const addTmpls: CompomintGlobal["addTmpls"] = (compomint.addTmpls = function (
     removeInnerTemplate = false;
   } else {
     removeInnerTemplate = !!removeInnerTemplate;
+  }
+
+  // Use default template engine if none provided
+  if (!templateEngine) {
+    templateEngine = compomint.templateEngine;
   }
 
   const container = safeTemplate(source);
@@ -1225,15 +1301,15 @@ const addTmplByUrl: CompomintGlobal["addTmplByUrl"] = (compomint.addTmplByUrl =
       ? importData.length === 0
         ? Promise.resolve()
         : Promise.all(importData.map(loadResource))
-            .then(() => {})
-            .catch((err) => {
-              console.error("Error loading resources in addTmplByUrl:", err);
-              throw err; // Re-throw the error to allow operationPromise to reject
-            })
+          .then(() => { })
+          .catch((err) => {
+            console.error("Error loading resources in addTmplByUrl:", err);
+            throw err; // Re-throw the error to allow operationPromise to reject
+          })
       : loadResource(importData).catch((err) => {
-          console.error("Error loading resource in addTmplByUrl:", err);
-          throw err; // Re-throw the error to allow operationPromise to reject
-        });
+        console.error("Error loading resource in addTmplByUrl:", err);
+        throw err; // Re-throw the error to allow operationPromise to reject
+      });
 
     // If callback is provided, use it; otherwise return the promise
     if (callback) {
@@ -1567,6 +1643,100 @@ tools.props = function (...propsObjects: Record<string, any>[]): string {
     }
   });
   return propStrArray.join(" ");
+};
+
+// Add SSR functionality
+compomint.ssr = {
+  isSupported: Environment.isServer,
+  setupEnvironment: setupSSREnvironment,
+  createRenderer: (options = {}) => createSSRRenderer(compomint, options),
+  renderToString: async (templateId: string, data: any = {}, options = {}) => {
+    const renderer = createSSRRenderer(compomint, options);
+    const result = await renderer.renderToString(templateId, data, options);
+    return result.html;
+  },
+  renderPage: async (templateId: string, data: any = {}, pageOptions = {}) => {
+    const renderer = createSSRRenderer(compomint);
+    return await renderer.renderPage(templateId, data, pageOptions);
+  },
+};
+
+// Setup SSR environment if we're on the server
+if (Environment.isServer()) {
+  setupSSREnvironment();
+}
+
+compomint.hydrate = function (): void {
+  if (Environment.isServer()) {
+    console.warn("Hydration cannot be run on the server.");
+    return;
+  }
+
+  const ssrData = (window as any).__COMPOMINT_SSR__;
+  if (!ssrData) {
+    if (configs.debug) {
+      console.log("No SSR data found for hydration.");
+    }
+    return;
+  }
+
+  if (configs.debug) {
+    console.log("Starting Compomint hydration...", ssrData);
+  }
+
+  const { componentIds, initialStates } = ssrData;
+
+  componentIds.forEach((componentId: string) => {
+    const element = document.querySelector(
+      `[data-co-id="${componentId}"]`
+    ) as HTMLElement;
+    if (!element) {
+      if (configs.debug) {
+        console.warn(
+          `Element for component ID "${componentId}" not found for hydration.`
+        );
+      }
+      return;
+    }
+
+    const tmplId = element.dataset.coTmplId || componentId.split("_")[0];
+    const tmplFunc = compomint.tmpl(tmplId);
+
+    if (tmplFunc) {
+      const initialState = initialStates ? initialStates[componentId] : {};
+      const data = initialState ? initialState.data : {};
+      const status = initialState ? initialState.status : {};
+
+      const component = tmplFunc({
+        ...initialState.data,
+        ...data,
+        //$existingElement: element,
+        $baseComponent: { status: initialState.status, _id: componentId },
+      });
+
+      const newElement = component.element;
+      newElement.dataset.coId = componentId;
+      newElement.dataset.coTmplId = tmplId;
+      (newElement as any).__compomint_scope__ = component;
+
+      element.parentElement?.replaceChild(newElement, element);
+
+      if (configs.debug) {
+        console.log(
+          `Hydrated component "${componentId}" from template "${tmplId}".`
+        );
+      }
+    } else {
+      if (configs.debug) {
+        console.warn(
+          `Template function for "${tmplId}" not found during hydration.`
+        );
+      }
+    }
+  });
+
+  // Clean up SSR data
+  delete (window as any).__COMPOMINT_SSR__;
 };
 
 // Add built-in template

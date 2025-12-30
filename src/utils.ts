@@ -13,7 +13,7 @@ const firstElementChild = function (ele: Element | DocumentFragment): Element | 
 const childNodeCount = function (ele: Element | DocumentFragment): number {
   return (
     ele.childElementCount ||
-    Array.prototype.filter.call(ele.childNodes, function (child: Node) {
+    Array.prototype.filter.call(ele.childNodes || [], function (child: Node) {
       return child instanceof Node;
     }).length
   );
@@ -22,13 +22,14 @@ const childNodeCount = function (ele: Element | DocumentFragment): number {
 const childElementCount = function (ele: Element | DocumentFragment): number {
   return (
     ele.childElementCount ||
-    Array.prototype.filter.call(ele.childNodes, function (child: Node) {
+    Array.prototype.filter.call(ele.childNodes || [], function (child: Node) {
       return child instanceof Element;
     }).length
   );
 };
 
 const cleanNode = function (node: Node): void {
+  if (!node.childNodes) return;
   for (let n = 0; n < node.childNodes.length; n++) {
     const child = node.childNodes[n];
     if (
@@ -44,12 +45,32 @@ const cleanNode = function (node: Node): void {
   }
 };
 
-const domParser = new DOMParser();
+const getDOMParser = () => {
+  if (typeof DOMParser !== 'undefined') {
+    return new DOMParser();
+  }
+  // SSR fallback - create mock DOMParser
+  return {
+    parseFromString: (str: string, type: string) => {
+      const mockDoc = {
+        body: {
+          childNodes: [],
+          firstChild: null,
+          appendChild: () => {},
+          removeChild: () => {}
+        }
+      };
+      return mockDoc;
+    }
+  };
+};
+
 const stringToElement = function (str: string | number): Node {
   if (typeof str === 'number' || !isNaN(Number(str))) {
     return document.createTextNode(String(str));
   } else if (typeof str === 'string') {
     try {
+      const domParser = getDOMParser();
       const doc = domParser.parseFromString(str, "text/html");
       const body = doc.body;
       if (body.childNodes.length === 1) {
