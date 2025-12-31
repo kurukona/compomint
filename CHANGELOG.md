@@ -1,3 +1,9 @@
+## [1.2.0](https://github.com/kurukona/compomint/compare/v1.1.4...v1.2.0) (2025-12-31)
+
+### Features
+
+* Add initial SSR support and documentation ([1891c2d](https://github.com/kurukona/compomint/commit/1891c2d46d7796eab94bea90668d45522398ef85))
+
 ## [1.1.4](https://github.com/kurukona/compomint/compare/v1.1.3...v1.1.4) (2025-07-29)
 
 ### Bug Fixes
