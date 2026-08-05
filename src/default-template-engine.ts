@@ -98,7 +98,6 @@ __lazyScope.elementPropsArray[eventId] = ${props}};\n__p+='`; // Store props in 
             props: Record<string, any> | null,
             eventId: number
           ) {
-            if (!props) return;
             // Find the element with the corresponding data-co-props attribute
             const $elementTrigger = wrapper.querySelector<Element>(
               `[data-co-props="${eventId}"]`
@@ -106,6 +105,9 @@ __lazyScope.elementPropsArray[eventId] = ${props}};\n__p+='`; // Store props in 
             // Remove the temporary attribute and set the properties
             if (!$elementTrigger) return;
             delete ($elementTrigger as HTMLElement).dataset.coProps;
+
+            if (!props) return;
+
             Object.keys(props).forEach(function (key: string) {
               $elementTrigger.setAttribute(key, String(props[key])); // Ensure value is string
             });
@@ -231,16 +233,16 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
                     compomint: CompomintGlobal;
                   }
                 ] = [
-                  $elementTrigger,
-                  $elementTrigger,
-                  {
-                    data: data,
-                    element: $elementTrigger,
-                    customData: elementLoad.customData,
-                    component: component,
-                    compomint: compomint,
-                  },
-                ];
+                    $elementTrigger,
+                    $elementTrigger,
+                    {
+                      data: data,
+                      element: $elementTrigger,
+                      customData: elementLoad.customData,
+                      component: component,
+                      compomint: compomint,
+                    },
+                  ];
                 elementLoad.loadFunc.call(...loadFuncParams);
               }
             } catch (e: any) {
@@ -377,17 +379,17 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
               compomint: CompomintGlobal;
             }
           ] = [
-            $elementTrigger,
-            null,
-            {
-              data: data,
-              customData: eventData.customData,
-              element: $elementTrigger,
-              componentElement: $targetElement || $childTarget?.parentElement,
-              component: component,
-              compomint: compomint,
-            },
-          ];
+              $elementTrigger,
+              null,
+              {
+                data: data,
+                customData: eventData.customData,
+                element: $elementTrigger,
+                componentElement: $targetElement || $childTarget?.parentElement,
+                component: component,
+                compomint: compomint,
+              },
+            ];
 
           // Basic case: eventFunc is a single function
           if (typeof eventFunc === "function") {
@@ -489,9 +491,8 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
           const source = `';\n{
 const elementId = (__lazyScope.elementArray.length);
 __p+='<template data-co-tmpl-element-id="'+elementId+'"></template>';
-__lazyScope.elementArray[elementId] = {childTarget: ${
-            elementSplitArray[0]
-          }, nonblocking: ${elementSplitArray[1] || false}};};
+__lazyScope.elementArray[elementId] = {childTarget: ${elementSplitArray[0]
+            }, nonblocking: ${elementSplitArray[1] || false}};};
 __p+='`;
           return source;
         },
@@ -677,11 +678,11 @@ __p+='`;
 
             nonblocking === undefined || nonblocking === false
               ? // Execute immediately or with a delay based on nonblocking
-                doFunc()
+              doFunc()
               : setTimeout(
-                  doFunc,
-                  typeof nonblocking === "number" ? nonblocking : 0
-                );
+                doFunc,
+                typeof nonblocking === "number" ? nonblocking : 0
+              );
           }); // end forEach
         },
       },

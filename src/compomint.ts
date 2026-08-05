@@ -21,6 +21,7 @@ import { firstElementChild, childElementCount, cleanNode } from "./utils";
 import { Environment, setupSSREnvironment, SSRDOMPolyfill } from "./ssr";
 import { SSRRenderer, createSSRRenderer } from "./ssr-renderer";
 import { defaultTemplateEngineSSR } from "./default-template-engine-ssr";
+import { CompomintRouter, RouterOptions, RouterItem, matchRoute, buildPageToRouterMap, getUrlForStateFromMap, parseUrlFromPath } from "./router";
 
 // Polyfill for Object.assign
 if (typeof Object.assign != "function") {
@@ -1739,7 +1740,30 @@ compomint.hydrate = function (): void {
   delete (window as any).__COMPOMINT_SSR__;
 };
 
+let activeRouter: CompomintRouter | null = null;
+const router: CompomintRouter = new CompomintRouter();
+
+compomint.createRouter = (options?: RouterOptions): CompomintRouter => {
+  if (activeRouter) {
+    activeRouter.stop();
+  }
+  activeRouter = new CompomintRouter(options);
+  activeRouter.start();
+  compomint.router = activeRouter;
+  return activeRouter;
+};
+
+compomint.navigate = (path: string, options?: { replace?: boolean; state?: any }): void => {
+  if (activeRouter) {
+    activeRouter.navigate(path, options);
+  } else {
+    router.navigate(path, options);
+  }
+};
+
 // Add built-in template
 applyBuiltInTemplates(addTmpl);
 
-export { compomint, tmpl };
+export { compomint, tmpl, router, CompomintRouter, RouterItem, matchRoute, buildPageToRouterMap, getUrlForStateFromMap, parseUrlFromPath };
+
+

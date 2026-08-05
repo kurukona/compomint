@@ -189,14 +189,14 @@ __lazyScope.elementPropsArray[eventId] = ${props}};\n__p+='`; // Store props in 
                 lazyExec: function (data, lazyScope, component, wrapper) {
                     // Iterate over stored props and apply them to elements
                     lazyScope.elementPropsArray.forEach(function (props, eventId) {
-                        if (!props)
-                            return;
                         // Find the element with the corresponding data-co-props attribute
                         const $elementTrigger = wrapper.querySelector(`[data-co-props="${eventId}"]`);
                         // Remove the temporary attribute and set the properties
                         if (!$elementTrigger)
                             return;
                         delete $elementTrigger.dataset.coProps;
+                        if (!props)
+                            return;
                         Object.keys(props).forEach(function (key) {
                             $elementTrigger.setAttribute(key, String(props[key])); // Ensure value is string
                         });
@@ -1685,6 +1685,271 @@ const defaultTemplateEngineSSR = (compomint) => {
  * Copyright (c) 2025-present, Choi Sungho
  * Code released under the MIT license
  */
+class CompomintRouter {
+    constructor(options = {}) {
+        this.routes = {};
+        this.currentPath = '';
+        this.listenerBound = false;
+        this.handlePopState = () => {
+            this.resolveCurrentLocation();
+        };
+        this.mode = options.mode || 'history';
+        this.onRouteMatch = options.onRouteMatch;
+        this.onNotFound = options.onNotFound;
+        this.beforeEachHook = options.beforeEach;
+        this.afterEachHook = options.afterEach;
+        if (options.routes) {
+            this.registerRoutes(options.routes);
+        }
+    }
+    registerRoutes(routes) {
+        const flattenRoutes = (routeMap, prefix = '') => {
+            for (const key of Object.keys(routeMap)) {
+                const item = routeMap[key];
+                if (!item || typeof item !== 'object')
+                    continue;
+                let pattern = key.startsWith('/') ? key : (prefix ? `${prefix}/${key}` : `/${key}`);
+                pattern = pattern.replace(/\/+/g, '/');
+                if (pattern.length > 1 && pattern.endsWith('/')) {
+                    pattern = pattern.slice(0, -1);
+                }
+                if (item.render || item.handler || item.pageComponent || item.page) {
+                    this.routes[pattern] = Object.assign(Object.assign({}, item), { path: pattern });
+                }
+                // Recursively inspect nested route objects
+                const childKeys = Object.keys(item).filter(k => k !== 'render' && k !== 'handler' && k !== 'meta' && k !== 'params' && typeof item[k] === 'object');
+                if (childKeys.length > 0) {
+                    flattenRoutes(item, pattern);
+                }
+            }
+        };
+        flattenRoutes(routes);
+    }
+    start() {
+        if (typeof window === 'undefined')
+            return;
+        if (!this.listenerBound) {
+            if (this.mode === 'history') {
+                window.addEventListener('popstate', this.handlePopState);
+            }
+            else {
+                window.addEventListener('hashchange', this.handlePopState);
+            }
+            this.listenerBound = true;
+        }
+        this.resolveCurrentLocation();
+    }
+    stop() {
+        if (typeof window === 'undefined' || !this.listenerBound)
+            return;
+        if (this.mode === 'history') {
+            window.removeEventListener('popstate', this.handlePopState);
+        }
+        else {
+            window.removeEventListener('hashchange', this.handlePopState);
+        }
+        this.listenerBound = false;
+    }
+    getCurrentPath() {
+        if (typeof window === 'undefined')
+            return '/';
+        if (this.mode === 'hash') {
+            return window.location.hash.slice(1) || '/';
+        }
+        return window.location.pathname + window.location.search;
+    }
+    resolveCurrentLocation() {
+        const fullPath = this.getCurrentPath();
+        return this.matchAndDispatch(fullPath);
+    }
+    match(urlPath) {
+        const [pathOnly, searchOnly] = urlPath.split('?');
+        const cleanPath = (pathOnly || '/').replace(/\/+/g, '/').replace(/\/$/, '') || '/';
+        const queryParams = {};
+        if (searchOnly) {
+            const searchParams = new URLSearchParams(searchOnly);
+            searchParams.forEach((val, key) => {
+                queryParams[key] = val;
+            });
+        }
+        const pathParts = cleanPath.split('/').filter(Boolean);
+        for (const routePattern of Object.keys(this.routes)) {
+            const patternParts = routePattern.split('/').filter(Boolean);
+            if (patternParts.length !== pathParts.length)
+                continue;
+            const params = {};
+            let isMatch = true;
+            for (let i = 0; i < patternParts.length; i++) {
+                if (patternParts[i].startsWith(':')) {
+                    const paramName = patternParts[i].slice(1);
+                    params[paramName] = decodeURIComponent(pathParts[i]);
+                }
+                else if (patternParts[i] !== pathParts[i]) {
+                    isMatch = false;
+                    break;
+                }
+            }
+            if (isMatch) {
+                const routeDef = this.routes[routePattern];
+                return {
+                    path: cleanPath,
+                    routePattern,
+                    params,
+                    queryParams,
+                    handler: (routeDef.handler || routeDef.render),
+                    meta: routeDef.meta,
+                    rawRoute: routeDef,
+                };
+            }
+        }
+        // Catch-all wildcards or root match fallback if routePattern === '/' and path === '/'
+        if (cleanPath === '/' && this.routes['/']) {
+            const routeDef = this.routes['/'];
+            return {
+                path: '/',
+                routePattern: '/',
+                params: {},
+                queryParams,
+                handler: (routeDef.handler || routeDef.render),
+                meta: routeDef.meta,
+                rawRoute: routeDef,
+            };
+        }
+        return null;
+    }
+    navigate(path, options = {}) {
+        if (typeof window === 'undefined')
+            return;
+        const fromPath = this.currentPath;
+        const executeNavigation = (cancel) => {
+            if (cancel)
+                return;
+            if (this.mode === 'history') {
+                if (options.replace) {
+                    window.history.replaceState(options.state || {}, '', path);
+                }
+                else {
+                    window.history.pushState(options.state || {}, '', path);
+                }
+            }
+            else {
+                const targetHash = '#' + (path.startsWith('/') ? path : '/' + path);
+                if (options.replace) {
+                    const href = window.location.href.replace(/(#.*)?$/, targetHash);
+                    window.location.replace(href);
+                }
+                else {
+                    window.location.hash = targetHash;
+                }
+            }
+            this.matchAndDispatch(path, fromPath);
+        };
+        if (this.beforeEachHook) {
+            this.beforeEachHook(path, fromPath, executeNavigation);
+        }
+        else {
+            executeNavigation(false);
+        }
+    }
+    matchAndDispatch(fullPath, fromPath = this.currentPath) {
+        const match = this.match(fullPath);
+        this.currentPath = fullPath;
+        if (match) {
+            if (match.handler) {
+                match.handler(match.params, match.queryParams, match);
+            }
+            if (this.onRouteMatch) {
+                this.onRouteMatch(match);
+            }
+            if (this.afterEachHook) {
+                this.afterEachHook(fullPath, fromPath);
+            }
+            return match;
+        }
+        else {
+            if (this.onNotFound) {
+                this.onNotFound(fullPath);
+            }
+            return null;
+        }
+    }
+}
+CompomintRouter.matchRoute = matchRoute;
+CompomintRouter.buildPageToRouterMap = buildPageToRouterMap;
+CompomintRouter.getUrlForStateFromMap = getUrlForStateFromMap;
+CompomintRouter.parseUrlFromPath = parseUrlFromPath;
+function matchRoute(parts, routers, queryParams, pathParams = {}) {
+    if (!parts || parts.length === 0 || (parts.length === 1 && parts[0] === '')) {
+        const finalRouter = routers['/'] ? routers['/'] : routers;
+        return Object.assign(Object.assign({}, finalRouter), { params: Object.assign(Object.assign({}, finalRouter.params), pathParams) });
+    }
+    const currentPart = parts[0];
+    let nextRouters = routers[currentPart];
+    if (!nextRouters && currentPart !== undefined && currentPart !== '') {
+        const keys = Object.keys(routers).filter(k => k !== '/' && k !== 'page' && k !== 'params' && k !== 'url' && k !== 'pageComponent');
+        const dynamicKey = keys.find(k => k.startsWith(':'));
+        if (dynamicKey) {
+            nextRouters = routers[dynamicKey];
+            const paramName = dynamicKey.slice(1);
+            pathParams[paramName] = currentPart;
+        }
+    }
+    if (nextRouters) {
+        return matchRoute(parts.slice(1), nextRouters, queryParams, pathParams);
+    }
+    if (routers.queryParamsParser) {
+        const result = routers.queryParamsParser(routers.params, queryParams, routers);
+        return Object.assign(Object.assign({}, result), { params: Object.assign(Object.assign({}, result.params), pathParams) });
+    }
+    const finalRouter = routers['/'] ? routers['/'] : routers;
+    return Object.assign(Object.assign({}, finalRouter), { params: Object.assign(Object.assign({}, finalRouter.params), pathParams) });
+}
+function buildPageToRouterMap(routers, map = {}) {
+    if (!routers || typeof routers !== 'object')
+        return map;
+    if (routers.page) {
+        map[routers.page] = routers;
+    }
+    for (const key of Object.keys(routers)) {
+        if (key !== 'pageComponent' && key !== 'params' && typeof routers[key] === 'object' && routers[key] !== null) {
+            buildPageToRouterMap(routers[key], map);
+        }
+    }
+    return map;
+}
+function getUrlForStateFromMap(pageToRouterMap, page, params, routePrefix = '') {
+    const routeObj = pageToRouterMap[page];
+    let rawUrl = '/';
+    if (routeObj) {
+        if (typeof routeObj.url === 'function') {
+            rawUrl = routeObj.url(params);
+        }
+        else if (typeof routeObj.url === 'string') {
+            rawUrl = routeObj.url;
+        }
+    }
+    return `${routePrefix}${rawUrl}`;
+}
+function parseUrlFromPath(pathname, search, routerApp, prefixToRemove) {
+    let path = pathname;
+    if (prefixToRemove && path.startsWith(`${prefixToRemove}/`)) {
+        path = path.slice(prefixToRemove.length + 1);
+    }
+    else if (prefixToRemove && path === prefixToRemove) {
+        path = '';
+    }
+    else if (path.startsWith('/')) {
+        path = path.slice(1);
+    }
+    const queryParams = new URLSearchParams(search);
+    const parts = path.split('/');
+    return matchRoute(parts, routerApp, queryParams);
+}
+
+/*
+ * Copyright (c) 2025-present, Choi Sungho
+ * Code released under the MIT license
+ */
 // Polyfill for Object.assign
 if (typeof Object.assign != "function") {
     Object.defineProperty(Object, "assign", {
@@ -3065,8 +3330,27 @@ compomint.hydrate = function () {
     // Clean up SSR data
     delete window.__COMPOMINT_SSR__;
 };
+let activeRouter = null;
+const router = new CompomintRouter();
+compomint.createRouter = (options) => {
+    if (activeRouter) {
+        activeRouter.stop();
+    }
+    activeRouter = new CompomintRouter(options);
+    activeRouter.start();
+    compomint.router = activeRouter;
+    return activeRouter;
+};
+compomint.navigate = (path, options) => {
+    if (activeRouter) {
+        activeRouter.navigate(path, options);
+    }
+    else {
+        router.navigate(path, options);
+    }
+};
 // Add built-in template
 applyBuiltInTemplates(addTmpl);
 
-export { compomint, tmpl };
+export { CompomintRouter, buildPageToRouterMap, compomint, getUrlForStateFromMap, matchRoute, parseUrlFromPath, router, tmpl };
 //# sourceMappingURL=compomint.esm.js.map

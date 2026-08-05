@@ -370,6 +370,30 @@ compomint
   });
 ```
 
+#### Method 5: Loading Templates via Module Bundlers (e.g., Vite, Webpack)
+
+When using modern frontend build tools like Vite, you can import `.cmint` (or `.html`) templates directly as raw strings and add them using `compomint.addTmpls()`.
+
+```javascript
+import commonTmpl from './templates/components/common.cmint?raw';
+import eventTmpl from './templates/components/event.cmint?raw';
+import attendTmpl from './templates/components/attend.cmint?raw';
+import pagesTmpl from './templates/pages/pages.cmint?raw';
+
+async function loadTemplates() {
+  compomint.addTmpls(commonTmpl);
+  compomint.addTmpls(eventTmpl);
+  compomint.addTmpls(attendTmpl);
+  compomint.addTmpls(pagesTmpl);
+}
+```
+
+**Advantages of this approach:**
+- **No Network Requests:** Templates are bundled directly into the JavaScript output, avoiding the overhead of multiple HTTP requests.
+- **Reliable in Dev Servers:** Bypasses dev server routing issues where custom extensions might trigger an SPA fallback (serving index.html) or return 404s.
+- **Instant Availability:** Because the templates are bundled synchronously as strings, `compomint.addTmpls()` completes immediately.
+- **Hot Module Replacement (HMR):** Modifying the raw imported `.cmint` file can trigger faster, more seamless updates.
+
 ### 2. Create and Use Components
 
 Once templates are defined, you can create components and add them to the DOM:
@@ -938,6 +962,52 @@ Load handlers receive these parameters:
    - `compomint` - Reference to the global compomint object
 
 ## Advanced Features
+
+### Client-Side Router (SPA Routing)
+
+Compomint provides a built-in lightweight router (`CompomintRouter`) for managing Single Page Application navigation, route matching, URL query parsing, and history state.
+
+```javascript
+import { compomint, tmpl } from 'compomint';
+
+// 1. Create and initialize the router
+compomint.createRouter({
+  mode: 'history', // 'history' or 'hash'
+  routes: {
+    '/': {
+      render: () => {
+        const page = tmpl.homePage();
+        document.getElementById('app').replaceChildren(page.element);
+      }
+    },
+    '/events/:id': {
+      render: (match) => {
+        // match.params.id contains the dynamic URL parameter
+        // match.queryParams contains parsed URL query string
+        const page = tmpl.eventDetailPage({ eventId: match.params.id, tab: match.queryParams.tab });
+        document.getElementById('app').replaceChildren(page.element);
+      }
+    }
+  },
+  onNotFound: (path) => {
+    console.warn(`Route not found: ${path}`);
+  }
+});
+
+// 2. Programmatic navigation
+compomint.navigate('/events/123?tab=info');
+
+// 3. Static tree routing utilities & namespace
+import { CompomintRouter } from 'compomint';
+
+const PageToRouter = CompomintRouter.buildPageToRouterMap(Router.app);
+const currentRoute: CompomintRouter.RouterItem = CompomintRouter.parseUrlFromPath(
+  window.location.pathname,
+  window.location.search,
+  Router.app
+);
+const urlStr = CompomintRouter.getUrlForStateFromMap(PageToRouter, 'home', { id: '123' });
+```
 
 ### Internationalization Support (i18n)
 

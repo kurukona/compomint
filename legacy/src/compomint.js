@@ -560,9 +560,8 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
         const source = `';\n(() => {
 let elementId = (__lazyScope.elementArray.length);
 __p+='<template data-co-tmpl-element-id=\"'+elementId+'\"></template>';
-__lazyScope.elementArray[elementId] = {childTarget: ${
-          elementSplitArray[0]
-        }, nonblocking: ${elementSplitArray[1] || false}};})();
+__lazyScope.elementArray[elementId] = {childTarget: ${elementSplitArray[0]
+          }, nonblocking: ${elementSplitArray[1] || false}};})();
 __p+='`;
         return source;
       },
@@ -718,9 +717,9 @@ __p+='`;
           nonblocking == undefined || nonblocking === false
             ? doFunc()
             : setTimeout(
-                doFunc,
-                typeof nonblocking === "number" ? nonblocking : 0
-              ); // Use 0ms delay if nonblocking is just 'true'
+              doFunc,
+              typeof nonblocking === "number" ? nonblocking : 0
+            ); // Use 0ms delay if nonblocking is just 'true'
         }); // end forEach
       },
     },
@@ -1158,16 +1157,16 @@ return __p;`;
       renderedHTML = !data // Handle null/undefined data gracefully
         ? `<template data-co-empty-template="${tmplId}"></template>` // Render empty placeholder if no data
         : sourceGenFunc.call(
-            wrapperElement || null, // `this` context inside renderFunc
-            data,
-            component[statusKeyName],
-            component, // Pass scope as 'component' (or custom name)
-            compomint.i18n[tmplId], // Pass i18n object
-            compomint,
-            tmpl,
-            lazyScope, // Pass internal lazy scope
-            false
-          );
+          wrapperElement || null, // `this` context inside renderFunc
+          data,
+          component[statusKeyName],
+          component, // Pass scope as 'component' (or custom name)
+          compomint.i18n[tmplId], // Pass i18n object
+          compomint,
+          tmpl,
+          lazyScope, // Pass internal lazy scope
+          false
+        );
     } catch (e) {
       if (configs.throwError) {
         console.error(`Runtime error during render of "${tmplId}":`, e.message);
@@ -1524,15 +1523,15 @@ return __p;`;
   if (tmplId) {
     const tmplMeta = configs.debug
       ? {
-          renderingFunc: renderingFunc,
-          source: escapeHtml.escape(
-            `function ${tmplId}_source (${templateEngine.keys.dataKeyName}, ${templateEngine.keys.statusKeyName}, ${templateEngine.keys.componentKeyName}, ${templateEngine.keys.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`
-          ),
-          templateText: escapeHtml.escape(templateText),
-        }
+        renderingFunc: renderingFunc,
+        source: escapeHtml.escape(
+          `function ${tmplId}_source (${templateEngine.keys.dataKeyName}, ${templateEngine.keys.statusKeyName}, ${templateEngine.keys.componentKeyName}, ${templateEngine.keys.i18nKeyName}, __lazyScope, __debugger) {\n${source}\n}`
+        ),
+        templateText: escapeHtml.escape(templateText),
+      }
       : {
-          renderingFunc: renderingFunc,
-        };
+        renderingFunc: renderingFunc,
+      };
     cachedTmpl.set(tmplId, tmplMeta);
 
     // Add to global tmpl namespace (e.g., tmpl.ui.Button)
@@ -1868,15 +1867,15 @@ const addTmplByUrl = (compomint.addTmplByUrl = function compomint_addTmplByUrl(
     ? importData.length === 0
       ? Promise.resolve()
       : Promise.all(importData.map(loadResource))
-          .then(function () {})
-          .catch(function (err) {
-            console.error("Error loading resources in addTmplByUrl:", err);
-            throw err; // Re-throw the error to allow operationPromise to reject
-          })
+        .then(function () { })
+        .catch(function (err) {
+          console.error("Error loading resources in addTmplByUrl:", err);
+          throw err; // Re-throw the error to allow operationPromise to reject
+        })
     : loadResource(importData).catch(function (err) {
-        console.error("Error loading resource in addTmplByUrl:", err);
-        throw err; // Re-throw the error to allow operationPromise to reject
-      });
+      console.error("Error loading resource in addTmplByUrl:", err);
+      throw err; // Re-throw the error to allow operationPromise to reject
+    });
 
   // If callback is provided, use it; otherwise return the promise
   if (callback) {
