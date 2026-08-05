@@ -1,3 +1,9 @@
+## [1.3.0](https://github.com/kurukona/compomint/compare/v1.2.0...v1.3.0) (2026-08-05)
+
+### Features
+
+* **router:** Add static tree routing utilities and CompomintRouter namespace ([5731113](https://github.com/kurukona/compomint/commit/57311137bb227f6bf72f46e4b75658ab47cef989))
+
 ## [1.2.0](https://github.com/kurukona/compomint/compare/v1.1.4...v1.2.0) (2025-12-31)
 
 ### Features
