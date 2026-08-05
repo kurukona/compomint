@@ -1,3 +1,9 @@
+## [1.3.1](https://github.com/kurukona/compomint/compare/v1.3.0...v1.3.1) (2026-08-05)
+
+### Bug Fixes
+
+* **security:** Upgrade undici to patch CVE-2026-13697 vulnerability ([e1b5322](https://github.com/kurukona/compomint/commit/e1b53223cf8d3cfa76436cefff106dba12c1e9db))
+
 ## [1.3.0](https://github.com/kurukona/compomint/compare/v1.2.0...v1.3.0) (2026-08-05)
 
 ### Features
