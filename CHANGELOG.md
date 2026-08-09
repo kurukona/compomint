@@ -1,3 +1,9 @@
+## [1.3.2](https://github.com/kurukona/compomint/compare/v1.3.1...v1.3.2) (2026-08-09)
+
+### Bug Fixes
+
+* **template-engine:** rename internal index variable to __coEventId to prevent scope collision with user eventId ([68521ee](https://github.com/kurukona/compomint/commit/68521ee221d99789d6a0f90e039bad30e3acd5cd))
+
 ## [1.3.1](https://github.com/kurukona/compomint/compare/v1.3.0...v1.3.1) (2026-08-05)
 
 ### Bug Fixes
