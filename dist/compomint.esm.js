@@ -182,8 +182,8 @@ const defaultTemplateEngine = (compomint) => {
             elementProps: {
                 pattern: /data-co-props="##:([\s\S]+?)##"/g,
                 exec: function (props) {
-                    const source = `';\n{const eventId = (__lazyScope.elementPropsArray.length);\n__p+='data-co-props="'+eventId+'"';\n
-__lazyScope.elementPropsArray[eventId] = ${props}};\n__p+='`; // Store props in lazy scope
+                    const source = `';\n{const __coEventId = (__lazyScope.elementPropsArray.length);\n__p+='data-co-props="'+__coEventId+'"';\n
+__lazyScope.elementPropsArray[__coEventId] = ${props}};\n__p+='`; // Store props in lazy scope
                     return source;
                 },
                 lazyExec: function (data, lazyScope, component, wrapper) {
@@ -206,8 +206,8 @@ __lazyScope.elementPropsArray[eventId] = ${props}};\n__p+='`; // Store props in 
             namedElement: {
                 pattern: /data-co-named-element="##:([\s\S]+?)##"/g,
                 exec: function (key) {
-                    const source = `';\nconst eventId = (__lazyScope.namedElementArray.length);\n__p+='data-co-named-element="'+eventId+'"';\n
-__lazyScope.namedElementArray[eventId] = ${key};\n__p+='`; // Store the key in lazy scope
+                    const source = `';\nconst __coEventId = (__lazyScope.namedElementArray.length);\n__p+='data-co-named-element="'+__coEventId+'"';\n
+__lazyScope.namedElementArray[__coEventId] = ${key};\n__p+='`; // Store the key in lazy scope
                     return source;
                 },
                 lazyExec: function (data, lazyScope, component, wrapper) {
@@ -229,8 +229,8 @@ __lazyScope.namedElementArray[eventId] = ${key};\n__p+='`; // Store the key in l
             elementRef: {
                 pattern: /data-co-element-ref="##:([\s\S]+?)##"/g,
                 exec: function (key) {
-                    const source = `';\n{const eventId = (__lazyScope.elementRefArray.length);\n__p+='data-co-element-ref="'+eventId+'"';
-var ${key} = null;\n__lazyScope.elementRefArray[eventId] = function(target) {${key} = target;}};\n__p+='`; // Store a function to assign the element
+                    const source = `';\n{const __coEventId = (__lazyScope.elementRefArray.length);\n__p+='data-co-element-ref="'+__coEventId+'"';
+var ${key} = null;\n__lazyScope.elementRefArray[__coEventId] = function(target) {${key} = target;}};\n__p+='`; // Store a function to assign the element
                     return source;
                 },
                 lazyExec: function (data, lazyScope, component, wrapper) {
@@ -254,8 +254,8 @@ var ${key} = null;\n__lazyScope.elementRefArray[eventId] = function(target) {${k
                 exec: function (elementLoad) {
                     const elementLoadSplitArray = elementLoad.split("::");
                     // Store the load function and custom data in lazy scope
-                    const source = `';\n{const eventId = (__lazyScope.elementLoadArray.length);\n__p+='data-co-load="'+eventId+'"';
-__lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, customData: ${elementLoadSplitArray[1]}};}\n__p+='`; // 'customData' is determined when compiled, so it does not change even if refreshed.
+                    const source = `';\n{const __coEventId = (__lazyScope.elementLoadArray.length);\n__p+='data-co-load="'+__coEventId+'"';
+__lazyScope.elementLoadArray[__coEventId] = {loadFunc: ${elementLoadSplitArray[0]}, customData: ${elementLoadSplitArray[1]}};}\n__p+='`; // 'customData' is determined when compiled, so it does not change even if refreshed.
                     return source;
                 },
                 lazyExec: function (data, lazyScope, component, wrapper) {
@@ -300,13 +300,13 @@ __lazyScope.elementLoadArray[eventId] = {loadFunc: ${elementLoadSplitArray[0]}, 
                     const eventStrArray = event.split(":::");
                     // eventStrArray = ["eventFunc::customData", "eventFunc::customData"]
                     // Store event handlers in lazy scope
-                    let source = `';\n{const eventId = (__lazyScope.eventArray.length);\n__p+='data-co-event="'+eventId+'"';\n`;
+                    let source = `';\n{const __coEventId = (__lazyScope.eventArray.length);\n__p+='data-co-event="'+__coEventId+'"';\n`;
                     const eventArray = [];
                     for (let i = 0, size = eventStrArray.length; i < size; i++) {
                         const eventSplitArray = eventStrArray[i].split("::");
                         eventArray.push(`{eventFunc: ${eventSplitArray[0]}, $parent: this, customData: ${eventSplitArray[1]}}`);
                     }
-                    source += `__lazyScope.eventArray[eventId] = [${eventArray.join(",")}];}\n__p+='`;
+                    source += `__lazyScope.eventArray[__coEventId] = [${eventArray.join(",")}];}\n__p+='`;
                     return source;
                 },
                 lazyExec: function (data, lazyScope, component, wrapper) {
